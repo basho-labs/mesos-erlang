@@ -1,0 +1,9 @@
+.idea
+erl_mesos.iml
+.rebar
+deps
+doc/*
+ebin
+logs
+*.beam
+Emakefile
