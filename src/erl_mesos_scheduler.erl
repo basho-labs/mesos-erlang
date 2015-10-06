@@ -113,15 +113,22 @@ handle_info({hackney_response, ClientRef, Response},
     handle_subscribe_response(Response, State);
 handle_info({'DOWN', ClientRef, _Reason},
             #state{client_ref = ClientRef} = State) ->
-    set_resubscribe_timeout(State);
+    start_resubscribe_timer(State);
+handle_info({timeout, HeartbeatTimeoutRef, heartbeat},
+            #state{subscribe_state = subscribed,
+                   heartbeat_timeout_ref = HeartbeatTimeoutRef} = State) ->
+    start_resubscribe_timer(State);
 handle_info({timeout, HeartbeatTimeoutRef, heartbeat},
             #state{heartbeat_timeout_ref = HeartbeatTimeoutRef} = State) ->
-    io:format("Heartbeat timeout ~p~n", [State]),
-    set_resubscribe_timeout(State);
+    {noreply, State};
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
-            #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} =
-            State) ->
+            #state{subscribe_state = undefined,
+                   resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
+    io:format("Resubscribe ~n"),
     resubscribe(State);
+handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
+            #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
+    {noreply, State};
 handle_info(Request, State) ->
     io:format("== Info ~p~n", [Request]),
     io:format("== State ~p~n~n", [State]),
@@ -341,9 +348,9 @@ handle_subscribe_response({headers, Headers},
     hackney:stream_next(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse1}};
 handle_subscribe_response(done, State) ->
-    set_resubscribe_timeout(State);
+    start_resubscribe_timer(State);
 handle_subscribe_response({error, _Reason}, State) ->
-    set_resubscribe_timeout(State);
+    start_resubscribe_timer(State);
 handle_subscribe_response(Packets,
                           #state{subscribe_state =
                                  #subscribe_response{status = 200}} = State) ->
@@ -357,20 +364,20 @@ handle_subscribe_response(Packets,
                           #state{subscribe_state = subscribed} = State) ->
     handle_packets(Packets, State).
 
-%% @doc Sets resubscribe timeout.
+%% @doc Start resubscribe timer.
 %% @private
--spec set_resubscribe_timeout(state()) ->
+-spec start_resubscribe_timer(state()) ->
     {noreply, state()} | {stop, shutdown, state()}.
-set_resubscribe_timeout(#state{framework_id = undefined} = State) ->
+start_resubscribe_timer(#state{framework_id = undefined} = State) ->
     {stop, shutdown, State};
-set_resubscribe_timeout(#state{framework_info =
+start_resubscribe_timer(#state{framework_info =
                                #framework_info{failover_timeout = undefined}} =
                         State) ->
     {stop, shutdown, State};
-set_resubscribe_timeout(#state{max_num_resubscribe = NumResubscribe,
+start_resubscribe_timer(#state{max_num_resubscribe = NumResubscribe,
                                num_resubscribe = NumResubscribe} = State) ->
     {stop, shutdown, State};
-set_resubscribe_timeout(#state{client_ref = ClientRef,
+start_resubscribe_timer(#state{client_ref = ClientRef,
                                num_resubscribe = NumResubscribe,
                                resubscribe_timeout = ResubscribeTimeout} =
                         State) ->
@@ -433,8 +440,10 @@ parse_packet(Packet, #state{subscribe_state = SubscribeState,
             State1 = State#state{subscribe_state = subscribed,
                                  framework_id = SubscribeFrameworkId},
             call(registered, Subscribed, set_heartbeat_timeout(State1));
-        {subscribed_packet, _Subscribed} ->
-            {ok, State};
+        {subscribed_packet, _Subscribed}
+          when is_record(SubscribeState, subscribe_response) ->
+            State1 = State#state{subscribe_state = subscribed},
+            {ok, set_heartbeat_timeout(State1)};
         heartbeat_packet ->
             {ok, set_heartbeat_timeout(State)};
         DecodePacket ->
@@ -487,8 +496,8 @@ format_state(#state{scheduler = Scheduler,
                     num_resubscribe = NumResubscribe,
                     resubscribe_timeout_ref = ResubscribeTimeoutRef}) ->
     State = [{data_format, DataFormat},
-             {master_host, MasterHost},
              {heartbeat_timeout, HeartbeatTimeout},
+             {master_host, MasterHost},
              {subscribe_req_options, SubscribeReqOptions},
              {heartbeat_timeout_window, HeartbeatTimeoutWindow},
              {max_num_resubscribe, MaxNumResubscribe},
