@@ -16,9 +16,9 @@
 
 -record(state, {scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
+                heartbeat_timeout :: pos_integer(),
                 master_host :: binary(),
                 subscribe_req_options :: [{atom(), term()}],
-                heartbeat_timeout :: pos_integer(),
                 heartbeat_timeout_window :: pos_integer(),
                 max_num_resubscribe :: non_neg_integer() | infinity,
                 resubscribe_timeout :: non_neg_integer(),
@@ -55,15 +55,15 @@
 
 -define(DEFAULT_SUBSCRIBE_REQ_OPTIONS, []).
 
--define(DEFAULT_HEEARTBEAT_TIMEOUT, 15000).
-
--define(DEFAULT_HEEARTBEAT_TIMEOUT_WINDOW, 5000).
+-define(DEFAULT_HEARTBEAT_TIMEOUT_WINDOW, 5000).
 
 -define(DEFAULT_MAX_NUM_RESUBSCRIBE, infinity).
 
 -define(DEFAULT_RESUBSCRIBE_TIMEOUT, 0).
 
 -define(DATA_FORMAT, json).
+
+-define(HEARTBEAT_TIMEOUT, 15000).
 
 -define(SUBSCRIBE_REQ_OPTIONS, [{async, once},
                                 {recv_timeout, infinity},
@@ -113,7 +113,7 @@ handle_info({hackney_response, ClientRef, Response},
     handle_subscribe_response(Response, State);
 handle_info({'DOWN', ClientRef, _Reason},
             #state{client_ref = ClientRef} = State) ->
-    start_resubscribe_timer(State);
+    set_resubscribe_timeout(State);
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} =
             State) ->
@@ -176,22 +176,6 @@ subscribe_req_options(Options) ->
             {error, {bad_subscribe_req_options, SubscribeReqOptions}}
     end.
 
-%% @doc Returns heartbeat timeout.
-%% @private
--spec heartbeat_timeout(options()) ->
-    {ok, {heartbeat_timeout, non_neg_integer()}} |
-    {error, {bad_heartbeat_timeout, term()}}.
-heartbeat_timeout(Options) ->
-    case erl_mesos_options:get_value(heartbeat_timeout, Options,
-                                     ?DEFAULT_HEEARTBEAT_TIMEOUT) of
-        HeartbeatTimeout
-          when is_integer(HeartbeatTimeout) andalso
-               HeartbeatTimeout > 0 ->
-            {ok, {heartbeat_timeout, HeartbeatTimeout}};
-        HeartbeatTimeout ->
-            {error, {bad_heartbeat_timeout, HeartbeatTimeout}}
-    end.
-
 %% @doc Returns heartbeat timeout window.
 %% @private
 -spec heartbeat_timeout_window(options()) ->
@@ -199,10 +183,10 @@ heartbeat_timeout(Options) ->
     {error, {bad_heartbeat_timeout_window, term()}}.
 heartbeat_timeout_window(Options) ->
     case erl_mesos_options:get_value(heartbeat_timeout_window, Options,
-                                     ?DEFAULT_HEEARTBEAT_TIMEOUT_WINDOW) of
+                                     ?DEFAULT_HEARTBEAT_TIMEOUT_WINDOW) of
         HeartbeatTimeoutWindow
             when is_integer(HeartbeatTimeoutWindow) andalso
-                 HeartbeatTimeoutWindow > 0 ->
+                 HeartbeatTimeoutWindow >= 0 ->
             {ok, {heartbeat_timeout_window, HeartbeatTimeoutWindow}};
         HeartbeatTimeoutWindow ->
             {error, {bad_heartbeat_timeout_window, HeartbeatTimeoutWindow}}
@@ -217,8 +201,8 @@ max_num_resubscribe(Options) ->
     case erl_mesos_options:get_value(max_num_resubscribe, Options,
                                      ?DEFAULT_MAX_NUM_RESUBSCRIBE) of
         MaxNumResubscribe
-          when is_integer(MaxNumResubscribe) orelse
-               MaxNumResubscribe =:= infinity ->
+          when (is_integer(MaxNumResubscribe) andalso MaxNumResubscribe >=0)
+               orelse MaxNumResubscribe =:= infinity ->
             {ok, {max_num_resubscribe, MaxNumResubscribe}};
         MaxNumResubscribe ->
             {error, {bad_max_num_resubscribe, MaxNumResubscribe}}
@@ -233,7 +217,7 @@ resubscribe_timeout(Options) ->
     case erl_mesos_options:get_value(resubscribe_timeout, Options,
                                      ?DEFAULT_RESUBSCRIBE_TIMEOUT) of
         ResubscribeTimeout
-          when is_integer(ResubscribeTimeout) andalso ResubscribeTimeout > 0 ->
+          when is_integer(ResubscribeTimeout) andalso ResubscribeTimeout >= 0 ->
             {ok, {resubscribe_timeout, ResubscribeTimeout}};
         ResubscribeTimeout ->
             {error, {bad_resubscribe_timeout, ResubscribeTimeout}}
@@ -270,7 +254,6 @@ options([], _Options, ValidOptions) ->
 init(Scheduler, SchedulerOptions, Options) ->
     Funs = [fun master_host/1,
             fun subscribe_req_options/1,
-            fun heartbeat_timeout/1,
             fun heartbeat_timeout_window/1,
             fun max_num_resubscribe/1,
             fun resubscribe_timeout/1],
@@ -280,8 +263,6 @@ init(Scheduler, SchedulerOptions, Options) ->
             SubscribeReqOptions =
                 erl_mesos_options:get_value(subscribe_req_options,
                                             ValidOptions),
-            HeartbeatTimeout = erl_mesos_options:get_value(heartbeat_timeout,
-                                                           ValidOptions),
             HeartbeatTimeoutWindow =
                 erl_mesos_options:get_value(heartbeat_timeout_window,
                                             ValidOptions),
@@ -292,9 +273,9 @@ init(Scheduler, SchedulerOptions, Options) ->
             gen_server:cast(self(), {init, SchedulerOptions}),
             {ok, #state{scheduler = Scheduler,
                         data_format = ?DATA_FORMAT,
+                        heartbeat_timeout = ?HEARTBEAT_TIMEOUT,
                         master_host = MasterHost,
                         subscribe_req_options = SubscribeReqOptions,
-                        heartbeat_timeout = HeartbeatTimeout,
                         heartbeat_timeout_window = HeartbeatTimeoutWindow,
                         max_num_resubscribe = MaxNumResubscribe,
                         resubscribe_timeout = ResubscribeTimeout}};
@@ -356,9 +337,9 @@ handle_subscribe_response({headers, Headers},
     hackney:stream_next(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse1}};
 handle_subscribe_response(done, State) ->
-    start_resubscribe_timer(State);
+    set_resubscribe_timeout(State);
 handle_subscribe_response({error, _Reason}, State) ->
-    start_resubscribe_timer(State);
+    set_resubscribe_timeout(State);
 handle_subscribe_response(Packets,
                           #state{subscribe_state =
                                  #subscribe_response{status = 200}} = State) ->
@@ -372,20 +353,20 @@ handle_subscribe_response(Packets,
                           #state{subscribe_state = subscribed} = State) ->
     handle_packets(Packets, State).
 
-%% @doc Starts resubscribe timer.
+%% @doc Sets resubscribe timeout.
 %% @private
--spec start_resubscribe_timer(state()) ->
+-spec set_resubscribe_timeout(state()) ->
     {noreply, state()} | {stop, shutdown, state()}.
-start_resubscribe_timer(#state{framework_id = undefined} = State) ->
+set_resubscribe_timeout(#state{framework_id = undefined} = State) ->
     {stop, shutdown, State};
-start_resubscribe_timer(#state{framework_info =
+set_resubscribe_timeout(#state{framework_info =
                                #framework_info{failover_timeout = undefined}} =
                         State) ->
     {stop, shutdown, State};
-start_resubscribe_timer(#state{max_num_resubscribe = NumResubscribe,
+set_resubscribe_timeout(#state{max_num_resubscribe = NumResubscribe,
                                num_resubscribe = NumResubscribe} = State) ->
     {stop, shutdown, State};
-start_resubscribe_timer(#state{client_ref = ClientRef,
+set_resubscribe_timeout(#state{client_ref = ClientRef,
                                num_resubscribe = NumResubscribe,
                                resubscribe_timeout = ResubscribeTimeout} =
                         State) ->
@@ -458,6 +439,18 @@ parse_packet(Packet, #state{subscribe_state = SubscribeState,
             {ok, State}
     end.
 
+%% set_heartbeat_timeout(#state{heartbeat_timeout = HeartbeatTimeout} = State)
+%% set_timeout(#state{heartbeat_timeout_ref = undefined} = State) ->
+%%
+%% set_heartbeat_timeout(#state{heartbeat_timeout = HeartbeatTimeout,
+%%                              heartbeat_timeout_window = HeartbeatTimeoutWindow,
+%%                              heartbeat_timeout_ref = HeartbeatTimeoutRef} =
+%%                       State) ->
+%%     erlang:cancel_timer(HeartbeatTimeoutRef),
+%%     Timeout = HeartbeatTimeout + HeartbeatTimeoutWindow,
+%%     HeartbeatTimeoutRef1 = erlang:start_timer(Timeout, self(), ?MODULE),
+%%     State#state{heartbeat_timeout_ref = HeartbeatTimeoutRef1}.
+
 %% @doc Calls Scheduler:Callback/2.
 %% @private
 -spec call(atom(), term(), state()) -> {ok, state()}.
@@ -470,10 +463,10 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 %% @private
 -spec format_state(state()) -> [{string(), [{atom(), term()}]}].
 format_state(#state{scheduler = Scheduler,
+                    heartbeat_timeout = HeartbeatTimeout,
                     data_format = DataFormat,
                     master_host = MasterHost,
                     subscribe_req_options = SubscribeReqOptions,
-                    heartbeat_timeout = HeartbeatTimeout,
                     heartbeat_timeout_window = HeartbeatTimeoutWindow,
                     max_num_resubscribe = MaxNumResubscribe,
                     resubscribe_timeout = ResubscribeTimeout,
@@ -487,8 +480,8 @@ format_state(#state{scheduler = Scheduler,
                     resubscribe_timeout_ref = ResubscribeTimeoutRef}) ->
     State = [{data_format, DataFormat},
              {master_host, MasterHost},
-             {subscribe_req_options, SubscribeReqOptions},
              {heartbeat_timeout, HeartbeatTimeout},
+             {subscribe_req_options, SubscribeReqOptions},
              {heartbeat_timeout_window, HeartbeatTimeoutWindow},
              {max_num_resubscribe, MaxNumResubscribe},
              {resubscribe_timeout, ResubscribeTimeout},
