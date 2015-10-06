@@ -114,6 +114,10 @@ handle_info({hackney_response, ClientRef, Response},
 handle_info({'DOWN', ClientRef, _Reason},
             #state{client_ref = ClientRef} = State) ->
     set_resubscribe_timeout(State);
+handle_info({timeout, HeartbeatTimeoutRef, heartbeat},
+            #state{heartbeat_timeout_ref = HeartbeatTimeoutRef} = State) ->
+    io:format("Heartbeat timeout ~p~n", [State]),
+    set_resubscribe_timeout(State);
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} =
             State) ->
@@ -428,28 +432,32 @@ parse_packet(Packet, #state{subscribe_state = SubscribeState,
                FrameworkId =:= undefined ->
             State1 = State#state{subscribe_state = subscribed,
                                  framework_id = SubscribeFrameworkId},
-            call(registered, Subscribed, State1);
+            call(registered, Subscribed, set_heartbeat_timeout(State1));
         {subscribed_packet, _Subscribed} ->
             {ok, State};
         heartbeat_packet ->
-            io:format("Heartbeat ~p~n", [calendar:local_time()]),
-            {ok, State};
+            {ok, set_heartbeat_timeout(State)};
         DecodePacket ->
             io:format("New unhandled packet arrived: ~p~n", [DecodePacket]),
             {ok, State}
     end.
 
-%% set_heartbeat_timeout(#state{heartbeat_timeout = HeartbeatTimeout} = State)
-%% set_timeout(#state{heartbeat_timeout_ref = undefined} = State) ->
-%%
-%% set_heartbeat_timeout(#state{heartbeat_timeout = HeartbeatTimeout,
-%%                              heartbeat_timeout_window = HeartbeatTimeoutWindow,
-%%                              heartbeat_timeout_ref = HeartbeatTimeoutRef} =
-%%                       State) ->
-%%     erlang:cancel_timer(HeartbeatTimeoutRef),
-%%     Timeout = HeartbeatTimeout + HeartbeatTimeoutWindow,
-%%     HeartbeatTimeoutRef1 = erlang:start_timer(Timeout, self(), ?MODULE),
-%%     State#state{heartbeat_timeout_ref = HeartbeatTimeoutRef1}.
+%% @doc Sets heartbeat timeout.
+%% @private
+-spec set_heartbeat_timeout(state()) -> state().
+set_heartbeat_timeout(#state{heartbeat_timeout = HeartbeatTimeout,
+                             heartbeat_timeout_window = HeartbeatTimeoutWindow,
+                             heartbeat_timeout_ref = HeartbeatTimeoutRef} =
+                      State) ->
+    case HeartbeatTimeoutRef of
+        undefined ->
+            ok;
+        _HeartbeatTimeoutRef ->
+            erlang:cancel_timer(HeartbeatTimeoutRef)
+    end,
+    Timeout = HeartbeatTimeout + HeartbeatTimeoutWindow,
+    HeartbeatTimeoutRef1 = erlang:start_timer(Timeout, self(), heartbeat),
+    State#state{heartbeat_timeout_ref = HeartbeatTimeoutRef1}.
 
 %% @doc Calls Scheduler:Callback/2.
 %% @private
@@ -463,8 +471,8 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 %% @private
 -spec format_state(state()) -> [{string(), [{atom(), term()}]}].
 format_state(#state{scheduler = Scheduler,
-                    heartbeat_timeout = HeartbeatTimeout,
                     data_format = DataFormat,
+                    heartbeat_timeout = HeartbeatTimeout,
                     master_host = MasterHost,
                     subscribe_req_options = SubscribeReqOptions,
                     heartbeat_timeout_window = HeartbeatTimeoutWindow,
