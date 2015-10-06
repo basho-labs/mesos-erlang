@@ -121,7 +121,14 @@ handle_info({timeout, HeartbeatTimeoutRef, heartbeat},
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{subscribe_state = undefined,
                    resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
-    resubscribe(State);
+    case resubscribe(State) of
+        {ok, State1} ->
+            {noreply, State1};
+        stop ->
+            {stop, shutdown, State};
+        {error, _Reason} ->
+            {stop, shutdown, State}
+    end;
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
     {noreply, State};
@@ -383,9 +390,9 @@ start_resubscribe_timer(#state{client_ref = ClientRef,
 
 %% @doc Calls resubscribe api request.
 %% @private
--spec resubscribe(state()) -> {noreply, state()} | {stop, shutdown, state()}.
-resubscribe(#state{framework_id = undefined} = State) ->
-    {stop, shutdown, State};
+-spec resubscribe(state()) -> {ok, state()} | stop | {error, term()}.
+resubscribe(#state{framework_id = undefined}) ->
+    stop;
 resubscribe(#state{data_format = DataFormat,
                    master_host = MasterHost,
                    subscribe_req_options = SubscribeReqOptions,
@@ -394,10 +401,10 @@ resubscribe(#state{data_format = DataFormat,
     case erl_mesos_api:resubscribe(DataFormat, MasterHost, SubscribeReqOptions,
                                    FrameworkInfo, FrameworkId) of
         {ok, ClientRef} ->
-            {noreply, State#state{client_ref = ClientRef,
-                                  resubscribe_timeout_ref = undefined}};
+            {ok, State#state{client_ref = ClientRef,
+                             resubscribe_timeout_ref = undefined}};
         {error, _Reason} ->
-            {stop, shutdown, State}
+            {error, _Reason}
     end.
 
 %% @doc Handle packets.
