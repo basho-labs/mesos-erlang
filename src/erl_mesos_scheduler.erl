@@ -85,24 +85,21 @@ init({Scheduler, SchedulerOptions, Options}) ->
         {ok, State} ->
             {ok, State};
         {error, Reason} ->
-            %% Log init error here.
-            io:format("== Init error~nReason: ~p~n", [Reason]),
             {stop, Reason}
     end.
 
 %% @private
 -spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
-handle_call(_Request, _From, State) ->
+handle_call(Request, _From, State) ->
+    %% Log unexpceted call message here.
+    io:format("== Unexpected call message ~p~n", [Request]),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
-handle_cast({init, SchedulerOptions},
-            #state{framework_info = undefined} = State) ->
-    handle_init(SchedulerOptions, State);
 handle_cast(Request, State) ->
     %% Log unexpceted cast message here.
-    io:format("== Unexpected message ~p~n", [Request]),
+    io:format("== Unexpected cast message ~p~n", [Request]),
     {noreply, State}.
 
 %% @private
@@ -124,14 +121,13 @@ handle_info({timeout, HeartbeatTimeoutRef, heartbeat},
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{subscribe_state = undefined,
                    resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
-    io:format("Resubscribe ~n"),
     resubscribe(State);
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
     {noreply, State};
 handle_info(Request, State) ->
-    io:format("== Info ~p~n", [Request]),
-    io:format("== State ~p~n~n", [State]),
+    %% Log unexpceted message here.
+    io:format("== Unexpected message ~p~n", [Request]),
     {noreply, State}.
 
 %% @private
@@ -270,37 +266,34 @@ init(Scheduler, SchedulerOptions, Options) ->
             fun resubscribe_timeout/1],
     case options(Funs, Options) of
         {ok, ValidOptions} ->
-            MasterHost = erl_mesos_options:get_value(master_host, ValidOptions),
-            SubscribeReqOptions =
-                erl_mesos_options:get_value(subscribe_req_options,
-                                            ValidOptions),
-            HeartbeatTimeoutWindow =
-                erl_mesos_options:get_value(heartbeat_timeout_window,
-                                            ValidOptions),
-            MaxNumResubscribe = erl_mesos_options:get_value(max_num_resubscribe,
-                                                            ValidOptions),
-            ResubscribeTimeout =
-                erl_mesos_options:get_value(resubscribe_timeout, ValidOptions),
-            gen_server:cast(self(), {init, SchedulerOptions}),
-            {ok, #state{scheduler = Scheduler,
-                        data_format = ?DATA_FORMAT,
-                        heartbeat_timeout = ?HEARTBEAT_TIMEOUT,
-                        master_host = MasterHost,
-                        subscribe_req_options = SubscribeReqOptions,
-                        heartbeat_timeout_window = HeartbeatTimeoutWindow,
-                        max_num_resubscribe = MaxNumResubscribe,
-                        resubscribe_timeout = ResubscribeTimeout}};
+            State = state(Scheduler, ValidOptions),
+            {ok, State1, Force} = init(SchedulerOptions, State),
+            subscribe(State1, Force);
         {error, Reason} ->
             {error, Reason}
     end.
 
-%% @doc Handles init.
+%% @doc Returns state.
 %% @private
--spec handle_init(term(), state()) ->
-    {noreply, state()} | {stop, shutdown, state()}.
-handle_init(SchedulerOptions, State) ->
-    {ok, State1, Force} = init(SchedulerOptions, State),
-    subscribe(State1, Force).
+-spec state(module(), options()) -> state().
+state(Scheduler, Options) ->
+    MasterHost = erl_mesos_options:get_value(master_host, Options),
+    SubscribeReqOptions = erl_mesos_options:get_value(subscribe_req_options,
+                                                      Options),
+    HeartbeatTimeoutWindow =
+        erl_mesos_options:get_value(heartbeat_timeout_window, Options),
+    MaxNumResubscribe = erl_mesos_options:get_value(max_num_resubscribe,
+                                                    Options),
+    ResubscribeTimeout = erl_mesos_options:get_value(resubscribe_timeout,
+                                                     Options),
+    #state{scheduler = Scheduler,
+           data_format = ?DATA_FORMAT,
+           heartbeat_timeout = ?HEARTBEAT_TIMEOUT,
+           master_host = MasterHost,
+           subscribe_req_options = SubscribeReqOptions,
+           heartbeat_timeout_window = HeartbeatTimeoutWindow,
+           max_num_resubscribe = MaxNumResubscribe,
+           resubscribe_timeout = ResubscribeTimeout}.
 
 %% @doc Calls Scheduler:init/1.
 %% @private
@@ -315,8 +308,7 @@ init(SchedulerOptions, #state{scheduler = Scheduler} = State) ->
 
 %% @doc Calls subscribe api request.
 %% @private
--spec subscribe(state(), boolean()) ->
-    {noreply, state()} | {stop, shutdown, state()}.
+-spec subscribe(state(), boolean()) -> {ok, state()} | {error, term()}.
 subscribe(#state{data_format = DataFormat,
                  master_host = MasterHost,
                  subscribe_req_options = SubscribeReqOptions,
@@ -324,9 +316,9 @@ subscribe(#state{data_format = DataFormat,
     case erl_mesos_api:subscribe(DataFormat, MasterHost, SubscribeReqOptions,
                                  FrameworkInfo, Force) of
         {ok, ClientRef} ->
-            {noreply, State#state{client_ref = ClientRef}};
-        {error, _Reason} ->
-            {stop, shutdown, State}
+            {ok, State#state{client_ref = ClientRef}};
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 %% @doc Handles subscribe response.
