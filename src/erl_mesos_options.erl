@@ -4,30 +4,26 @@
 
 -export([delete/2]).
 
+-type options() :: [{atom(), term()}].
+-export_type([options/0]).
+
 %% External functions.
 
+%% @equiv get_value(atom(), options(), undefined)
+-spec get_value(atom(), options()) -> term().
 get_value(Name, Options) ->
     proplists:get_value(Name, Options, undefined).
 
+%% @doc Returns option value.
+-spec get_value(atom(), options(), term()) -> term().
 get_value(Name, Options, DefaultValue) ->
     proplists:get_value(Name, Options, DefaultValue).
 
+%% @doc Delete options.
+-spec delete([atom()], options()) -> options().
 delete([Key | Keys], Options) ->
     delete(Keys, proplists:delete(Key, Options));
 delete([], Options) ->
     Options.
 
 %% Internal functions.
-
-%% %% @doc Sets default options.
-%% -spec set_default_options([{atom(), term()}], [term()]) -> [{atom(), term()}].
-%% set_default_options([{DefaultKey, _DefaultValue} = DefaultOption |
-%%     DefaultOptions], Options) ->
-%%     case lists:keyfind(DefaultKey, 1, Options) of
-%%         {DefaultKey, _Value} ->
-%%             set_default_options(DefaultOptions, Options);
-%%         false ->
-%%             set_default_options(DefaultOptions, [DefaultOption | Options])
-%%     end;
-%% set_default_options([], Options) ->
-%%     Options.
