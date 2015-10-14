@@ -23,8 +23,10 @@
                 max_num_resubscribe :: non_neg_integer() | infinity,
                 resubscribe_timeout :: non_neg_integer(),
                 framework_info :: undefined | framework_info(),
+                force :: undefined | boolean(),
                 scheduler_state :: undefined | term(),
                 client_ref :: undefined | reference(),
+                num_subscribe_redirects = 0 :: non_neg_integer(),
                 subscribe_state :: undefined | subscribe_state(),
                 heartbeat_timeout_ref :: undefined | reference(),
                 framework_id :: undefined | framework_id(),
@@ -55,6 +57,8 @@
 
 -define(DEFAULT_SUBSCRIBE_REQ_OPTIONS, []).
 
+-define(DEFAULT_MAX_REDIRECT, 5).
+
 -define(DEFAULT_HEARTBEAT_TIMEOUT_WINDOW, 5000).
 
 -define(DEFAULT_MAX_NUM_RESUBSCRIBE, infinity).
@@ -67,7 +71,7 @@
 
 -define(SUBSCRIBE_REQ_OPTIONS, [{async, once},
                                 {recv_timeout, infinity},
-                                {following_redirect, true}]).
+                                {following_redirect, false}]).
 
 %% External functions.
 
@@ -199,8 +203,8 @@ heartbeat_timeout_window(Options) ->
     case erl_mesos_options:get_value(heartbeat_timeout_window, Options,
                                      ?DEFAULT_HEARTBEAT_TIMEOUT_WINDOW) of
         HeartbeatTimeoutWindow
-            when is_integer(HeartbeatTimeoutWindow) andalso
-                 HeartbeatTimeoutWindow >= 0 ->
+          when is_integer(HeartbeatTimeoutWindow) andalso
+               HeartbeatTimeoutWindow >= 0 ->
             {ok, {heartbeat_timeout_window, HeartbeatTimeoutWindow}};
         HeartbeatTimeoutWindow ->
             {error, {bad_heartbeat_timeout_window, HeartbeatTimeoutWindow}}
@@ -274,8 +278,8 @@ init(Scheduler, SchedulerOptions, Options) ->
     case options(Funs, Options) of
         {ok, ValidOptions} ->
             State = state(Scheduler, ValidOptions),
-            {ok, State1, Force} = init(SchedulerOptions, State),
-            subscribe(State1, Force);
+            {ok, State1} = init(SchedulerOptions, State),
+            subscribe(State1);
         {error, Reason} ->
             {error, Reason}
     end.
@@ -304,22 +308,24 @@ state(Scheduler, Options) ->
 
 %% @doc Calls Scheduler:init/1.
 %% @private
--spec init(term(), state()) -> {ok, state(), boolean()}.
+-spec init(term(), state()) -> {ok, state()}.
 init(SchedulerOptions, #state{scheduler = Scheduler} = State) ->
     {ok, FrameworkInfo, Force, SchedulerState} =
         Scheduler:init(SchedulerOptions),
     true = is_record(FrameworkInfo, framework_info),
     true = is_boolean(Force),
     {ok, State#state{framework_info = FrameworkInfo,
-                     scheduler_state = SchedulerState}, Force}.
+                     force = Force,
+                     scheduler_state = SchedulerState}}.
 
 %% @doc Calls subscribe api request.
 %% @private
--spec subscribe(state(), boolean()) -> {ok, state()} | {error, term()}.
+-spec subscribe(state()) -> {ok, state()} | {error, term()}.
 subscribe(#state{data_format = DataFormat,
                  master_host = MasterHost,
                  subscribe_req_options = SubscribeReqOptions,
-                 framework_info = FrameworkInfo} = State, Force) ->
+                 framework_info = FrameworkInfo,
+                 force = Force} = State) ->
     case erl_mesos_api:subscribe(DataFormat, MasterHost, SubscribeReqOptions,
                                  FrameworkInfo, Force) of
         {ok, ClientRef} ->
@@ -354,14 +360,60 @@ handle_subscribe_response(Packets,
                           #state{subscribe_state =
                                  #subscribe_response{status = 200}} = State) ->
     handle_packets(Packets, State);
-handle_subscribe_response(_Error,
+handle_subscribe_response(_Body,
                           #state{subscribe_state =
-                                 #subscribe_response{status = _Status}} =
+                                 #subscribe_response{status = 307}} = State) ->
+    handle_subscribe_redirect(State);
+handle_subscribe_response(Error,
+                          #state{subscribe_state =
+                                 #subscribe_response{status = Status}} =
                           State) ->
+    io:format("Error ~p~n", [[Status, Error]]),
     {stop, shutdown, State};
 handle_subscribe_response(Packets,
                           #state{subscribe_state = subscribed} = State) ->
     handle_packets(Packets, State).
+
+%% @doc Handles subscribe redirects.
+%% @private
+-spec handle_subscribe_redirect(state()) ->
+    {noreply, state()} | {stop, shutdown, state()}.
+handle_subscribe_redirect(#state{subscribe_req_options = SubscribeReqOptions,
+                                 num_subscribe_redirects =
+                                     NumSubscribeRedirects} = State) ->
+    MaxRedirect = proplists:get_value(max_redirect, SubscribeReqOptions,
+                                      ?DEFAULT_MAX_REDIRECT),
+    case NumSubscribeRedirects == MaxRedirect of
+        true ->
+            {stop, shutdown, State};
+        false ->
+            case subscribe_redirect(State) of
+                {ok, State1} ->
+                    {noreply, State1};
+                stop ->
+                    {stop, shutdown, State};
+                {error, _Reason} ->
+                    {stop, shutdown, State}
+            end
+    end.
+
+%% @doc Subscribe redirect.
+%% @private
+-spec subscribe_redirect(state()) -> {ok, state()} | stop | {error, term()}.
+subscribe_redirect(#state{client_ref = ClientRef,
+                          subscribe_state =
+                          #subscribe_response{headers = Headers},
+                          framework_id = FrameworkId} = State) ->
+    hackney:close(ClientRef),
+    MasterHost = proplists:get_value(<<"Location">>, Headers),
+    State1 = State#state{master_host = MasterHost,
+                         subscribe_state = undefined},
+    case FrameworkId of
+        undefined ->
+            subscribe(State1);
+        _FrameworkId ->
+            resubscribe(State1)
+    end.
 
 %% @doc Start resubscribe timer.
 %% @private
@@ -436,12 +488,14 @@ parse_packet(Packet, #state{subscribe_state = SubscribeState,
                             Subscribed}
           when is_record(SubscribeState, subscribe_response),
                FrameworkId =:= undefined ->
-            State1 = State#state{subscribe_state = subscribed,
+            State1 = State#state{num_subscribe_redirects = 0,
+                                 subscribe_state = subscribed,
                                  framework_id = SubscribeFrameworkId},
             call(registered, Subscribed, set_heartbeat_timeout(State1));
         {subscribed_packet, _Subscribed}
           when is_record(SubscribeState, subscribe_response) ->
-            State1 = State#state{subscribe_state = subscribed},
+            State1 = State#state{num_subscribe_redirects = 0,
+                                 subscribe_state = subscribed},
             {ok, set_heartbeat_timeout(State1)};
         heartbeat_packet ->
             {ok, set_heartbeat_timeout(State)};
@@ -487,8 +541,10 @@ format_state(#state{scheduler = Scheduler,
                     max_num_resubscribe = MaxNumResubscribe,
                     resubscribe_timeout = ResubscribeTimeout,
                     framework_info = FrameworkInfo,
+                    force = Force,
                     scheduler_state = SchedulerState,
                     client_ref = ClientRef,
+                    num_subscribe_redirects = NumSubscribeRedirects,
                     subscribe_state = SubscribeState,
                     heartbeat_timeout_ref = HeartbeatTimeoutRef,
                     framework_id = FrameworkId,
@@ -502,7 +558,9 @@ format_state(#state{scheduler = Scheduler,
              {max_num_resubscribe, MaxNumResubscribe},
              {resubscribe_timeout, ResubscribeTimeout},
              {framework_info, FrameworkInfo},
+             {force, Force},
              {client_ref, ClientRef},
+             {num_subscribe_redirects, NumSubscribeRedirects},
              {subscribe_state, SubscribeState},
              {heartbeat_timeout_ref, HeartbeatTimeoutRef},
              {framework_id, FrameworkId},

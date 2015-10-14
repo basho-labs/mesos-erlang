@@ -6,14 +6,16 @@
 
 -export([init/1, registered/2]).
 
-init(_Options) ->
+init(Options) ->
     FrameworkInfo = #framework_info{user = <<"dima 123">>,
                                     name = <<"test framework 123">>,
                                     failover_timeout = 100000.0},
+    io:format("Init callback. Options: ~p~n", [Options]),
     {ok, FrameworkInfo, true, init_state}.
 
 registered(#subscribed{} = Subscribed, State) ->
-    io:format("Registered callback ~p~n", [[Subscribed, State]]),
+    io:format("Registered callback. Subscribed: ~p, state: ~p~n",
+              [Subscribed, State]),
     {ok, registered_state}.
 
 
