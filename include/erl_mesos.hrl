@@ -70,7 +70,8 @@
 
 -record(framework_id, {value :: binary()}).
 
--record(subscribed, {framework_id :: framework_id() | erl_mesos_obj:data_obj()}).
+-record(subscribed, {framework_id :: framework_id() | erl_mesos_obj:data_obj(),
+                     heartbeat_interval_seconds :: undefined | pos_integer()}).
 
 -type framework_info() :: #framework_info{}.
 

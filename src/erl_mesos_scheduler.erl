@@ -16,7 +16,6 @@
 
 -record(state, {scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
-                heartbeat_timeout :: pos_integer(),
                 master_host :: binary(),
                 subscribe_req_options :: [{atom(), term()}],
                 heartbeat_timeout_window :: pos_integer(),
@@ -28,6 +27,7 @@
                 client_ref :: undefined | reference(),
                 num_subscribe_redirects = 0 :: non_neg_integer(),
                 subscribe_state :: undefined | subscribe_state(),
+                heartbeat_timeout :: pos_integer(),
                 heartbeat_timeout_ref :: undefined | reference(),
                 framework_id :: undefined | framework_id(),
                 num_resubscribe = 0 :: non_neg_integer(),
@@ -66,8 +66,6 @@
 -define(DEFAULT_RESUBSCRIBE_TIMEOUT, 0).
 
 -define(DATA_FORMAT, json).
-
--define(HEARTBEAT_TIMEOUT, 15000).
 
 -define(SUBSCRIBE_REQ_OPTIONS, [{async, once},
                                 {recv_timeout, infinity},
@@ -299,7 +297,6 @@ state(Scheduler, Options) ->
                                                      Options),
     #state{scheduler = Scheduler,
            data_format = ?DATA_FORMAT,
-           heartbeat_timeout = ?HEARTBEAT_TIMEOUT,
            master_host = MasterHost,
            subscribe_req_options = SubscribeReqOptions,
            heartbeat_timeout_window = HeartbeatTimeoutWindow,
@@ -484,18 +481,20 @@ parse_packets([], State) ->
 parse_packet(Packet, #state{subscribe_state = SubscribeState,
                             framework_id = FrameworkId} = State) ->
     case erl_mesos_scheduler_packet:parse(Packet) of
-        {subscribed_packet, #subscribed{framework_id = SubscribeFrameworkId} =
-                            Subscribed}
+        {subscribed_packet, {#subscribed{framework_id = SubscribeFrameworkId} =
+                            Subscribed, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response),
                FrameworkId =:= undefined ->
             State1 = State#state{num_subscribe_redirects = 0,
                                  subscribe_state = subscribed,
+                                 heartbeat_timeout = HeartbeatTimeout,
                                  framework_id = SubscribeFrameworkId},
             call(registered, Subscribed, set_heartbeat_timeout(State1));
-        {subscribed_packet, _Subscribed}
+        {subscribed_packet, {_Subscribed, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response) ->
             State1 = State#state{num_subscribe_redirects = 0,
-                                 subscribe_state = subscribed},
+                                 subscribe_state = subscribed,
+                                 heartbeat_timeout = HeartbeatTimeout},
             {ok, set_heartbeat_timeout(State1)};
         heartbeat_packet ->
             {ok, set_heartbeat_timeout(State)};
@@ -507,8 +506,8 @@ parse_packet(Packet, #state{subscribe_state = SubscribeState,
 %% @doc Sets heartbeat timeout.
 %% @private
 -spec set_heartbeat_timeout(state()) -> state().
-set_heartbeat_timeout(#state{heartbeat_timeout = HeartbeatTimeout,
-                             heartbeat_timeout_window = HeartbeatTimeoutWindow,
+set_heartbeat_timeout(#state{heartbeat_timeout_window = HeartbeatTimeoutWindow,
+                             heartbeat_timeout = HeartbeatTimeout,
                              heartbeat_timeout_ref = HeartbeatTimeoutRef} =
                       State) ->
     case HeartbeatTimeoutRef of
@@ -534,7 +533,6 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 -spec format_state(state()) -> [{string(), [{atom(), term()}]}].
 format_state(#state{scheduler = Scheduler,
                     data_format = DataFormat,
-                    heartbeat_timeout = HeartbeatTimeout,
                     master_host = MasterHost,
                     subscribe_req_options = SubscribeReqOptions,
                     heartbeat_timeout_window = HeartbeatTimeoutWindow,
@@ -546,12 +544,12 @@ format_state(#state{scheduler = Scheduler,
                     client_ref = ClientRef,
                     num_subscribe_redirects = NumSubscribeRedirects,
                     subscribe_state = SubscribeState,
+                    heartbeat_timeout = HeartbeatTimeout,
                     heartbeat_timeout_ref = HeartbeatTimeoutRef,
                     framework_id = FrameworkId,
                     num_resubscribe = NumResubscribe,
                     resubscribe_timeout_ref = ResubscribeTimeoutRef}) ->
     State = [{data_format, DataFormat},
-             {heartbeat_timeout, HeartbeatTimeout},
              {master_host, MasterHost},
              {subscribe_req_options, SubscribeReqOptions},
              {heartbeat_timeout_window, HeartbeatTimeoutWindow},
@@ -562,6 +560,7 @@ format_state(#state{scheduler = Scheduler,
              {client_ref, ClientRef},
              {num_subscribe_redirects, NumSubscribeRedirects},
              {subscribe_state, SubscribeState},
+             {heartbeat_timeout, HeartbeatTimeout},
              {heartbeat_timeout_ref, HeartbeatTimeoutRef},
              {framework_id, FrameworkId},
              {num_resubscribe, NumResubscribe},

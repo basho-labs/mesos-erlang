@@ -6,10 +6,12 @@
 
 -export([parse/1]).
 
--type packet() :: {subscribed_packet, subscribed()} |
+-type packet() :: {subscribed_packet, {subscribed(), pos_integer}} |
                   heartbeat_packet |
                   erl_mesos_obj:data_obj().
 -export_type([packet/0]).
+
+-define(DEFAULT_HEARTBEAT_INTERVAL_SECONDS, 15).
 
 %% External functions.
 
@@ -29,10 +31,18 @@ parse(Packet) ->
 
 %% @doc Parses subscribed obj.
 %% @private
--spec parse_subscribed(erl_mesos_obj:data_obj()) -> subscribed().
+-spec parse_subscribed(erl_mesos_obj:data_obj()) ->
+    {subscribed(), pos_integer()}.
 parse_subscribed(Packet) ->
     SubscribedObj = erl_mesos_obj:get_value(<<"subscribed">>, Packet),
-    #subscribed{framework_id = FrameworkIdObj} =
+    #subscribed{framework_id = FrameworkIdObj,
+                heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
         ?ERL_MESOS_OBJ_TO_RECORD(subscribed, SubscribedObj),
     FrameworkId = ?ERL_MESOS_OBJ_TO_RECORD(framework_id, FrameworkIdObj),
-    #subscribed{framework_id = FrameworkId}.
+    HeartbeatTimeout = case HeartbeatIntervalSeconds of
+                           undefined ->
+                               ?DEFAULT_HEARTBEAT_INTERVAL_SECONDS;
+                           _HeartbeatIntervalSeconds ->
+                               HeartbeatIntervalSeconds
+                       end,
+    {#subscribed{framework_id = FrameworkId}, HeartbeatTimeout * 1000}.
