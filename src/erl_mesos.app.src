@@ -1,5 +1,5 @@
 {application, erl_mesos,
-    [{description, "Mesos Erlang bindings."},
+    [{description, "Erlang Mesos bindings."},
         {vsn, "0.0.1"},
         {modules, []},
         {registered, [erl_mesos_sup]},
