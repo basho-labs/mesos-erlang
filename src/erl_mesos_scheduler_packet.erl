@@ -16,18 +16,18 @@
 
 %% External functions.
 
-%% @doc Parse packet.
+%% @doc Parses obj.
 -spec parse(erl_mesos_obj:data_obj()) -> packet().
-parse(Packet) ->
-    case erl_mesos_obj:get_value(<<"type">>, Packet) of
+parse(Obj) ->
+    case erl_mesos_obj:get_value(<<"type">>, Obj) of
         <<"SUBSCRIBED">> ->
-            {subscribed, parse_subscribed_obj(Packet)};
+            {subscribed, parse_subscribed_obj(Obj)};
         <<"ERROR">> ->
-            {error, parse_error_obj(Packet)};
+            {error, parse_error_obj(Obj)};
         <<"HEARTBEAT">> ->
             heartbeat;
         _Type ->
-            Packet
+            Obj
     end.
 
 %% Internal functions.
@@ -36,8 +36,8 @@ parse(Packet) ->
 %% @private
 -spec parse_subscribed_obj(erl_mesos_obj:data_obj()) ->
     {subscribed_packet(), pos_integer()}.
-parse_subscribed_obj(Packet) ->
-    SubscribedObj = erl_mesos_obj:get_value(<<"subscribed">>, Packet),
+parse_subscribed_obj(Obj) ->
+    SubscribedObj = erl_mesos_obj:get_value(<<"subscribed">>, Obj),
     #subscribed_packet{framework_id = FrameworkIdObj,
                        heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
         ?ERL_MESOS_OBJ_TO_RECORD(subscribed_packet, SubscribedObj),
@@ -53,5 +53,5 @@ parse_subscribed_obj(Packet) ->
 %% @doc Parses error obj.
 %% @private
 -spec parse_error_obj(erl_mesos_obj:data_obj()) -> error_packet().
-parse_error_obj(Packet) ->
-    ?ERL_MESOS_OBJ_TO_RECORD(error_packet, Packet).
+parse_error_obj(Obj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(error_packet, Obj).

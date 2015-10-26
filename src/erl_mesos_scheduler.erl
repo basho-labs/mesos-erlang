@@ -462,35 +462,35 @@ resubscribe(#state{data_format = DataFormat,
 -spec handle_packets(binary(), state()) -> {noreply, state()}.
 handle_packets(Packets, #state{data_format = DataFormat,
                                client_ref = ClientRef} = State) ->
-    DecodePackets = erl_mesos_data_format:decode_packets(DataFormat, Packets),
-    {ok, State1} = parse_packets(DecodePackets, State),
+    Objs = erl_mesos_data_format:decode_packets(DataFormat, Packets),
+    {ok, State1} = parse_objs(Objs, State),
     hackney:stream_next(ClientRef),
     {noreply, State1}.
 
-%% @doc Parses packets.
+%% @doc Parses objs.
 %% @private
--spec parse_packets([erl_mesos_obj:data_obj()], state()) -> {ok, state()}.
-parse_packets([Packet | Packets], State) ->
-    {ok, State1} = parse_packet(Packet, State),
-    parse_packets(Packets, State1);
-parse_packets([], State) ->
+-spec parse_objs([erl_mesos_obj:data_obj()], state()) -> {ok, state()}.
+parse_objs([Obj | Objs], State) ->
+    {ok, State1} = parse_obj(Obj, State),
+    parse_objs(Objs, State1);
+parse_objs([], State) ->
     {ok, State}.
 
-%% @doc Parses packet.
+%% @doc Parses obj.
 %% @private
--spec parse_packet(term(), state()) -> {ok, state()}.
-parse_packet(Packet, #state{subscribe_state = SubscribeState,
-                            framework_id = FrameworkId} = State) ->
-    case erl_mesos_scheduler_packet:parse(Packet) of
+-spec parse_obj(erl_mesos_obj:data_obj(), state()) -> {ok, state()}.
+parse_obj(Obj, #state{subscribe_state = SubscribeState,
+                      framework_id = FrameworkId} = State) ->
+    case erl_mesos_scheduler_packet:parse(Obj) of
         {subscribed, {#subscribed_packet{framework_id = SubscribeFrameworkId} =
-                      Subscribed, HeartbeatTimeout}}
+                      SubscribedPacket, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response),
                FrameworkId =:= undefined ->
             State1 = State#state{num_subscribe_redirects = 0,
                                  subscribe_state = subscribed,
                                  heartbeat_timeout = HeartbeatTimeout,
                                  framework_id = SubscribeFrameworkId},
-            call(registered, Subscribed, set_heartbeat_timeout(State1));
+            call(registered, SubscribedPacket, set_heartbeat_timeout(State1));
         {subscribed, {_SubscribedPacket, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response) ->
             State1 = State#state{num_subscribe_redirects = 0,
