@@ -4,7 +4,7 @@
 
 -include_lib("erl_mesos.hrl").
 
--export([init/1, registered/2]).
+-export([init/1, registered/2, error/2]).
 
 init(Options) ->
     FrameworkInfo = #framework_info{user = <<"dima 123">>,
@@ -13,10 +13,12 @@ init(Options) ->
     io:format("Init callback. Options: ~p~n", [Options]),
     {ok, FrameworkInfo, true, init_state}.
 
-registered(#subscribed{} = Subscribed, State) ->
-    io:format("Registered callback. Subscribed: ~p, state: ~p~n",
-              [Subscribed, State]),
+registered(#subscribed_packet{} = SubscribedPacket, State) ->
+    io:format("Registered callback. Subscribed packet: ~p, state: ~p~n",
+              [SubscribedPacket, State]),
     {ok, registered_state}.
 
-
-
+error(#error_packet{} = ErrorPacket, State) ->
+    io:format("Error callback. Error packet: ~p, state: ~p~n",
+              [ErrorPacket, State]),
+    {ok, error_state}.

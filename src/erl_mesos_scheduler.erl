@@ -50,8 +50,9 @@
 -callback init(term()) ->
     {ok, framework_info(), boolean(), term()}.
 
--callback registered(subscribed(), term()) ->
-    {ok, term()} | {ok, term(), hibernate}.
+-callback registered(subscribed_packet(), term()) -> {ok, term()}.
+
+-callback error(error_packet(), term()) -> {ok, term()}.
 
 -define(DEFAULT_MASTER_HOST, <<"localhost:5050">>).
 
@@ -481,8 +482,8 @@ parse_packets([], State) ->
 parse_packet(Packet, #state{subscribe_state = SubscribeState,
                             framework_id = FrameworkId} = State) ->
     case erl_mesos_scheduler_packet:parse(Packet) of
-        {subscribed_packet, {#subscribed{framework_id = SubscribeFrameworkId} =
-                            Subscribed, HeartbeatTimeout}}
+        {subscribed, {#subscribed_packet{framework_id = SubscribeFrameworkId} =
+                      Subscribed, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response),
                FrameworkId =:= undefined ->
             State1 = State#state{num_subscribe_redirects = 0,
@@ -490,13 +491,15 @@ parse_packet(Packet, #state{subscribe_state = SubscribeState,
                                  heartbeat_timeout = HeartbeatTimeout,
                                  framework_id = SubscribeFrameworkId},
             call(registered, Subscribed, set_heartbeat_timeout(State1));
-        {subscribed_packet, {_Subscribed, HeartbeatTimeout}}
+        {subscribed, {_SubscribedPacket, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response) ->
             State1 = State#state{num_subscribe_redirects = 0,
                                  subscribe_state = subscribed,
                                  heartbeat_timeout = HeartbeatTimeout},
             {ok, set_heartbeat_timeout(State1)};
-        heartbeat_packet ->
+        {error, ErrorPacket} ->
+            call(error, ErrorPacket, State);
+        heartbeat ->
             {ok, set_heartbeat_timeout(State)};
         DecodePacket ->
             io:format("New unhandled packet arrived: ~p~n", [DecodePacket]),

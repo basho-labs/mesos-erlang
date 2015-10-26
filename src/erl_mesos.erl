@@ -17,7 +17,6 @@ start() ->
     ok = application:start(hackney),
     ok = application:start(erl_mesos).
 
-
 %% @doc Starts the `erl_mesos_sup' process.
 %% @private
 -spec start(normal | {takeover, node()} | {failover, node()}, term()) ->
