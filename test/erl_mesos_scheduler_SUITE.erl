@@ -26,14 +26,32 @@ end_per_suite(_Config) ->
 bad_options(Config) ->
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
+    %% Bad options.
+    Options = undefined,
+    {error, {bad_options, Options}} =
+        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options),
     %% Bad master host.
     MasterHost = undefined,
-    Options = [{master_host, MasterHost}],
+    Options1 = [{master_host, MasterHost}],
     {error, {bad_master_host, MasterHost}} =
-        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options),
+        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options1),
     %% Bad subscribe requset options.
     SubscribeReqOptions = undefined,
-    Options1 = [{subscribe_req_options, SubscribeReqOptions}],
+    Options2 = [{subscribe_req_options, SubscribeReqOptions}],
     {error, {bad_subscribe_req_options, SubscribeReqOptions}} =
-        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options1),
-    ok.
+        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options2),
+    %% Bad heartbeat timeout window.
+    HeartbeatTimeoutWindow = undefined,
+    Options3 = [{heartbeat_timeout_window, HeartbeatTimeoutWindow}],
+    {error, {bad_heartbeat_timeout_window, HeartbeatTimeoutWindow}} =
+        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options3),
+    %% Bad maximu number of resubscribe.
+    MaxNumResubscribe = undefined,
+    Options4 = [{max_num_resubscribe, MaxNumResubscribe}],
+    {error, {bad_max_num_resubscribe, MaxNumResubscribe}} =
+        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options4),
+    %% Bad resubscribe timeout.
+    ResubscribeTimeout = undefined,
+    Options5 = [{resubscribe_timeout, ResubscribeTimeout}],
+    {error, {bad_resubscribe_timeout, ResubscribeTimeout}} =
+        erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options5).
