@@ -3,6 +3,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 -export([all/0,
+         groups/0,
          init_per_suite/1,
          end_per_suite/1]).
 
@@ -10,6 +11,9 @@
 
 all() ->
     [bad_options].
+
+groups() ->
+    [].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -55,3 +59,5 @@ bad_options(Config) ->
     Options5 = [{resubscribe_timeout, ResubscribeTimeout}],
     {error, {bad_resubscribe_timeout, ResubscribeTimeout}} =
         erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options5).
+
+

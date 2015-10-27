@@ -54,6 +54,8 @@
 
 -callback error(error_packet(), term()) -> {ok, term()}.
 
+-callback handle_info(term(), term()) -> {ok, term()}.
+
 -define(DEFAULT_MASTER_HOST, <<"localhost:5050">>).
 
 -define(DEFAULT_SUBSCRIBE_REQ_OPTIONS, []).
@@ -135,10 +137,9 @@ handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
 handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
     {noreply, State};
-handle_info(Request, State) ->
-    %% Log unexpceted message here.
-    io:format("== Unexpected message ~p~n", [Request]),
-    {noreply, State}.
+handle_info(Info, State) ->
+    {ok, State1} = call(handle_info, Info, State),
+    {noreply, State1}.
 
 %% @private
 -spec terminate(term(), state()) -> ok.
@@ -334,7 +335,8 @@ subscribe(#state{data_format = DataFormat,
 
 %% @doc Handles subscribe response.
 %% @private
--spec handle_subscribe_response(term(), state()) -> {noreply, state()}.
+-spec handle_subscribe_response(term(), state()) ->
+    {noreply, state()} | {stop, term(), state()}.
 handle_subscribe_response({status, Status, _Message},
                           #state{client_ref = ClientRef,
                                  subscribe_state = undefined} = State) ->
@@ -358,19 +360,16 @@ handle_subscribe_response(Packets,
                           #state{subscribe_state =
                                  #subscribe_response{status = 200}} = State) ->
     handle_packets(Packets, State);
+handle_subscribe_response(Packets,
+                          #state{subscribe_state = subscribed} = State)
+  when is_binary(Packets) ->
+    handle_packets(Packets, State);
 handle_subscribe_response(_Body,
                           #state{subscribe_state =
                                  #subscribe_response{status = 307}} = State) ->
     handle_subscribe_redirect(State);
-handle_subscribe_response(Error,
-                          #state{subscribe_state =
-                                 #subscribe_response{status = Status}} =
-                          State) ->
-    io:format("Error ~p~n", [[Status, Error]]),
-    {stop, shutdown, State};
-handle_subscribe_response(Packets,
-                          #state{subscribe_state = subscribed} = State) ->
-    handle_packets(Packets, State).
+handle_subscribe_response(Reason, State) ->
+    {stop, {error, {subscribe_response, Reason}}, State}.
 
 %% @doc Handles subscribe redirects.
 %% @private
