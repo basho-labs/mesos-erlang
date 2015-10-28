@@ -28,8 +28,7 @@ error(#error_packet{} = ErrorPacket, State) ->
     {ok, error_state}.
 
 handle_info(Info, State) ->
-    io:format("Handle info callback. Info: ~p, state: ~p~n",
-              [Info, State]),
+    io:format("Handle info callback. Info: ~p, state: ~p~n", [Info, State]),
     {ok, handle_info_state}.
 
 terminate(Reason, State) ->

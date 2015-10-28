@@ -339,7 +339,8 @@ subscribe(#state{data_format = DataFormat,
 %% @doc Handles subscribe response.
 %% @private
 -spec handle_subscribe_response(term(), state()) ->
-    {noreply, state()} | {stop, term(), state()}.
+    {noreply, state()} |
+    {stop, shutdown | {error, {subscribe, term()}}, state()}.
 handle_subscribe_response({status, Status, _Message},
                           #state{client_ref = ClientRef,
                                  subscribe_state = undefined} = State) ->
@@ -372,12 +373,13 @@ handle_subscribe_response(_Body,
                                  #subscribe_response{status = 307}} = State) ->
     handle_subscribe_redirect(State);
 handle_subscribe_response(Reason, State) ->
-    {stop, {error, {subscribe_response, Reason}}, State}.
+    {stop, {error, {subscribe, Reason}}, State}.
 
 %% @doc Handles subscribe redirects.
 %% @private
 -spec handle_subscribe_redirect(state()) ->
-    {noreply, state()} | {stop, shutdown, state()}.
+    {noreply, state()} |
+    {stop, shutdown | {error, {subscribe, term()}}, state()}.
 handle_subscribe_redirect(#state{subscribe_req_options = SubscribeReqOptions,
                                  num_subscribe_redirects =
                                      NumSubscribeRedirects} = State) ->
@@ -392,8 +394,8 @@ handle_subscribe_redirect(#state{subscribe_req_options = SubscribeReqOptions,
                     {noreply, State1};
                 stop ->
                     {stop, shutdown, State};
-                {error, _Reason} ->
-                    {stop, shutdown, State}
+                {error, Reason} ->
+                    {stop, {error, {subscribe, Reason}}, State}
             end
     end.
 
