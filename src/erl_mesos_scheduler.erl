@@ -56,6 +56,8 @@
 
 -callback handle_info(term(), term()) -> {ok, term()}.
 
+-callback terminate(term(), term()) -> term().
+
 -define(DEFAULT_MASTER_HOST, <<"localhost:5050">>).
 
 -define(DEFAULT_SUBSCRIBE_REQ_OPTIONS, []).
@@ -142,9 +144,10 @@ handle_info(Info, State) ->
     {noreply, State1}.
 
 %% @private
--spec terminate(term(), state()) -> ok.
-terminate(_Reason, _State) ->
-    ok.
+-spec terminate(term(), state()) -> term().
+terminate(Reason, #state{scheduler = Scheduler,
+                         scheduler_state = SchedulerState}) ->
+    Scheduler:terminate(Reason, SchedulerState).
 
 %% @private
 -spec code_change(term(), state(), term()) -> {ok, state()}.

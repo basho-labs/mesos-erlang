@@ -4,7 +4,11 @@
 
 -include_lib("erl_mesos.hrl").
 
--export([init/1, registered/2, error/2, handle_info/2]).
+-export([init/1,
+         registered/2,
+         error/2,
+         handle_info/2,
+         terminate/2]).
 
 init(Options) ->
     FrameworkInfo = #framework_info{user = <<"dima 123">>,
@@ -27,3 +31,6 @@ handle_info(Info, State) ->
     io:format("Handle info callback. Info: ~p, state: ~p~n",
               [Info, State]),
     {ok, handle_info_state}.
+
+terminate(Reason, State) ->
+    io:format("Terminate. Reason: ~p, state: ~p~n", [Reason, State]).
