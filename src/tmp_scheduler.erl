@@ -17,14 +17,14 @@ init(Options) ->
     io:format("Init callback. Options: ~p~n", [Options]),
     {ok, FrameworkInfo, true, init_state}.
 
-registered(#subscribed_packet{} = SubscribedPacket, State) ->
-    io:format("Registered callback. Subscribed packet: ~p, state: ~p~n",
-              [SubscribedPacket, State]),
+registered(#subscribed_event{} = SubscribedEvent, State) ->
+    io:format("Registered callback. Subscribed event: ~p, state: ~p~n",
+              [SubscribedEvent, State]),
     {ok, registered_state}.
 
-error(#error_packet{} = ErrorPacket, State) ->
-    io:format("Error callback. Error packet: ~p, state: ~p~n",
-              [ErrorPacket, State]),
+error(#error_event{} = ErrorEvent, State) ->
+    io:format("Error callback. Error event: ~p, state: ~p~n",
+              [ErrorEvent, State]),
     {ok, error_state}.
 
 handle_info(Info, State) ->

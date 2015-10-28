@@ -50,9 +50,9 @@
 -callback init(term()) ->
     {ok, framework_info(), boolean(), term()}.
 
--callback registered(subscribed_packet(), term()) -> {ok, term()}.
+-callback registered(subscribed_event(), term()) -> {ok, term()}.
 
--callback error(error_packet(), term()) -> {ok, term()}.
+-callback error(error_event(), term()) -> {ok, term()}.
 
 -callback handle_info(term(), term()) -> {ok, term()}.
 
@@ -485,28 +485,28 @@ parse_objs([], State) ->
 -spec parse_obj(erl_mesos_obj:data_obj(), state()) -> {ok, state()}.
 parse_obj(Obj, #state{subscribe_state = SubscribeState,
                       framework_id = FrameworkId} = State) ->
-    case erl_mesos_scheduler_packet:parse(Obj) of
-        {subscribed, {#subscribed_packet{framework_id = SubscribeFrameworkId} =
-                      SubscribedPacket, HeartbeatTimeout}}
+    case erl_mesos_scheduler_obj:parse(Obj) of
+        {subscribed, {#subscribed_event{framework_id = SubscribeFrameworkId} =
+                      SubscribedEvent, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response),
                FrameworkId =:= undefined ->
             State1 = State#state{num_subscribe_redirects = 0,
                                  subscribe_state = subscribed,
                                  heartbeat_timeout = HeartbeatTimeout,
                                  framework_id = SubscribeFrameworkId},
-            call(registered, SubscribedPacket, set_heartbeat_timeout(State1));
-        {subscribed, {_SubscribedPacket, HeartbeatTimeout}}
+            call(registered, SubscribedEvent, set_heartbeat_timeout(State1));
+        {subscribed, {_SubscribedEvent, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response) ->
             State1 = State#state{num_subscribe_redirects = 0,
                                  subscribe_state = subscribed,
                                  heartbeat_timeout = HeartbeatTimeout},
             {ok, set_heartbeat_timeout(State1)};
-        {error, ErrorPacket} ->
-            call(error, ErrorPacket, State);
+        {error, ErrorEvent} ->
+            call(error, ErrorEvent, State);
         heartbeat ->
             {ok, set_heartbeat_timeout(State)};
-        DecodePacket ->
-            io:format("New unhandled packet arrived: ~p~n", [DecodePacket]),
+        Event ->
+            io:format("New unhandled event arrived: ~p~n", [Event]),
             {ok, State}
     end.
 

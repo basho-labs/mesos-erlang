@@ -4,30 +4,62 @@
 
 -include_lib("erl_mesos.hrl").
 
--export([init/1, registered/2, error/2]).
+-export([init/1,
+         registered/2,
+         error/2,
+         handle_info/2,
+         terminate/2]).
+
+-record(state, {callback,
+                test_pid}).
 
 init(Options) ->
+    FrameworkInfo = framework_info(Options),
+    TestPid = proplists:get_value(test_pid, Options),
+    {ok, FrameworkInfo, true, #state{callback = init,
+                                     test_pid = TestPid}}.
 
-    FrameworkInfo = #framework_info{user = <<"dima 123">>,
-                                    name = <<"test framework 123">>,
-                                    failover_timeout = 100000.0},
-    io:format("Init callback. Options: ~p~n", [Options]),
-    {ok, FrameworkInfo, true, init_state}.
-
-registered(#subscribed_packet{} = SubscribedPacket, State) ->
-    io:format("Registered callback. Subscribed packet: ~p, state: ~p~n",
-              [SubscribedPacket, State]),
+registered(SubscribedPacket, #state{test_pid = TestPid} = State) ->
+    %%reply(TestPid, {subscribed_packet})
     {ok, registered_state}.
 
-error(#error_packet{} = ErrorPacket, State) ->
+error(#error_event{} = ErrorPacket, State) ->
     io:format("Error callback. Error packet: ~p, state: ~p~n",
               [ErrorPacket, State]),
     {ok, error_state}.
 
-%% framework_info(Options) ->
-%%     User = proplists:get_value(user, Options, <<"">>),
-%%     Name = proplists:get_value(name, Options, <<"">>),
-%%     FailoverTimeout = proplists:get_value(failover_timeout, Options, 0.0),
-%%     #framework_info{user = User,
-%%                     name = Name,
-%%                     failover_timeout = FailoverTimeout}.
+handle_info(_Info, State) ->
+    {ok, State}.
+
+terminate(_Reason, State) ->
+    {ok, State}.
+
+framework_info(Options) ->
+    User = proplists:get_value(user, Options, <<>>),
+    Name = proplists:get_value(name, Options, <<>>),
+    Id = proplists:get_value(id, Options, undefined),
+    FailoverTimeout = proplists:get_value(failover_timeout, Options, undefined),
+    Checkpoint = proplists:get_value(checkpoint, Options, undefined),
+    Role = proplists:get_value(role, Options, undefined),
+    Hostname = proplists:get_value(hostname, Options, undefined),
+    Principal = proplists:get_value(principal, Options, undefined),
+    WebuiUrl = proplists:get_value(webui_url, Options, undefined),
+    Capabilities = proplists:get_value(capabilities, Options, undefined),
+    Labels = proplists:get_value(labels, Options, undefined),
+    #framework_info{user = User,
+                    name = Name,
+                    id = Id,
+                    failover_timeout = FailoverTimeout,
+                    checkpoint = Checkpoint,
+                    role = Role,
+                    hostname = Hostname,
+                    principal = Principal,
+                    webui_url = WebuiUrl,
+                    capabilities = Capabilities,
+                    labels = Labels}.
+
+reply(undefined, _Message) ->
+    undefined;
+reply(TestPid, Message) ->
+    TestPid ! Message.
+

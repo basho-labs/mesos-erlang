@@ -58,7 +58,7 @@
                          %% This field allows a framework to advertise its set
                          %% of capabilities (e.g., ability to receive offers for
                          %% revocable resources).
-                         capabilities :: [],
+                         capabilities,
 
                          %% Labels are free-form key value pairs supplied by the
                          %% framework scheduler (e.g., to describe additional
@@ -68,17 +68,17 @@
 
 -record(framework_id, {value :: binary()}).
 
--record(subscribed_packet, {framework_id :: framework_id() |
-                                            erl_mesos_obj:data_obj(),
-                            heartbeat_interval_seconds :: undefined |
-                                                          pos_integer()}).
+-record(subscribed_event, {framework_id :: framework_id() |
+                                           erl_mesos_obj:data_obj(),
+                           heartbeat_interval_seconds :: undefined |
+                                                         pos_integer()}).
 
--record(error_packet, {message :: erl_mesos_obj:data_string()}).
+-record(error_event, {message :: erl_mesos_obj:data_string()}).
 
 -type framework_info() :: #framework_info{}.
 
 -type framework_id() :: #framework_id{}.
 
--type subscribed_packet() :: #subscribed_packet{}.
+-type subscribed_event() :: #subscribed_event{}.
 
--type error_packet() :: #error_packet{}.
+-type error_event() :: #error_event{}.
