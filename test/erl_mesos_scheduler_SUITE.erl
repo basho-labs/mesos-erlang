@@ -3,23 +3,27 @@
 -include_lib("common_test/include/ct.hrl").
 
 -export([all/0,
-         groups/0,
          init_per_suite/1,
          end_per_suite/1]).
 
--export([bad_options/1]).
+-export([bad_options/1,
+         subscribe/1]).
 
 all() ->
-    [bad_options].
-
-groups() ->
-    [].
+    [bad_options,
+     subscribe].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
-    [{scheduler, erl_mesos_test_scheduler},
-     {scheduler_options, []} |
-    Config].
+    Scheduler = erl_mesos_test_scheduler,
+    SchedulerOptions = [{user, <<"user">>},
+                        {name, <<"erl_mesos_test_scheduler">>}],
+    MasterHost = os:getenv("ERL_MESOS_TEST_MASTER_HOST"),
+    Options = [{master_host, MasterHost}],
+    SchedulerConfig = [{scheduler, Scheduler},
+                       {scheduler_options, SchedulerOptions},
+                       {options, Options}],
+    SchedulerConfig ++ Config.
 
 end_per_suite(_Config) ->
     application:stop(erl_mesos),
@@ -60,4 +64,13 @@ bad_options(Config) ->
     {error, {bad_resubscribe_timeout, ResubscribeTimeout}} =
         erl_mesos:start_scheduler(Scheduler, SchedulerOptions, Options5).
 
+subscribe(_Config) ->
+    ok.
 
+%% Internal functions.
+
+log(Data) ->
+    {ok, Dir} = file:get_cwd(),
+    TestDir = filename:dirname(Dir),
+    LogFileName = filename:join(TestDir, "log.txt"),
+    file:write_file(LogFileName, io_lib:fwrite("~p.\n", [Data]), [append]).

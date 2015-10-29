@@ -13,26 +13,29 @@
 -record(state, {callback,
                 test_pid}).
 
+%% erl_mesos_scheduler callback functions.
+
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
     {ok, FrameworkInfo, true, #state{callback = init,
                                      test_pid = TestPid}}.
 
-registered(SubscribedPacket, #state{test_pid = TestPid} = State) ->
-    %%reply(TestPid, {subscribed_packet})
-    {ok, registered_state}.
+registered(SubscribedEvent, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {subscribed, SubscribedEvent}),
+    {ok, State#state{callback = registered}}.
 
-error(#error_event{} = ErrorPacket, State) ->
-    io:format("Error callback. Error packet: ~p, state: ~p~n",
-              [ErrorPacket, State]),
-    {ok, error_state}.
+error(ErrorEvent, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {error, ErrorEvent}),
+    {ok, State#state{callback = error}}.
 
 handle_info(_Info, State) ->
     {ok, State}.
 
-terminate(_Reason, State) ->
-    {ok, State}.
+terminate(Reason, #state{test_pid = TestPid}) ->
+    reply(TestPid, {terminate, Reason}).
+
+%% Internal functions.
 
 framework_info(Options) ->
     User = proplists:get_value(user, Options, <<>>),

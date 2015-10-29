@@ -4,7 +4,9 @@
 
 -include("erl_mesos_obj.hrl").
 
--export([subscribe/5, resubscribe/5]).
+-export([subscribe/5,
+         resubscribe/5,
+         teardown/4]).
 
 -type request_options() :: [{atom(), term()}].
 -export_type([request_options/0]).
@@ -43,16 +45,62 @@ resubscribe(DataFormat, MasterHost, Options, FrameworkInfo, FrameworkId) ->
                                 {<<"subscribe">>, SubscribeObj}]),
     request(DataFormat, MasterHost, Options, ReqObj).
 
+%% @doc Sends teardown request.
+-spec teardown(erl_mesos_data_format:data_format(), binary(), request_options(),
+               framework_id()) ->
+    ok | {error, term()}.
+teardown(DataFormat, MasterHost, Options, FrameworkId) ->
+    FrameworkIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_id, FrameworkId),
+    ReqObj = erl_mesos_obj:new([{<<"type">>, <<"TEARDOWN">>},
+                                {<<"framework_id">>, FrameworkIdObj}]),
+    convert_response(request(DataFormat, MasterHost, Options, ReqObj)).
+
 %% Internal functions.
 
 %% @doc Sends http request to the mesos master.
 %% @private
 -spec request(erl_mesos_data_format:data_format(), binary(), request_options(),
               erl_mesos_obj:data_obj()) ->
-    {ok, hackney:client_ref()} | {error, term()}.
+    {ok, hackney:client_ref()} |
+    {ok, non_neg_integer(), [{binary(), binary()}], reference()} |
+    {error, term()}.
 request(DataFormat, MasterHost, Options, ReqObj) ->
-    Url = <<"http://", MasterHost/binary, ?PATH>>,
-    ReqHeaders = [{<<"Content-Type">>,
-                  erl_mesos_data_format:content_type(DataFormat)}],
+    Url = request_url(MasterHost),
+    ReqHeaders = request_headers(DataFormat),
     ReqBody = erl_mesos_data_format:encode(DataFormat, ReqObj),
     hackney:request(post, Url, ReqHeaders, ReqBody, Options).
+
+%% @doc Returns request url.
+%% @private
+-spec request_url(binary()) -> binary().
+request_url(MasterHost) ->
+    <<"http://", MasterHost/binary, ?PATH>>.
+
+%% @doc Returns request headers.
+%% @private
+-spec request_headers(erl_mesos_data_format:data_format()) ->
+    [{binary(), binary()}].
+request_headers(DataFormat) ->
+    [{<<"Content-Type">>, erl_mesos_data_format:content_type(DataFormat)},
+     {<<"Connection">>, <<"close">>}].
+
+%% @doc Converts response.
+%% @private
+-spec convert_response({ok, non_neg_integer(), [{binary(), binary()}],
+                        reference()} | {error, term()}) ->
+    ok | {error, term()} |
+    {error, {http_response, non_neg_integer(), binary()}}.
+convert_response(Response) ->
+    case Response of
+        {ok, 202, _Headers, _ClientRef} ->
+            ok;
+        {ok, Status, _Headers, ClientRef} ->
+            case hackney:body(ClientRef) of
+                {ok, Body} ->
+                    {error, {http_response, Status, Body}};
+                {error, Reason} ->
+                    {error, Reason}
+            end;
+        {error, Reason} ->
+            {error, Reason}
+    end.

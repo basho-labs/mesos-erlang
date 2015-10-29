@@ -6,6 +6,8 @@
 
 -export([start_link/3]).
 
+-export([teardown/1, teardown/2]).
+
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -36,6 +38,10 @@
 -record(subscribe_response, {status :: undefined | non_neg_integer(),
                              headers :: undefined | [{binary(), binary()}]}).
 
+-record(scheduler, {data_format :: erl_mesos_data_format:data_format(),
+                    master_host :: binary(),
+                    framework_id :: framework_id()}).
+
 -type options() :: [{atom(), term()}].
 -export_type([options/0]).
 
@@ -45,18 +51,29 @@
 
 -type subscribe_state() :: subscribe_response() | subscribed.
 
+-type scheduler() :: #scheduler{}.
+
 %% Callbacks.
 
 -callback init(term()) ->
     {ok, framework_info(), boolean(), term()}.
 
--callback registered(subscribed_event(), term()) -> {ok, term()}.
+-callback registered(scheduler(), subscribed_event(), term()) ->
+    {ok, term()} | {stop, term()}.
 
--callback error(error_event(), term()) -> {ok, term()}.
+-callback reregistered(scheduler(), term()) ->
+    {ok, term()} | {stop, term()}.
 
--callback handle_info(term(), term()) -> {ok, term()}.
+-callback disconnected(scheduler(), term()) ->
+    {ok, term()} | {stop, term()}.
 
--callback terminate(term(), term()) -> term().
+-callback error(scheduler(), error_event(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback handle_info(scheduler(), term(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback terminate(scheduler(), term(), term()) -> term().
 
 -define(DEFAULT_MASTER_HOST, <<"localhost:5050">>).
 
@@ -83,6 +100,19 @@
 start_link(Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Scheduler, SchedulerOptions, Options}, []).
 
+%% @equiv teardown(scheduler(), [])
+-spec teardown(scheduler()) -> ok | {error, term()}.
+teardown(Scheduler) ->
+    teardown(Scheduler, []).
+
+%% @doc Sends teardown request.
+-spec teardown(scheduler(), erl_mesos_api:request_options()) ->
+    ok | {error, term()}.
+teardown(#scheduler{data_format = DataFormat,
+                    master_host = MasterHost,
+                    framework_id = FrameworkId}, Options) ->
+    erl_mesos_api:teardown(DataFormat, MasterHost, Options, FrameworkId).
+
 %% gen_server callback functions.
 
 %% @private
@@ -98,7 +128,7 @@ init({Scheduler, SchedulerOptions, Options}) ->
 %% @private
 -spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
 handle_call(Request, _From, State) ->
-    %% Log unexpceted call message here.
+    %% Log unexpceted cast message here.
     io:format("== Unexpected call message ~p~n", [Request]),
     {noreply, State}.
 
@@ -140,14 +170,18 @@ handle_info({timeout, ResubscribeTimeoutRef, resubscribe},
             #state{resubscribe_timeout_ref = ResubscribeTimeoutRef} = State) ->
     {noreply, State};
 handle_info(Info, State) ->
-    {ok, State1} = call(handle_info, Info, State),
-    {noreply, State1}.
+    case call(handle_info, Info, State) of
+        {ok, State1} ->
+            {noreply, State1};
+        {stop, State1} ->
+            {stop, shutdown, State1}
+    end.
 
 %% @private
 -spec terminate(term(), state()) -> term().
 terminate(Reason, #state{scheduler = Scheduler,
-                         scheduler_state = SchedulerState}) ->
-    Scheduler:terminate(Reason, SchedulerState).
+                         scheduler_state = SchedulerState} = State) ->
+    Scheduler:terminate(scheduler(State), Reason, SchedulerState).
 
 %% @private
 -spec code_change(term(), state(), term()) -> {ok, state()}.
@@ -426,10 +460,20 @@ start_resubscribe_timer(#state{framework_id = undefined} = State) ->
 start_resubscribe_timer(#state{framework_info =
                                #framework_info{failover_timeout = undefined}} =
                         State) ->
-    {stop, shutdown, State};
+    case call(disconnected, State) of
+        {ok, State1} ->
+            {stop, shutdown, State1};
+        {stop, State1} ->
+            {stop, shutdown, State1}
+    end;
 start_resubscribe_timer(#state{max_num_resubscribe = NumResubscribe,
                                num_resubscribe = NumResubscribe} = State) ->
-    {stop, shutdown, State};
+    case call(disconnected, State) of
+        {ok, State1} ->
+            {stop, shutdown, State1};
+        {stop, State1} ->
+            {stop, shutdown, State1}
+    end;
 start_resubscribe_timer(#state{client_ref = ClientRef,
                                num_resubscribe = NumResubscribe,
                                resubscribe_timeout = ResubscribeTimeout} =
@@ -437,10 +481,16 @@ start_resubscribe_timer(#state{client_ref = ClientRef,
     hackney:close(ClientRef),
     ResubscribeTimeoutRef = erlang:start_timer(ResubscribeTimeout, self(),
                                                resubscribe),
-    {noreply, State#state{client_ref = undefined,
-                          subscribe_state = undefined,
-                          num_resubscribe = NumResubscribe + 1,
-                          resubscribe_timeout_ref = ResubscribeTimeoutRef}}.
+    State1 = State#state{client_ref = undefined,
+                         subscribe_state = undefined,
+                         num_resubscribe = NumResubscribe + 1,
+                         resubscribe_timeout_ref = ResubscribeTimeoutRef},
+    case call(disconnected, State1) of
+        {ok, State2} ->
+            {noreply, State2};
+        {stop, State2} ->
+            {stop, shutdown, State2}
+    end.
 
 %% @doc Calls resubscribe api request.
 %% @private
@@ -463,26 +513,37 @@ resubscribe(#state{data_format = DataFormat,
 
 %% @doc Handle packets.
 %% @private
--spec handle_packets(binary(), state()) -> {noreply, state()}.
+-spec handle_packets(binary(), state()) ->
+    {noreply, state()} | {stop, shutdown, state()}.
 handle_packets(Packets, #state{data_format = DataFormat,
                                client_ref = ClientRef} = State) ->
     Objs = erl_mesos_data_format:decode_packets(DataFormat, Packets),
-    {ok, State1} = parse_objs(Objs, State),
-    hackney:stream_next(ClientRef),
-    {noreply, State1}.
+    case parse_objs(Objs, State) of
+        {ok, State1} ->
+            hackney:stream_next(ClientRef),
+            {noreply, State1};
+        {stop, State1} ->
+            {stop, shutdown, State1}
+    end.
 
 %% @doc Parses objs.
 %% @private
--spec parse_objs([erl_mesos_obj:data_obj()], state()) -> {ok, state()}.
+-spec parse_objs([erl_mesos_obj:data_obj()], state()) ->
+    {ok, state()} | {stop, state()}.
 parse_objs([Obj | Objs], State) ->
-    {ok, State1} = parse_obj(Obj, State),
-    parse_objs(Objs, State1);
+    case parse_obj(Obj, State) of
+        {ok, State1} ->
+            parse_objs(Objs, State1);
+        {stop, State1} ->
+            {stop, State1}
+    end;
 parse_objs([], State) ->
     {ok, State}.
 
 %% @doc Parses obj.
 %% @private
--spec parse_obj(erl_mesos_obj:data_obj(), state()) -> {ok, state()}.
+-spec parse_obj(erl_mesos_obj:data_obj(), state()) ->
+    {ok, state()} | {stop, state()}.
 parse_obj(Obj, #state{subscribe_state = SubscribeState,
                       framework_id = FrameworkId} = State) ->
     case erl_mesos_scheduler_obj:parse(Obj) of
@@ -500,7 +561,7 @@ parse_obj(Obj, #state{subscribe_state = SubscribeState,
             State1 = State#state{num_subscribe_redirects = 0,
                                  subscribe_state = subscribed,
                                  heartbeat_timeout = HeartbeatTimeout},
-            {ok, set_heartbeat_timeout(State1)};
+            call(reregistered, set_heartbeat_timeout(State1));
         {error, ErrorEvent} ->
             call(error, ErrorEvent, State);
         heartbeat ->
@@ -509,6 +570,16 @@ parse_obj(Obj, #state{subscribe_state = SubscribeState,
             io:format("New unhandled event arrived: ~p~n", [Event]),
             {ok, State}
     end.
+
+%% @doc Returns scheduler.
+%% @private
+-spec scheduler(state()) -> scheduler().
+scheduler(#state{data_format = DataFormat,
+                 master_host = MasterHost,
+                 framework_id = FrameworkId}) ->
+    #scheduler{data_format = DataFormat,
+               master_host = MasterHost,
+               framework_id = FrameworkId}.
 
 %% @doc Sets heartbeat timeout.
 %% @private
@@ -529,11 +600,27 @@ set_heartbeat_timeout(#state{heartbeat_timeout_window = HeartbeatTimeoutWindow,
 
 %% @doc Calls Scheduler:Callback/2.
 %% @private
--spec call(atom(), term(), state()) -> {ok, state()}.
+-spec call(atom(), state()) -> {ok, state()} | {stop, state()}.
+call(Callback, #state{scheduler = Scheduler,
+                      scheduler_state = SchedulerState} = State) ->
+    case Scheduler:Callback(scheduler(State), SchedulerState) of
+        {ok, SchedulerState1} ->
+            {ok, State#state{scheduler_state = SchedulerState1}};
+        {stop, SchedulerState1} ->
+            {stop, State#state{scheduler_state = SchedulerState1}}
+    end.
+
+%% @doc Calls Scheduler:Callback/3.
+%% @private
+-spec call(atom(), term(), state()) -> {ok, state()} | {stop, state()}.
 call(Callback, Arg, #state{scheduler = Scheduler,
                            scheduler_state = SchedulerState} = State) ->
-    {ok, SchedulerState1} = Scheduler:Callback(Arg, SchedulerState),
-    {ok, State#state{scheduler_state = SchedulerState1}}.
+    case Scheduler:Callback(scheduler(State), Arg, SchedulerState) of
+        {ok, SchedulerState1} ->
+            {ok, State#state{scheduler_state = SchedulerState1}};
+        {stop, SchedulerState1} ->
+            {stop, State#state{scheduler_state = SchedulerState1}}
+    end.
 
 %% @doc Formats state.
 %% @private
