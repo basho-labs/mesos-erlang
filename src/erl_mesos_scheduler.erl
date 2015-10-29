@@ -179,8 +179,10 @@ handle_info(Info, State) ->
 
 %% @private
 -spec terminate(term(), state()) -> term().
-terminate(Reason, #state{scheduler = Scheduler,
+terminate(Reason, #state{client_ref = ClientRef,
+                         scheduler = Scheduler,
                          scheduler_state = SchedulerState} = State) ->
+    close(ClientRef),
     Scheduler:terminate(scheduler(State), Reason, SchedulerState).
 
 %% @private
@@ -440,7 +442,7 @@ subscribe_redirect(#state{client_ref = ClientRef,
                           subscribe_state =
                           #subscribe_response{headers = Headers},
                           framework_id = FrameworkId} = State) ->
-    hackney:close(ClientRef),
+    close(ClientRef),
     MasterHost = proplists:get_value(<<"Location">>, Headers),
     State1 = State#state{master_host = MasterHost,
                          subscribe_state = undefined},
@@ -478,7 +480,7 @@ start_resubscribe_timer(#state{client_ref = ClientRef,
                                num_resubscribe = NumResubscribe,
                                resubscribe_timeout = ResubscribeTimeout} =
                         State) ->
-    hackney:close(ClientRef),
+    close(ClientRef),
     ResubscribeTimeoutRef = erlang:start_timer(ResubscribeTimeout, self(),
                                                resubscribe),
     State1 = State#state{client_ref = undefined,
@@ -621,6 +623,14 @@ call(Callback, Arg, #state{scheduler = Scheduler,
         {stop, SchedulerState1} ->
             {stop, State#state{scheduler_state = SchedulerState1}}
     end.
+
+%% @doc Closes the subscribe connection.
+%% @private
+-spec close(undefined | reference()) -> ok | {error, term()}.
+close(undefined) ->
+    ok;
+close(ClientRef) ->
+    hackney:close(ClientRef).
 
 %% @doc Formats state.
 %% @private
