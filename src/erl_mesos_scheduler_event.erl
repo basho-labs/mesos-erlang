@@ -1,10 +1,10 @@
--module(erl_mesos_scheduler_obj).
+-module(erl_mesos_scheduler_event).
 
 -include("erl_mesos.hrl").
 
 -include("erl_mesos_obj.hrl").
 
--export([parse/1]).
+-export([parse_obj/1]).
 
 -type event() :: {subscribed, {subscribed_event(), pos_integer}} |
                  {error, error_event()} |
@@ -17,8 +17,8 @@
 %% External functions.
 
 %% @doc Parses obj.
--spec parse(erl_mesos_obj:data_obj()) -> event().
-parse(Obj) ->
+-spec parse_obj(erl_mesos_obj:data_obj()) -> event().
+parse_obj(Obj) ->
     case erl_mesos_obj:get_value(<<"type">>, Obj) of
         <<"SUBSCRIBED">> ->
             {subscribed, parse_subscribed_obj(Obj)};

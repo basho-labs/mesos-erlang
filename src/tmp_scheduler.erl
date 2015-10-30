@@ -51,7 +51,7 @@ error(Scheduler, #error_event{} = ErrorEvent, State) ->
     {ok, error_state}.
 
 handle_info(_Scheduler, stop, State) ->
-    {stop, State};
+    {stop, shutdown, State};
 handle_info(Scheduler, teardown, _State) ->
     ok = erl_mesos_scheduler:teardown(Scheduler),
     {ok, handle_info_state};
