@@ -20,52 +20,52 @@ init(Options) ->
               "== Options: ~p~n~n", [Options]),
     {ok, FrameworkInfo, true, init_state}.
 
-registered(Scheduler, #subscribed_event{} = SubscribedEvent, State) ->
+registered(SchedulerInfo, #subscribed_event{} = SubscribedEvent, State) ->
     io:format("== Registered callback~n"
-              "== Scheduler: ~p~n"
+              "== Scheduler info: ~p~n"
               "== Subscribed event: ~p~n"
               "== State: ~p~n~n",
-              [Scheduler, SubscribedEvent, State]),
+              [SchedulerInfo, SubscribedEvent, State]),
     {ok, registered_state}.
 
-reregistered(Scheduler, State) ->
+reregistered(SchedulerInfo, State) ->
     io:format("== Reregistered callback~n"
-              "== Scheduler: ~p~n"
+              "== Scheduler info: ~p~n"
               "== State: ~p~n~n",
-              [Scheduler, State]),
+              [SchedulerInfo, State]),
     {ok, reregistered_state}.
 
-disconnected(Scheduler, State) ->
+disconnected(SchedulerInfo, State) ->
     io:format("== Disconnected callback~n"
-              "== Scheduler: ~p~n"
+              "== Scheduler info: ~p~n"
               "== State: ~p~n~n",
-              [Scheduler, State]),
+              [SchedulerInfo, State]),
     {ok, disconnected_state}.
 
-error(Scheduler, #error_event{} = ErrorEvent, State) ->
+error(SchedulerInfo, #error_event{} = ErrorEvent, State) ->
     io:format("== Error callback~n"
-              "== Scheduler: ~p~n"
+              "== Scheduler info: ~p~n"
               "== Error event: ~p~n"
               "== State: ~p~n~n",
-              [Scheduler, ErrorEvent, State]),
+              [SchedulerInfo, ErrorEvent, State]),
     {ok, error_state}.
 
-handle_info(_Scheduler, stop, State) ->
+handle_info(_SchedulerInfo, stop, State) ->
     {stop, shutdown, State};
-handle_info(Scheduler, teardown, _State) ->
-    ok = erl_mesos_scheduler:teardown(Scheduler),
+handle_info(SchedulerInfo, teardown, _State) ->
+    ok = erl_mesos_scheduler:teardown(SchedulerInfo),
     {ok, handle_info_state};
-handle_info(Scheduler, Info, State) ->
+handle_info(SchedulerInfo, Info, State) ->
     io:format("== Info callback~n"
-              "== Scheduler: ~p~n"
+              "== Scheduler info: ~p~n"
               "== Info: ~p~n"
               "== State: ~p~n~n",
-              [Scheduler, Info, State]),
+              [SchedulerInfo, Info, State]),
     {ok, handle_info_state}.
 
-terminate(Scheduler, Reason, State) ->
+terminate(SchedulerInfo, Reason, State) ->
     io:format("== Terminate callback~n"
-              "== Scheduler: ~p~n"
+              "== Scheduler info: ~p~n"
               "== Reason: ~p~n"
               "== State: ~p~n~n",
-              [Scheduler, Reason, State]).
+              [SchedulerInfo, Reason, State]).

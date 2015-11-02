@@ -122,18 +122,16 @@ init({Scheduler, SchedulerOptions, Options}) ->
     end.
 
 %% @private
--spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
+-spec handle_call(term(), {pid(), term()}, state()) ->
+    {stop, {error, {call, term()}}, state()}.
 handle_call(Request, _From, State) ->
-    %% Log unexpceted cast message here.
-    io:format("== Unexpected call message ~p~n", [Request]),
-    {noreply, State}.
+    {stop, {error, {call, Request}}, State}.
 
 %% @private
--spec handle_cast(term(), state()) -> {noreply, state()}.
+-spec handle_cast(term(), state()) ->
+    {stop, {error, {cast, term()}}, state()}.
 handle_cast(Request, State) ->
-    %% Log unexpceted cast message here.
-    io:format("== Unexpected cast message ~p~n", [Request]),
-    {noreply, State}.
+    {stop, {error, {cast, Request}}, State}.
 
 %% @private
 -spec handle_info(term(), state()) ->
@@ -443,8 +441,8 @@ handle_subscribe_redirect(#state{subscribe_req_options = SubscribeReqOptions,
 %% @private
 -spec subscribe_redirect(state()) -> {ok, state()} | stop | {error, term()}.
 subscribe_redirect(#state{client_ref = ClientRef,
-                          subscribe_state = #subscribe_response{headers =
-                                                                Headers},
+                          subscribe_state =
+                              #subscribe_response{headers = Headers},
                           framework_id = FrameworkId} = State) ->
     close(ClientRef),
     MasterHost = proplists:get_value(<<"Location">>, Headers),
@@ -463,17 +461,11 @@ subscribe_redirect(#state{client_ref = ClientRef,
     {noreply, state()} | {stop, term(), state()}.
 start_resubscribe_timer(#state{framework_id = undefined} = State) ->
     {stop, shutdown, State};
-start_resubscribe_timer(#state{framework_info =
-                               #framework_info{failover_timeout = undefined}} =
-                        State) ->
-    case call(disconnected, State) of
-        {ok, State1} ->
-            {stop, shutdown, State1};
-        {stop, Reason, State1} ->
-            {stop, Reason, State1}
-    end;
-start_resubscribe_timer(#state{max_num_resubscribe = NumResubscribe,
-                               num_resubscribe = NumResubscribe} = State) ->
+start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
+                               framework_info = FrameworkInfo,
+                               num_resubscribe = NumResubscribe} = State)
+  when (MaxNumResubscribe == NumResubscribe) orelse
+       FrameworkInfo#framework_info.failover_timeout == undefined ->
     case call(disconnected, State) of
         {ok, State1} ->
             {stop, shutdown, State1};
@@ -607,7 +599,6 @@ cancel_heartbeat_timeout(undefined) ->
     undefined;
 cancel_heartbeat_timeout(HeartbeatTimeoutRef) ->
     erlang:cancel_timer(HeartbeatTimeoutRef).
-
 
 %% @doc Calls Scheduler:Callback/2.
 %% @private
