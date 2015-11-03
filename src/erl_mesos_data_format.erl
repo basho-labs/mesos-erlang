@@ -4,7 +4,7 @@
 
 -export([encode/2, decode/2]).
 
--export([decode_packets/2]).
+-export([decode_events/2]).
 
 -type data_format() :: json.
 -export_type([data_format/0]).
@@ -26,27 +26,27 @@ encode(json, Data) ->
 decode(json, Binary) ->
     mochijson2:decode(Binary).
 
-%% @doc Decodes packets.
--spec decode_packets(json, binary()) -> [erl_mesos_obj:data()].
-decode_packets(json, Binary) ->
-    decode_json_packets(Binary, <<>>, []).
+%% @doc Decodes events.
+-spec decode_events(json, binary()) -> [erl_mesos_obj:data()].
+decode_events(json, Binary) ->
+    decode_json_events(Binary, <<>>, []).
 
 %% Internal functions.
 
-%% @doc Decodes json packets.
+%% @doc Decodes json events.
 %% @private
--spec decode_json_packets(binary(), binary(), [erl_mesos_obj:data_obj()]) ->
+-spec decode_json_events(binary(), binary(), [erl_mesos_obj:data_obj()]) ->
     [erl_mesos_obj:data_obj()].
-decode_json_packets(<<$\n, Chars/binary>>, SizeChars, Packets) ->
+decode_json_events(<<$\n, Chars/binary>>, SizeChars, Packets) ->
     Size = binary_to_integer(SizeChars),
     case Chars of
         <<Packet:Size/binary>> ->
             lists:reverse([decode(json, Packet) | Packets]);
         <<Packet:Size/binary, RestChars/binary>> ->
-            decode_json_packets(RestChars, <<>>,
-                                [decode(json, Packet) | Packets])
+            decode_json_events(RestChars, <<>>,
+                               [decode(json, Packet) | Packets])
     end;
-decode_json_packets(<<Char, Chars/binary>>, SizeChars, Packets) ->
-    decode_json_packets(Chars, <<SizeChars/binary, Char>>, Packets);
-decode_json_packets(<<>>, _SizeChars, Packets) ->
+decode_json_events(<<Char, Chars/binary>>, SizeChars, Packets) ->
+    decode_json_events(Chars, <<SizeChars/binary, Char>>, Packets);
+decode_json_events(<<>>, _SizeChars, Packets) ->
     Packets.

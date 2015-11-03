@@ -30,7 +30,7 @@ stop_scheduler(Pid) ->
 
 %% @private
 init({}) ->
-    Spec = {erl_mesos_scheduler,
-               {erl_mesos_scheduler, start_link, []},
-               temporary, 5000, worker, [erl_mesos_scheduler]},
+    Spec = {erl_mesos_scheduler2,
+               {erl_mesos_scheduler2, start_link, []},
+               temporary, 5000, worker, [erl_mesos_scheduler2]},
     {ok, {{simple_one_for_one, 1, 10}, [Spec]}}.
