@@ -12,7 +12,7 @@
                  erl_mesos_obj:data_obj().
 -export_type([event/0]).
 
--define(DEFAULT_HEARTBEAT_INTERVAL_SECONDS, 15).
+-define(DEFAULT_HEARTBEAT_INTERVAL_SECONDS, 15). %% Seconds.
 
 %% External functions.
 
@@ -42,16 +42,19 @@ parse_subscribed_obj(Obj) ->
                       heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
         ?ERL_MESOS_OBJ_TO_RECORD(subscribed_event, SubscribedObj),
     FrameworkId = ?ERL_MESOS_OBJ_TO_RECORD(framework_id, FrameworkIdObj),
-    HeartbeatTimeout = heartbeat_timeout(HeartbeatIntervalSeconds),
-    {#subscribed_event{framework_id = FrameworkId}, HeartbeatTimeout * 1000}.
+    HeartbeatIntervalSeconds1 =
+        heartbeat_interval_seconds(HeartbeatIntervalSeconds),
+    {#subscribed_event{framework_id = FrameworkId,
+                       heartbeat_interval_seconds = HeartbeatIntervalSeconds1},
+                      HeartbeatIntervalSeconds1 * 1000}.
 
-%% @doc Returns heartbeat timeout.
+%% @doc Returns heartbeat interval.
 %% @private
--spec heartbeat_timeout(undefined | pos_integer()) -> pos_integer().
-heartbeat_timeout(undefined) ->
-    ?DEFAULT_HEARTBEAT_INTERVAL_SECONDS * 1000;
-heartbeat_timeout(HeartbeatIntervalSeconds) ->
-    HeartbeatIntervalSeconds * 1000.
+-spec heartbeat_interval_seconds(undefined | pos_integer()) -> pos_integer().
+heartbeat_interval_seconds(undefined) ->
+    ?DEFAULT_HEARTBEAT_INTERVAL_SECONDS;
+heartbeat_interval_seconds(HeartbeatIntervalSeconds) ->
+    HeartbeatIntervalSeconds.
 
 %% @doc Parses error obj.
 %% @private
