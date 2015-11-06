@@ -158,8 +158,12 @@ handle_info({timeout, ResubscribeTimerRef, resubscribe},
             #state{resubscribe_timer_ref = ResubscribeTimerRef} = State) ->
     {noreply, State};
 handle_info(Info, State) ->
-    io:format("Info ~p~n", [Info]),
-    {noreply, State}.
+    case call(handle_info, Info, State) of
+        {ok, State1} ->
+            {noreply, State1};
+        {stop, State1} ->
+            {stop, shutdown, State1}
+    end.
 
 %% @private
 -spec terminate(term(), state()) -> term().
@@ -377,8 +381,9 @@ subscribe(#state{data_format = DataFormat,
                              master_host = MasterHost,
                              client_ref = ClientRef1}};
         {error, Reason} ->
-            erl_mesos_logger:info("Can not subscribe to host: ~p."
-                                  "Error reason: ~p.", [MasterHost, Reason]),
+            erl_mesos_logger:error("Can not subscribe to host: ~p."
+                                   "Subscribe error reason: ~p.",
+                                   [MasterHost, Reason]),
             subscribe(State#state{master_hosts_queue = MasterHostsQueue})
     end;
 subscribe(#state{master_hosts_queue = []}) ->
@@ -421,7 +426,10 @@ handle_subscribe_response(_R, State) ->
     io:format("Bad subscribe response ~p~n", [_R]),
     handle_unsubscribe(State).
 
-
+%% @doc Handles unsubscribe.
+%% @private
+-spec handle_unsubscribe(state()) ->
+    {noreply, state()} | {stop, term(), state()}.
 handle_unsubscribe(#state{framework_id = undefined} = State) ->
     case subscribe(State) of
         {ok, State1} ->
@@ -443,7 +451,12 @@ handle_unsubscribe(#state{subscribe_state = subscribed} = State) ->
 handle_unsubscribe(State) ->
     start_resubscribe_timer(State#state{subscribe_state = undefined}).
 
-
+%% @doc Start resubscribe timer.
+%% @private
+-spec start_resubscribe_timer(state()) ->
+    {noreply, state()} | {stop, term(), state()}.
+start_resubscribe_timer(#state{max_num_resubscribe = 0} = State) ->
+    {stop, {shutdown, {resubscribe, {error, max_num_resubscribe}}}, State};
 start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
                                master_hosts_queue = [],
                                num_resubscribe = MaxNumResubscribe} = State) ->
@@ -457,7 +470,7 @@ start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
     State1 = State#state{master_hosts_queue = MasterHostsQueue,
                          master_host = MasterHost,
                          client_ref = undefined,
-                         num_resubscribe = 0},
+                         num_resubscribe = 1},
     {noreply, set_resubscribe_timer(State1)};
 start_resubscribe_timer(#state{client_ref = ClientRef,
                                num_resubscribe = NumResubscribe} = State) ->
@@ -475,12 +488,15 @@ set_resubscribe_timer(#state{resubscribe_interval = ResubscribeInterval} =
                                              resubscribe),
     State#state{resubscribe_timer_ref = ResubscribeTimerRef}.
 
+%% @doc Sends resubscribe requests.
+%% @private
+-spec resubscribe(state()) -> {noreply, state()} | {stop, term(), state()}.
 resubscribe(#state{data_format = DataFormat,
                    master_host = MasterHost,
                    subscribe_req_options = SubscribeReqOptions,
                    framework_info = FrameworkInfo,
                    framework_id = FrameworkId} = State) ->
-    erl_mesos_logger:info("Try to resubscribe to host: ~p.", [MasterHost]),
+    erl_mesos_logger:info("Try to resubscribe to the host: ~p.", [MasterHost]),
     case erl_mesos_api:resubscribe(DataFormat, MasterHost, SubscribeReqOptions,
                                    FrameworkInfo, FrameworkId) of
         {ok, ClientRef} ->
