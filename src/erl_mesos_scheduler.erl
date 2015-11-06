@@ -371,18 +371,18 @@ subscribe(#state{data_format = DataFormat,
                  subscribe_req_options = SubscribeReqOptions,
                  framework_info = FrameworkInfo,
                  force = Force,
-                 master_hosts_queue = [MasterHost | MasterHostsQueue],
-                 client_ref = ClientRef} = State) ->
-    close(ClientRef),
+                 master_hosts_queue = [MasterHost | MasterHostsQueue]} =
+          State) ->
+    erl_mesos_logger:info("Try to subscribe to the host: ~p.", [MasterHost]),
     case erl_mesos_api:subscribe(DataFormat, MasterHost, SubscribeReqOptions,
                                  FrameworkInfo, Force) of
-        {ok, ClientRef1} ->
+        {ok, ClientRef} ->
             {ok, State#state{master_hosts_queue = MasterHostsQueue,
                              master_host = MasterHost,
-                             client_ref = ClientRef1}};
+                             client_ref = ClientRef}};
         {error, Reason} ->
-            erl_mesos_logger:error("Can not subscribe to host: ~p."
-                                   "Subscribe error reason: ~p.",
+            erl_mesos_logger:error("Can not subscribe to the host: ~p. "
+                                   "Error reason: ~p.",
                                    [MasterHost, Reason]),
             subscribe(State#state{master_hosts_queue = MasterHostsQueue})
     end;
@@ -416,7 +416,10 @@ handle_subscribe_response(Events,
                           #state{subscribe_state = subscribed} = State)
   when is_binary(Events) ->
     handle_events(Events, State);
-%% handle 307 redirect here.
+handle_subscribe_response(_Body,
+                          #state{subscribe_state =
+                                 #subscribe_response{status = 307}} = State) ->
+    handle_redirect(State);
 %% hanlde 503 error here.
 %% handle_subscribe_response(done, State) ->
 %%     do_subscribe(State);
@@ -426,30 +429,88 @@ handle_subscribe_response(_R, State) ->
     io:format("Bad subscribe response ~p~n", [_R]),
     handle_unsubscribe(State).
 
-%% @doc Handles unsubscribe.
+
+
+%% @doc Handles redirect.
 %% @private
--spec handle_unsubscribe(state()) ->
+-spec handle_redirect(state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_unsubscribe(#state{framework_id = undefined} = State) ->
+handle_redirect(#state{master_hosts = MasterHosts,
+                       subscribe_req_options = SubscribeReqOptions,
+                       master_hosts_queue = MasterHostsQueue,
+                       client_ref = ClientRef,
+                       subscribe_state =
+                       #subscribe_response{headers = Headers},
+                       framework_id = FrameworkId,
+                       num_redirect = NumRedirect} = State) ->
+    case proplists:get_value(max_redirect, SubscribeReqOptions,
+                             ?DEFAULT_MAX_REDIRECT) of
+        NumRedirect when FrameworkId =:= undefined ->
+            {stop, {shutdown, {subscribe, {error, max_redirect}}}, State};
+        NumRedirect ->
+            {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
+        _MaxNumRedirect ->
+            close(ClientRef),
+            MasterHost = proplists:get_value(<<"Location">>, Headers),
+            MasterHosts1 = [MasterHost | lists:delete(MasterHost, MasterHosts)],
+            MasterHostsQueue1 = [MasterHost | MasterHostsQueue],
+            State1 = State#state{master_hosts = MasterHosts1,
+                                 master_hosts_queue = MasterHostsQueue1},
+            redirect(State1)
+    end.
+
+redirect(#state{framework_id = undefined} = State) ->
     case subscribe(State) of
         {ok, State1} ->
             {noreply, State1#state{subscribe_state = undefined}};
         {error, Reason} ->
             {stop, {shutdown, {subscribe, {error, Reason}}}, State}
     end;
-handle_unsubscribe(#state{subscribe_state = subscribed} = State) ->
+redirect(#state{master_hosts_queue = [MasterHost | MasterHostsQueue]} =
+         State) ->
+    State1 = State#state{master_hosts_queue = MasterHostsQueue,
+                         master_host = MasterHost,
+                         num_resubscribe = 0},
+    case resubscribe(State1) of
+        {ok, State2} ->
+            {noreply, State2#state{subscribe_state = undefined}};
+        {error, Reason} ->
+            {stop, {shutdown, {resubscribe, {error, Reason}}}, State}
+    end.
+
+%% @doc Handles unsubscribe.
+%% @private
+-spec handle_unsubscribe(state()) ->
+    {noreply, state()} | {stop, term(), state()}.
+handle_unsubscribe(#state{client_ref = ClientRef,
+                          framework_id = undefined} = State) ->
+    close(ClientRef),
+    case subscribe(State) of
+        {ok, State1} ->
+            State2 = State1#state{subscribe_state = undefined},
+            {noreply, State2};
+        {error, Reason} ->
+            {stop, {shutdown, {subscribe, {error, Reason}}}, State}
+    end;
+handle_unsubscribe(#state{client_ref = ClientRef,
+                          subscribe_state = subscribed} = State) ->
+    close(ClientRef),
     case call(disconnected, State) of
         {ok, #state{master_hosts = MasterHosts,
                     master_host = MasterHost} = State1} ->
             MasterHostsQueue = lists:delete(MasterHost, MasterHosts),
             State2 = State1#state{master_hosts_queue = MasterHostsQueue,
+                                  client_ref = undefined,
                                   subscribe_state = undefined},
             start_resubscribe_timer(State2);
         {stop, State1} ->
             {stop, shutdown, State1}
     end;
-handle_unsubscribe(State) ->
-    start_resubscribe_timer(State#state{subscribe_state = undefined}).
+handle_unsubscribe(#state{client_ref = ClientRef} = State) ->
+    close(ClientRef),
+    State1 = State#state{client_ref = undefined,
+                         subscribe_state = undefined},
+    start_resubscribe_timer(State1).
 
 %% @doc Start resubscribe timer.
 %% @private
@@ -464,17 +525,13 @@ start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
 start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
                                master_hosts_queue =
                                [MasterHost | MasterHostsQueue],
-                               client_ref = ClientRef,
                                num_resubscribe = MaxNumResubscribe} = State) ->
-    close(ClientRef),
     State1 = State#state{master_hosts_queue = MasterHostsQueue,
                          master_host = MasterHost,
                          client_ref = undefined,
                          num_resubscribe = 1},
     {noreply, set_resubscribe_timer(State1)};
-start_resubscribe_timer(#state{client_ref = ClientRef,
-                               num_resubscribe = NumResubscribe} = State) ->
-    close(ClientRef),
+start_resubscribe_timer(#state{num_resubscribe = NumResubscribe} = State) ->
     State1 = State#state{client_ref = undefined,
                          num_resubscribe = NumResubscribe + 1},
     {noreply, set_resubscribe_timer(State1)}.
@@ -501,7 +558,10 @@ resubscribe(#state{data_format = DataFormat,
                                    FrameworkInfo, FrameworkId) of
         {ok, ClientRef} ->
             {noreply, State#state{client_ref = ClientRef}};
-        {error, _Reason} ->
+        {error, Reason} ->
+            erl_mesos_logger:error("Can not resubscribe to the host: ~p. "
+                                   "Error reason: ~p.",
+                                   [MasterHost, Reason]),
             handle_unsubscribe(State)
     end.
 
