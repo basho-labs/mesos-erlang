@@ -12,42 +12,44 @@
          handle_info/3,
          terminate/3]).
 
+
+
 init(Options) ->
     FrameworkInfo = #framework_info{user = <<"dima 123">>,
                                     name = <<"test framework 123">>,
                                     failover_timeout = 100000.0},
-    io:format("~n~n== Init callback~n"
-              "== Options: ~p~n~n", [Options]),
+    call_log("== Init callback~n"
+             "== Options: ~p~n~n", [Options]),
     {ok, FrameworkInfo, true, init_state}.
 
 registered(SchedulerInfo, #subscribed_event{} = SubscribedEvent, State) ->
-    io:format("~n~n== Registered callback~n"
-              "== Scheduler info: ~p~n"
-              "== Subscribed event: ~p~n"
-              "== State: ~p~n~n",
-              [SchedulerInfo, SubscribedEvent, State]),
+    call_log("== Registered callback~n"
+             "== Scheduler info: ~p~n"
+             "== Subscribed event: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, SubscribedEvent, State]),
     {ok, registered_state}.
 
 reregistered(SchedulerInfo, State) ->
-    io:format("~n~n== Reregistered callback~n"
-              "== Scheduler info: ~p~n"
-              "== State: ~p~n~n",
-              [SchedulerInfo, State]),
+    call_log("== Reregistered callback~n"
+             "== Scheduler info: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, State]),
     {ok, reregistered_state}.
 
 disconnected(SchedulerInfo, State) ->
-    io:format("~n~n== Disconnected callback~n"
-              "== Scheduler info: ~p~n"
-              "== State: ~p~n~n",
-              [SchedulerInfo, State]),
+    call_log("== Disconnected callback~n"
+             "== Scheduler info: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, State]),
     {ok, disconnected_state}.
 
 error(SchedulerInfo, #error_event{} = ErrorEvent, State) ->
-    io:format("~n~n== Error callback~n"
-              "== Scheduler info: ~p~n"
-              "== Error event: ~p~n"
-              "== State: ~p~n~n",
-              [SchedulerInfo, ErrorEvent, State]),
+    call_log("== Error callback~n"
+             "== Scheduler info: ~p~n"
+             "== Error event: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, ErrorEvent, State]),
     {ok, error_state}.
 
 handle_info(_SchedulerInfo, stop, State) ->
@@ -56,16 +58,19 @@ handle_info(SchedulerInfo, teardown, _State) ->
     ok = erl_mesos_scheduler:teardown(SchedulerInfo),
     {ok, handle_info_state};
 handle_info(SchedulerInfo, Info, State) ->
-    io:format("~n~n== Info callback~n"
-              "== Scheduler info: ~p~n"
-              "== Info: ~p~n"
-              "== State: ~p~n~n",
-              [SchedulerInfo, Info, State]),
+    call_log("== Info callback~n"
+             "== Scheduler info: ~p~n"
+             "== Info: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, Info, State]),
     {ok, handle_info_state}.
 
 terminate(SchedulerInfo, Reason, State) ->
-    io:format("~n~n== Terminate callback~n"
+    io:format("== Terminate callback~n"
               "== Scheduler info: ~p~n"
               "== Reason: ~p~n"
               "== State: ~p~n~n",
               [SchedulerInfo, Reason, State]).
+
+call_log(Format, Data) ->
+    erl_mesos_logger:info(Format, Data).

@@ -41,6 +41,7 @@
 
 -record(scheduler_info, {data_format :: erl_mesos_data_format:data_format(),
                          master_host :: binary(),
+                         subscribed :: boolean(),
                          framework_id :: framework_id()}).
 
 -type options() :: [{atom(), term()}].
@@ -113,7 +114,7 @@ teardown(#scheduler_info{data_format = DataFormat,
 %% gen_server callback functions.
 
 %% @private
--spec init({module(), term(), options()}) -> {ok, state()}.
+-spec init({module(), term(), options()}) -> {ok, state()} | {stop, term()}.
 init({Scheduler, SchedulerOptions, Options}) ->
     case init(Scheduler, SchedulerOptions, Options) of
         {ok, State} ->
@@ -123,16 +124,16 @@ init({Scheduler, SchedulerOptions, Options}) ->
     end.
 
 %% @private
--spec handle_call(term(), {pid(), term()}, state()) ->
-    {stop, {error, {call, term()}}, state()}.
+-spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
 handle_call(Request, _From, State) ->
-    {stop, {error, {call, Request}}, State}.
+    log_warning("Unexpected call request: ~p~n", [Request], State),
+    {noreply, State}.
 
 %% @private
--spec handle_cast(term(), state()) ->
-    {stop, {error, {cast, term()}}, state()}.
+-spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
-    {stop, {error, {cast, Request}}, State}.
+    log_warning("Unexpected cast request: ~p~n", [Request], State),
+    {noreply, State}.
 
 %% @private
 -spec handle_info(term(), state()) ->
@@ -146,6 +147,7 @@ handle_info({'DOWN', ClientRef, _Reason},
 handle_info({timeout, HeartbeatTimerRef, heartbeat},
             #state{subscribe_state = subscribed,
                    heartbeat_timer_ref = HeartbeatTimerRef} = State) ->
+    log_error("Heartbeat timeout occurred~n", [], State),
     handle_unsubscribe(State);
 handle_info({timeout, HeartbeatTimerRef, heartbeat},
             #state{heartbeat_timer_ref = HeartbeatTimerRef} = State) ->
@@ -373,7 +375,7 @@ subscribe(#state{data_format = DataFormat,
                  force = Force,
                  master_hosts_queue = [MasterHost | MasterHostsQueue]} =
           State) ->
-    erl_mesos_logger:info("Try to subscribe to the host: ~p.", [MasterHost]),
+    log_info("Try to subscribe to the host: ~p~n", [MasterHost], State),
     case erl_mesos_api:subscribe(DataFormat, MasterHost, SubscribeReqOptions,
                                  FrameworkInfo, Force) of
         {ok, ClientRef} ->
@@ -381,9 +383,9 @@ subscribe(#state{data_format = DataFormat,
                              master_host = MasterHost,
                              client_ref = ClientRef}};
         {error, Reason} ->
-            erl_mesos_logger:error("Can not subscribe to the host: ~p. "
-                                   "Error reason: ~p.",
-                                   [MasterHost, Reason]),
+            log_error("Can not subscribe to the host: ~p~n"
+                      "Error reason: ~p~n",
+                      [MasterHost, Reason], State),
             subscribe(State#state{master_hosts_queue = MasterHostsQueue})
     end;
 subscribe(#state{master_hosts_queue = []}) ->
@@ -419,6 +421,7 @@ handle_subscribe_response(Events,
         ContentType ->
             handle_events(Events, State);
         _ContentType ->
+            log_error("Invalid content type: ~p~n", [ContentType], State),
             handle_unsubscribe(State)
     end;
 handle_subscribe_response(Events,
@@ -429,16 +432,18 @@ handle_subscribe_response(_Body,
                           #state{subscribe_state =
                                  #subscribe_response{status = 307}} = State) ->
     handle_redirect(State);
-%% hanlde 503 error here.
-%% handle_subscribe_response(done, State) ->
-%%     do_subscribe(State);
-%% handle_subscribe_response({error, _Reason}, State) ->
-%%     do_subscribe(State);
-handle_subscribe_response(_R, State) ->
-    io:format("Bad subscribe response ~p~n", [_R]),
+handle_subscribe_response(_Body,
+                          #state{subscribe_state =
+                                 #subscribe_response{status = Status}} =
+                          State) ->
+    log_error("Bad http resposne. Status: ~p~n", [Status], State),
+    handle_unsubscribe(State);
+handle_subscribe_response(done, State) ->
+    log_error("Connection closed. ~p~n", [], State),
+    handle_unsubscribe(State);
+handle_subscribe_response({error, Reason}, State) ->
+    log_error("Connection error. Reason: ~p~n", [Reason], State),
     handle_unsubscribe(State).
-
-
 
 %% @doc Handles redirect.
 %% @private
@@ -462,6 +467,9 @@ handle_redirect(#state{master_hosts = MasterHosts,
         _MaxNumRedirect ->
             close(ClientRef),
             MasterHost1 = proplists:get_value(<<"Location">>, Headers),
+            log_info("Redirect form host ~p to host ~p~n",
+                     [MasterHost, MasterHost1],
+                     State),
             MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
                                                        MasterHosts)],
             MasterHostsQueue1 = [MasterHost1 | lists:delete(MasterHost,
@@ -507,14 +515,14 @@ handle_unsubscribe(#state{client_ref = ClientRef,
 handle_unsubscribe(#state{client_ref = ClientRef,
                           subscribe_state = subscribed} = State) ->
     close(ClientRef),
-    case call(disconnected, State) of
+    State1 = State#state{client_ref = undefined,
+                         subscribe_state = undefined},
+    case call(disconnected, State1) of
         {ok, #state{master_hosts = MasterHosts,
-                    master_host = MasterHost} = State1} ->
+                    master_host = MasterHost} = State2} ->
             MasterHostsQueue = lists:delete(MasterHost, MasterHosts),
-            State2 = State1#state{master_hosts_queue = MasterHostsQueue,
-                                  client_ref = undefined,
-                                  subscribe_state = undefined},
-            start_resubscribe_timer(State2);
+            State3 = State2#state{master_hosts_queue = MasterHostsQueue},
+            start_resubscribe_timer(State3);
         {stop, State1} ->
             {stop, shutdown, State1}
     end;
@@ -565,15 +573,15 @@ resubscribe(#state{data_format = DataFormat,
                    subscribe_req_options = SubscribeReqOptions,
                    framework_info = FrameworkInfo,
                    framework_id = FrameworkId} = State) ->
-    erl_mesos_logger:info("Try to resubscribe to the host: ~p.", [MasterHost]),
+    log_info("Try to resubscribe to the host: ~p~n", [MasterHost], State),
     case erl_mesos_api:resubscribe(DataFormat, MasterHost, SubscribeReqOptions,
                                    FrameworkInfo, FrameworkId) of
         {ok, ClientRef} ->
             {noreply, State#state{client_ref = ClientRef}};
         {error, Reason} ->
-            erl_mesos_logger:error("Can not resubscribe to the host: ~p. "
-                                   "Error reason: ~p.",
-                                   [MasterHost, Reason]),
+            log_error("Can not resubscribe to the host: ~p~n"
+                      "Error reason: ~p~n",
+                      [MasterHost, Reason], State),
             handle_unsubscribe(State)
     end.
 
@@ -610,19 +618,24 @@ apply_events([], State) ->
 %% @private
 -spec apply_event(erl_mesos_obj:data_obj(), state()) ->
     {ok, state()} | {stop, state()}.
-apply_event(Obj, #state{subscribe_state = SubscribeState,
+apply_event(Obj, #state{master_host = MasterHost,
+                        subscribe_state = SubscribeState,
                         framework_id = FrameworkId} = State) ->
     case erl_mesos_scheduler_event:parse_obj(Obj) of
         {subscribed, {#subscribed_event{framework_id = SubscribeFrameworkId} =
                       SubscribedEvent, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response),
                FrameworkId =:= undefined ->
+            log_info("Successfuly subscribed to the host: ~p~n",
+                     [MasterHost], State),
             State1 = State#state{framework_id = SubscribeFrameworkId,
                                  heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(set_subscribed(State1)),
             call(registered, SubscribedEvent, State2);
         {subscribed, {_SubscribedEvent, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response) ->
+            log_info("Successfuly resubscribed to the host: ~p~n",
+                     [MasterHost], State),
             State1 = State#state{heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(set_subscribed(State1)),
             call(reregistered, State2);
@@ -666,9 +679,12 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 -spec scheduler_info(state()) -> scheduler_info().
 scheduler_info(#state{data_format = DataFormat,
                       master_host = MasterHost,
+                      subscribe_state = SubscribeState,
                       framework_id = FrameworkId}) ->
+    Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
                     master_host = MasterHost,
+                    subscribed = Subscribed,
                     framework_id = FrameworkId}.
 
 %% @doc Sets subscribe state.
@@ -708,3 +724,21 @@ close(undefined) ->
     ok;
 close(ClientRef) ->
     hackney:close(ClientRef).
+
+%% @doc Logs info.
+-spec log_info(string(), list(), state()) -> ok.
+log_info(Format, Data, #state{scheduler = Scheduler}) ->
+    erl_mesos_logger:info("Pid: ~p~nScheduler: ~p~n" ++ Format,
+                          [self(), Scheduler] ++ Data).
+
+%% @doc Logs warning.
+-spec log_warning(string(), list(), state()) -> ok.
+log_warning(Format, Data, #state{scheduler = Scheduler}) ->
+    erl_mesos_logger:warning("Pid: ~p~nScheduler: ~p~n" ++ Format,
+                             [self(), Scheduler] ++ Data).
+
+%% @doc Logs error.
+-spec log_error(string(), list(), state()) -> ok.
+log_error(Format, Data, #state{scheduler = Scheduler}) ->
+    erl_mesos_logger:warning("Pid: ~p~nScheduler: ~p~n" ++ Format,
+                             [self(), Scheduler] ++ Data).
