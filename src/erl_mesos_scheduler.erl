@@ -436,13 +436,13 @@ handle_subscribe_response(_Body,
                           #state{subscribe_state =
                                  #subscribe_response{status = Status}} =
                           State) ->
-    log_error("Bad http resposne. Status: ~p~n", [Status], State),
+    log_error("Bad http resposne.~nStatus: ~p~n", [Status], State),
     handle_unsubscribe(State);
 handle_subscribe_response(done, State) ->
-    log_error("Connection closed. ~p~n", [], State),
+    log_error("Connection closed.~n", [], State),
     handle_unsubscribe(State);
 handle_subscribe_response({error, Reason}, State) ->
-    log_error("Connection error. Reason: ~p~n", [Reason], State),
+    log_error("Connection error.~nReason: ~p~n", [Reason], State),
     handle_unsubscribe(State).
 
 %% @doc Handles redirect.
