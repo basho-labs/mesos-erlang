@@ -409,9 +409,18 @@ handle_subscribe_response({headers, Headers},
     hackney:stream_next(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse1}};
 handle_subscribe_response(Events,
-                          #state{subscribe_state =
-                                 #subscribe_response{status = 200}} = State) ->
-    handle_events(Events, State);
+                          #state{data_format = DataFormat,
+                                 subscribe_state =
+                                 #subscribe_response{status = 200,
+                                                     headers = Headers}} =
+                          State) ->
+    ContentType = proplists:get_value(<<"Content-Type">>, Headers),
+    case erl_mesos_data_format:content_type(DataFormat) of
+        ContentType ->
+            handle_events(Events, State);
+        _ContentType ->
+            handle_unsubscribe(State)
+    end;
 handle_subscribe_response(Events,
                           #state{subscribe_state = subscribed} = State)
   when is_binary(Events) ->
@@ -438,6 +447,7 @@ handle_subscribe_response(_R, State) ->
 handle_redirect(#state{master_hosts = MasterHosts,
                        subscribe_req_options = SubscribeReqOptions,
                        master_hosts_queue = MasterHostsQueue,
+                       master_host = MasterHost,
                        client_ref = ClientRef,
                        subscribe_state =
                        #subscribe_response{headers = Headers},
@@ -451,18 +461,25 @@ handle_redirect(#state{master_hosts = MasterHosts,
             {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
         _MaxNumRedirect ->
             close(ClientRef),
-            MasterHost = proplists:get_value(<<"Location">>, Headers),
-            MasterHosts1 = [MasterHost | lists:delete(MasterHost, MasterHosts)],
-            MasterHostsQueue1 = [MasterHost | MasterHostsQueue],
+            MasterHost1 = proplists:get_value(<<"Location">>, Headers),
+            MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
+                                                       MasterHosts)],
+            MasterHostsQueue1 = [MasterHost1 | lists:delete(MasterHost,
+                                                            MasterHostsQueue)],
             State1 = State#state{master_hosts = MasterHosts1,
-                                 master_hosts_queue = MasterHostsQueue1},
+                                 master_hosts_queue = MasterHostsQueue1,
+                                 subscribe_state = undefined,
+                                 num_redirect = NumRedirect + 1},
             redirect(State1)
     end.
 
+%% @doc Calls subscribe/1 or resubscribe/2.
+%% @private
+-spec redirect(state()) -> {noreply, state()} | {stop, term(), state()}.
 redirect(#state{framework_id = undefined} = State) ->
     case subscribe(State) of
         {ok, State1} ->
-            {noreply, State1#state{subscribe_state = undefined}};
+            {noreply, State1};
         {error, Reason} ->
             {stop, {shutdown, {subscribe, {error, Reason}}}, State}
     end;
@@ -471,12 +488,7 @@ redirect(#state{master_hosts_queue = [MasterHost | MasterHostsQueue]} =
     State1 = State#state{master_hosts_queue = MasterHostsQueue,
                          master_host = MasterHost,
                          num_resubscribe = 0},
-    case resubscribe(State1) of
-        {ok, State2} ->
-            {noreply, State2#state{subscribe_state = undefined}};
-        {error, Reason} ->
-            {stop, {shutdown, {resubscribe, {error, Reason}}}, State}
-    end.
+    resubscribe(State1).
 
 %% @doc Handles unsubscribe.
 %% @private
