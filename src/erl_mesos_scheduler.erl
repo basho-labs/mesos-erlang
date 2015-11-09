@@ -421,7 +421,8 @@ handle_subscribe_response(Events,
         ContentType ->
             handle_events(Events, State);
         _ContentType ->
-            log_error("Invalid content type: ~p~n", [ContentType], State),
+            log_error("Invalid content type: ~p~n", [ContentType],
+                      State),
             handle_unsubscribe(State)
     end;
 handle_subscribe_response(Events,
@@ -436,7 +437,7 @@ handle_subscribe_response(_Body,
                           #state{subscribe_state =
                                  #subscribe_response{status = Status}} =
                           State) ->
-    log_error("Bad http resposne.~nStatus: ~p~n", [Status], State),
+    log_error("Invalid http resposne.~nStatus: ~p~n", [Status], State),
     handle_unsubscribe(State);
 handle_subscribe_response(done, State) ->
     log_error("Connection closed.~n", [], State),
@@ -467,7 +468,7 @@ handle_redirect(#state{master_hosts = MasterHosts,
         _MaxNumRedirect ->
             close(ClientRef),
             MasterHost1 = proplists:get_value(<<"Location">>, Headers),
-            log_info("Redirect form host ~p to host ~p~n",
+            log_info("Redirect form the host ~p to the host ~p~n",
                      [MasterHost, MasterHost1],
                      State),
             MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
