@@ -758,7 +758,7 @@ log_error(Format, Data, #state{scheduler = Scheduler}) ->
 
 %% @doc Formats state.
 %% @private
--spec format_state(state()) -> [{atom(), term()}].
+-spec format_state(state()) -> [{string(), [{atom(), term()}]}].
 format_state(#state{scheduler = Scheduler,
                     data_format = DataFormat,
                     master_hosts = MasterHosts,
