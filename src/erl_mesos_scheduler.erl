@@ -4,7 +4,7 @@
 
 -include("erl_mesos.hrl").
 
--export([start_link/3]).
+-export([start_link/4]).
 
 -export([teardown/1, teardown/2]).
 
@@ -16,7 +16,8 @@
          code_change/3,
          format_status/2]).
 
--record(state, {scheduler :: module(),
+-record(state, {ref :: term(),
+                scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
                 master_hosts :: [binary()],
                 subscribe_req_options :: [{atom(), term()}],
@@ -95,9 +96,11 @@
 %% External functions.
 
 %% @doc Starts the `erl_mesos_scheduler' process.
--spec start_link(module(), term(), options()) -> {ok, pid()} | {error, term()}.
-start_link(Scheduler, SchedulerOptions, Options) ->
-    gen_server:start_link(?MODULE, {Scheduler, SchedulerOptions, Options}, []).
+-spec start_link(term(), module(), term(), options()) ->
+    {ok, pid()} | {error, term()}.
+start_link(Ref, Scheduler, SchedulerOptions, Options) ->
+    gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
+                          []).
 
 %% @equiv teardown(scheduler_info(), [])
 -spec teardown(scheduler_info()) -> ok | {error, term()}.
@@ -115,9 +118,10 @@ teardown(#scheduler_info{data_format = DataFormat,
 %% gen_server callback functions.
 
 %% @private
--spec init({module(), term(), options()}) -> {ok, state()} | {stop, term()}.
-init({Scheduler, SchedulerOptions, Options}) ->
-    case init(Scheduler, SchedulerOptions, Options) of
+-spec init({term(), module(), term(), options()}) ->
+    {ok, state()} | {stop, term()}.
+init({Ref, Scheduler, SchedulerOptions, Options}) ->
+    case init(Ref, Scheduler, SchedulerOptions, Options) of
         {ok, State} ->
             {ok, State};
         {error, Reason} ->
@@ -127,13 +131,15 @@ init({Scheduler, SchedulerOptions, Options}) ->
 %% @private
 -spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
 handle_call(Request, _From, State) ->
-    log_warning("Unexpected call request: ~p~n", [Request], State),
+    log_warning("Scheduler received unexpected call request: ~p~n",
+                [Request], State),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
-    log_warning("Unexpected cast request: ~p~n", [Request], State),
+    log_warning("Scheduler received unexpected request: ~p~n",
+                [Request], State),
     {noreply, State}.
 
 %% @private
@@ -318,8 +324,9 @@ options([], _Options, ValidOptions) ->
 
 %% @doc Validates options and sets options to the state.
 %% @private
--spec init(module(), term(), options()) -> {ok, state()} | {error, term()}.
-init(Scheduler, SchedulerOptions, Options) ->
+-spec init(term(), module(), term(), options()) ->
+    {ok, state()} | {error, term()}.
+init(Ref, Scheduler, SchedulerOptions, Options) ->
     Funs = [fun master_hosts/1,
             fun subscribe_req_options/1,
             fun heartbeat_timeout_window/1,
@@ -327,7 +334,7 @@ init(Scheduler, SchedulerOptions, Options) ->
             fun resubscribe_interval/1],
     case options(Funs, Options) of
         {ok, ValidOptions} ->
-            State = state(Scheduler, ValidOptions),
+            State = state(Ref, Scheduler, ValidOptions),
             case init(SchedulerOptions, State) of
                 {ok, State1} ->
                     subscribe(State1);
@@ -340,8 +347,8 @@ init(Scheduler, SchedulerOptions, Options) ->
 
 %% @doc Returns state.
 %% @private
--spec state(module(), options()) -> state().
-state(Scheduler, Options) ->
+-spec state(term(), module(), options()) -> state().
+state(Ref, Scheduler, Options) ->
     MasterHosts = erl_mesos_options:get_value(master_hosts, Options),
     SubscribeReqOptions = erl_mesos_options:get_value(subscribe_req_options,
                                                       Options),
@@ -351,7 +358,8 @@ state(Scheduler, Options) ->
                                                     Options),
     ResubscribeInterval = erl_mesos_options:get_value(resubscribe_interval,
                                                       Options),
-    #state{scheduler = Scheduler,
+    #state{ref = Ref,
+           scheduler = Scheduler,
            data_format = ?DATA_FORMAT,
            master_hosts = MasterHosts,
            subscribe_req_options = SubscribeReqOptions,
@@ -738,28 +746,29 @@ close(ClientRef) ->
 %% @doc Logs info.
 %% @private
 -spec log_info(string(), list(), state()) -> ok.
-log_info(Format, Data, #state{scheduler = Scheduler}) ->
-    erl_mesos_logger:info("Pid: ~p~nScheduler: ~p~n" ++ Format,
-                          [self(), Scheduler] ++ Data).
+log_info(Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
+    erl_mesos_logger:info("Ref: ~p~nScheduler: ~p~n" ++ Format,
+                          [Ref, Scheduler] ++ Data).
 
 %% @doc Logs warning.
 %% @private
 -spec log_warning(string(), list(), state()) -> ok.
-log_warning(Format, Data, #state{scheduler = Scheduler}) ->
-    erl_mesos_logger:warning("Pid: ~p~nScheduler: ~p~n" ++ Format,
-                             [self(), Scheduler] ++ Data).
+log_warning(Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
+    erl_mesos_logger:warning("Ref: ~p~nScheduler: ~p~n" ++ Format,
+                             [Ref, Scheduler] ++ Data).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), list(), state()) -> ok.
-log_error(Format, Data, #state{scheduler = Scheduler}) ->
-    erl_mesos_logger:warning("Pid: ~p~nScheduler: ~p~n" ++ Format,
-                             [self(), Scheduler] ++ Data).
+log_error(Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
+    erl_mesos_logger:warning("Ref: ~p~nScheduler: ~p~n" ++ Format,
+                             [Ref, Scheduler] ++ Data).
 
 %% @doc Formats state.
 %% @private
 -spec format_state(state()) -> [{string(), [{atom(), term()}]}].
-format_state(#state{scheduler = Scheduler,
+format_state(#state{ref = Ref,
+                    scheduler = Scheduler,
                     data_format = DataFormat,
                     master_hosts = MasterHosts,
                     subscribe_req_options = SubscribeReqOptions,
@@ -797,6 +806,7 @@ format_state(#state{scheduler = Scheduler,
              {heartbeat_timeout, HeartbeatTimeout},
              {heartbeat_timer_ref, HeartbeatTimerRef},
              {resubscribe_timer_ref, ResubscribeTimerRef}],
-    [{"Scheduler", Scheduler},
+    [{"Ref", Ref},
+     {"Scheduler", Scheduler},
      {"Scheduler state", SchedulerState},
      {"State", State}].

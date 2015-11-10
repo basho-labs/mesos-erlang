@@ -2,7 +2,7 @@
 
 -export([start_link/0]).
 
--export([start_scheduler/3, stop_scheduler/1]).
+-export([start_scheduler/4, stop_scheduler/1]).
 
 -export([init/1]).
 
@@ -14,10 +14,12 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, {}).
 
 %% @doc Starts `erl_mesos_scheduler' process.
--spec start_scheduler(module(), term(), erl_mesos_scheduler:options()) ->
+-spec start_scheduler(term(), module(), term(),
+                      erl_mesos_scheduler:options()) ->
     {ok, pid()} | {error, term()}.
-start_scheduler(Scheduler, SchedulerOptions, Options) ->
-    supervisor:start_child(?MODULE, [Scheduler, SchedulerOptions, Options]).
+start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
+    supervisor:start_child(?MODULE, [Ref, Scheduler, SchedulerOptions,
+                                     Options]).
 
 %% @doc Stops `erl_mesos_scheduler' process.
 -spec stop_scheduler(pid()) -> ok | {error, atom()}.

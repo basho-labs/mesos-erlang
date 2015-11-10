@@ -4,7 +4,7 @@
 
 -export([start/0]).
 
--export([start_scheduler/3, stop_scheduler/1]).
+-export([start_scheduler/4, stop_scheduler/1]).
 
 -export([start/2, stop/1]).
 
@@ -19,16 +19,20 @@ start() ->
     ok = application:start(hackney),
     ok = application:start(erl_mesos).
 
-%% @equiv erl_mesos_sup:start_scheduler(Scheduler, SchedulerOptions, Options).
--spec start_scheduler(module(), term(), erl_mesos_scheduler:options()) ->
+%% @equiv erl_mesos_scheduler_manager:start_scheduler(Ref, Scheduler,
+%%                                                    SchedulerOptions,
+%%                                                    Options).
+-spec start_scheduler(term(), module(), term(),
+                      erl_mesos_scheduler:options()) ->
     {ok, pid()} | {error, term()}.
-start_scheduler(Scheduler, SchedulerOptions, Options) ->
-    erl_mesos_scheduler_sup:start_scheduler(Scheduler, SchedulerOptions, Options).
+start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
+    erl_mesos_scheduler_manager:start_scheduler(Ref, Scheduler,
+                                                SchedulerOptions, Options).
 
-%% @equiv erl_mesos_sup:stop_scheduler(Pid).
--spec stop_scheduler(pid())  -> ok | {error, atom()}.
-stop_scheduler(Pid) ->
-    erl_mesos_scheduler_sup:stop_scheduler(Pid).
+%% @equiv erl_mesos_scheduler_manager:stop_scheduler(Ref).
+-spec stop_scheduler(term())  -> ok | {error, term()}.
+stop_scheduler(Ref) ->
+    erl_mesos_scheduler_manager:stop_scheduler(Ref).
 
 %% application callback functions.
 
