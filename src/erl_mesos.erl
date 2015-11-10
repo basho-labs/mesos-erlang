@@ -23,12 +23,12 @@ start() ->
 -spec start_scheduler(module(), term(), erl_mesos_scheduler:options()) ->
     {ok, pid()} | {error, term()}.
 start_scheduler(Scheduler, SchedulerOptions, Options) ->
-    erl_mesos_sup:start_scheduler(Scheduler, SchedulerOptions, Options).
+    erl_mesos_scheduler_sup:start_scheduler(Scheduler, SchedulerOptions, Options).
 
 %% @equiv erl_mesos_sup:stop_scheduler(Pid).
 -spec stop_scheduler(pid())  -> ok | {error, atom()}.
 stop_scheduler(Pid) ->
-    erl_mesos_sup:stop_scheduler(Pid).
+    erl_mesos_scheduler_sup:stop_scheduler(Pid).
 
 %% application callback functions.
 

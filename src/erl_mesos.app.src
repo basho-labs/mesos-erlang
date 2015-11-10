@@ -2,6 +2,6 @@
     [{description, "Erlang Mesos bindings."},
         {vsn, "0.0.1"},
         {modules, []},
-        {registered, [erl_mesos_sup]},
+        {registered, [erl_mesos_sup, erl_mesos_scheduler_sup]},
         {applications, [kernel, stdlib, hackney]},
         {mod, {erl_mesos, []}}]}.
