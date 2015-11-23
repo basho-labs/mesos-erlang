@@ -10,20 +10,21 @@
          subscribe/1]).
 
 all() ->
-    [bad_options,
-     subscribe].
+    [bad_options, subscribe].
 
 init_per_suite(Config) ->
+    %% Start erl_mesos application.
     ok = erl_mesos:start(),
+    %% Base config for scheduler.
     Scheduler = erl_mesos_test_scheduler,
     SchedulerOptions = [{user, <<"user">>},
                         {name, <<"erl_mesos_test_scheduler">>}],
-    MasterHost = os:getenv("ERL_MESOS_TEST_MASTER_HOST"),
-    Options = [{master_host, MasterHost}],
-    SchedulerConfig = [{scheduler, Scheduler},
-                       {scheduler_options, SchedulerOptions},
-                       {options, Options}],
-    SchedulerConfig ++ Config.
+    MasterHosts = master_hosts(),
+    Options = [{master_hosts, MasterHosts}],
+    [{scheduler, Scheduler},
+     {scheduler_options, SchedulerOptions},
+     {options, Options} |
+     Config].
 
 end_per_suite(_Config) ->
     application:stop(erl_mesos),
@@ -58,7 +59,7 @@ bad_options(Config) ->
     Options4 = [{heartbeat_timeout_window, HeartbeatTimeoutWindow}],
     {error, {bad_heartbeat_timeout_window, HeartbeatTimeoutWindow}} =
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options4),
-    %% Bad maximu number of resubscribe.
+    %% Bad maximum number of resubscribe.
     MaxNumResubscribe = undefined,
     Options5 = [{max_num_resubscribe, MaxNumResubscribe}],
     {error, {bad_max_num_resubscribe, MaxNumResubscribe}} =
@@ -69,10 +70,26 @@ bad_options(Config) ->
     {error, {bad_resubscribe_interval, ResubscribeInterval}} =
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options6).
 
-subscribe(_Config) ->
+subscribe(Config) ->
+    log(?config(options, Config)),
     ok.
 
 %% Internal functions.
+
+
+
+master_hosts() ->
+    MasterHosts = os:getenv("ERL_MESOS_TEST_MASTER_HOSTS"),
+    master_hosts(MasterHosts, [], []).
+
+master_hosts([$  | Chars], MasterHost, MasterHosts) ->
+    master_hosts(Chars, MasterHost, MasterHosts);
+master_hosts([$, | Chars], MasterHost, MasterHosts) ->
+    master_hosts(Chars, [], [lists:reverse(MasterHost) | MasterHosts]);
+master_hosts([Char | Chars], MasterHost, MasterHosts) ->
+    master_hosts(Chars, [Char | MasterHost], MasterHosts);
+master_hosts([], MasterHost, MasterHosts) ->
+    lists:reverse([lists:reverse(MasterHost) | MasterHosts]).
 
 log(Data) ->
     {ok, Dir} = file:get_cwd(),

@@ -5,8 +5,8 @@
 -include_lib("erl_mesos.hrl").
 
 -export([init/1,
-         registered/2,
-         error/2,
+         registered/3,
+         error/3,
          handle_info/2,
          terminate/2]).
 
@@ -18,15 +18,17 @@
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
+    reply(TestPid, init),
     {ok, FrameworkInfo, true, #state{callback = init,
                                      test_pid = TestPid}}.
 
-registered(SubscribedEvent, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {subscribed, SubscribedEvent}),
+registered(SchedulerInfo, SubscribedEvent,
+           #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {subscribed, SchedulerInfo, SubscribedEvent}),
     {ok, State#state{callback = registered}}.
 
-error(ErrorEvent, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {error, ErrorEvent}),
+error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {error, SchedulerInfo, ErrorEvent}),
     {ok, State#state{callback = error}}.
 
 handle_info(_Info, State) ->
