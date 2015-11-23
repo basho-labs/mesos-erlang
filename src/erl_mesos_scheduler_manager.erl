@@ -35,7 +35,7 @@ start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
                               Options}).
 
 %% @doc Stops the `erl_mesos_scheduler' process.
--spec stop_scheduler(term()) -> ok.
+-spec stop_scheduler(term()) -> ok | {error, term()}.
 stop_scheduler(Ref) ->
     gen_server:call(?MODULE, {stop_scheduler, Ref}).
 
