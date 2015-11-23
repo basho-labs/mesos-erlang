@@ -20,6 +20,10 @@ function restart {
     start
 }
 
+function stop_master {
+    docker stop "mesos_master_${1}"
+}
+
 case "$1" in
     start)
         start
@@ -29,6 +33,15 @@ case "$1" in
         ;;
     restart)
         restart
+        ;;
+    stop_master_1)
+        stop_master "1"
+        ;;
+    stop_master_2)
+        stop_master "2"
+        ;;
+    stop_master_3)
+        stop_master "3"
         ;;
     *)
         echo $"Usage: $0 {start|stop|restart}"
