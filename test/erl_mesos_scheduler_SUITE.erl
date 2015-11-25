@@ -3,32 +3,61 @@
 -include_lib("common_test/include/ct.hrl").
 
 -export([all/0,
+         groups/0,
          init_per_suite/1,
-         end_per_suite/1]).
+         end_per_suite/1,
+         init_per_group/2,
+         end_per_group/2,
+         init_per_testcase/2,
+         end_per_testcase/2]).
 
 -export([bad_options/1,
          subscribe/1]).
 
 all() ->
-    [bad_options, subscribe].
+    [bad_options, {group, cluster}].
+
+groups() ->
+    [{cluster, [subscribe]}].
 
 init_per_suite(Config) ->
-    %% Start erl_mesos application.
     ok = erl_mesos:start(),
-    %% Base config for scheduler.
+    Config.
+
+end_per_suite(_Config) ->
+    application:stop(erl_mesos),
+    ok.
+
+init_per_group(cluster, Config) ->
     Scheduler = erl_mesos_test_scheduler,
     SchedulerOptions = [{user, <<"user">>},
                         {name, <<"erl_mesos_test_scheduler">>}],
-    MasterHosts = master_hosts(),
+    {ok, Masters} = erl_mesos_cluster:config(masters, Config),
+    MasterHosts = proplists:get_keys(Masters),
     Options = [{master_hosts, MasterHosts}],
     [{scheduler, Scheduler},
      {scheduler_options, SchedulerOptions},
      {options, Options} |
      Config].
 
-end_per_suite(_Config) ->
-    application:stop(erl_mesos),
+end_per_group(cluster, _Config) ->
     ok.
+
+init_per_testcase(TestCase, Config) ->
+    case lists:member(TestCase, proplists:get_value(cluster, groups())) of
+        true ->
+            Config;
+        false ->
+            Config
+    end.
+
+end_per_testcase(TestCase, Config) ->
+    case lists:member(TestCase, proplists:get_value(cluster, groups())) of
+        true ->
+            Config;
+        false ->
+            Config
+    end.
 
 %% Test functions.
 
@@ -71,28 +100,12 @@ bad_options(Config) ->
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options6).
 
 subscribe(Config) ->
-    log(?config(options, Config)),
     ok.
 
 %% Internal functions.
-
-
-
-master_hosts() ->
-    MasterHosts = os:getenv("ERL_MESOS_TEST_MASTER_HOSTS"),
-    master_hosts(MasterHosts, [], []).
-
-master_hosts([$  | Chars], MasterHost, MasterHosts) ->
-    master_hosts(Chars, MasterHost, MasterHosts);
-master_hosts([$, | Chars], MasterHost, MasterHosts) ->
-    master_hosts(Chars, [], [lists:reverse(MasterHost) | MasterHosts]);
-master_hosts([Char | Chars], MasterHost, MasterHosts) ->
-    master_hosts(Chars, [Char | MasterHost], MasterHosts);
-master_hosts([], MasterHost, MasterHosts) ->
-    lists:reverse([lists:reverse(MasterHost) | MasterHosts]).
 
 log(Data) ->
     {ok, Dir} = file:get_cwd(),
     TestDir = filename:dirname(Dir),
     LogFileName = filename:join(TestDir, "log.txt"),
-    file:write_file(LogFileName, io_lib:fwrite("~p.\n", [Data]), [append]).
+    file:write_file(LogFileName, io_lib:fwrite("~p\n", [Data]), [append]).

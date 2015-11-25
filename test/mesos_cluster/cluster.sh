@@ -21,7 +21,7 @@ function restart {
 }
 
 function stop_master {
-    docker stop "mesos_master_${1}"
+    docker stop "$1"
 }
 
 case "$1" in
@@ -34,16 +34,10 @@ case "$1" in
     restart)
         restart
         ;;
-    stop_master_1)
-        stop_master "1"
-        ;;
-    stop_master_2)
-        stop_master "2"
-        ;;
-    stop_master_3)
-        stop_master "3"
+    stop_master)
+        stop_master "$2"
         ;;
     *)
-        echo $"Usage: $0 {start|stop|restart}"
+        echo $"Usage: $0 {start|stop|restart|stop_master ID}"
         exit 1
 esac

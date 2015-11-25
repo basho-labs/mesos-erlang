@@ -6,8 +6,9 @@
 
 -export([init/1,
          registered/3,
+         reregistered/2,
          error/3,
-         handle_info/2,
+         handle_info/3,
          terminate/2]).
 
 -record(state, {callback,
@@ -18,20 +19,25 @@
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
-    reply(TestPid, init),
     {ok, FrameworkInfo, true, #state{callback = init,
                                      test_pid = TestPid}}.
 
 registered(SchedulerInfo, SubscribedEvent,
            #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {subscribed, SchedulerInfo, SubscribedEvent}),
+    reply(TestPid, {registered, SchedulerInfo, SubscribedEvent}),
     {ok, State#state{callback = registered}}.
+
+reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {reregistered, SchedulerInfo}),
+    {ok, State#state{callback = reregistered}}.
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, SchedulerInfo, ErrorEvent}),
     {ok, State#state{callback = error}}.
 
-handle_info(_Info, State) ->
+
+
+handle_info(_SchedulerInfo, _Info, State) ->
     {ok, State}.
 
 terminate(Reason, #state{test_pid = TestPid}) ->

@@ -12,8 +12,6 @@
          handle_info/3,
          terminate/3]).
 
-
-
 init(Options) ->
     FrameworkInfo = #framework_info{user = <<"dima 123">>,
                                     name = <<"test framework 123">>,
