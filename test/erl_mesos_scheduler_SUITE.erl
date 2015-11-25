@@ -2,6 +2,8 @@
 
 -include_lib("common_test/include/ct.hrl").
 
+-include_lib("erl_mesos.hrl").
+
 -export([all/0,
          groups/0,
          init_per_suite/1,
@@ -12,13 +14,13 @@
          end_per_testcase/2]).
 
 -export([bad_options/1,
-         subscribe/1]).
+         registered/1]).
 -export([log/1]).
 all() ->
     [bad_options, {group, cluster}].
 
 groups() ->
-    [{cluster, [subscribe]}].
+    [{cluster, [registered]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -46,6 +48,7 @@ end_per_group(cluster, _Config) ->
 init_per_testcase(TestCase, Config) ->
     case lists:member(TestCase, proplists:get_value(cluster, groups())) of
         true ->
+            erl_mesos_cluster:stop(Config),
             erl_mesos_cluster:start(Config),
             Config;
         false ->
@@ -101,17 +104,27 @@ bad_options(Config) ->
     {error, {bad_resubscribe_interval, ResubscribeInterval}} =
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options6).
 
-subscribe(Config) ->
+registered(Config) ->
     Ref = {erl_mesos_scheduler, subscribe},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     SchedulerOptions1 = set_test_pid(SchedulerOptions),
     Options = ?config(options, Config),
-    log(os:cmd("docker ps -a")),
     {ok, _Pid} = erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions1,
                                            Options),
-    Reply = recv_reply(),
-    log(Reply),
+    {registered, SchedulerPid, SchedulerInfo, SubscribedEvent} = recv_reply(),
+    %% Test scheduler info.
+    MasterHost = erl_mesos_scheduler:master_host(SchedulerInfo),
+    MasterHosts = proplists:get_value(master_hosts, Options),
+    true = lists:member(binary_to_list(MasterHost), MasterHosts),
+    true = erl_mesos_scheduler:subscribed(SchedulerInfo),
+    FrameworkId = erl_mesos_scheduler:framework_id(SchedulerInfo),
+    %% Test subscribed event.
+    #subscribed_event{framework_id = FrameworkId,
+                      heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
+        SubscribedEvent,
+    true = is_integer(HeartbeatIntervalSeconds),
+    %% Test scheduler state.
     ok.
 
 %% Internal functions.
@@ -121,8 +134,8 @@ set_test_pid(SchedulerOptions) ->
 
 recv_reply() ->
     receive
-        {registered, SchedulerInfo, SubscribedEvent} ->
-            {registered, SchedulerInfo, SubscribedEvent}
+        {registered, SchedulerPid, SchedulerInfo, SubscribedEvent} ->
+            {registered, SchedulerPid, SchedulerInfo, SubscribedEvent}
     after 5000 ->
         {error, timeout}
     end.

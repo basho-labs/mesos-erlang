@@ -7,6 +7,7 @@
 -export([init/1,
          registered/3,
          reregistered/2,
+         disconnected/2,
          error/3,
          handle_info/3,
          terminate/3]).
@@ -24,22 +25,22 @@ init(Options) ->
 
 registered(SchedulerInfo, SubscribedEvent,
            #state{test_pid = TestPid} = State) ->
-    erl_mesos_scheduler_SUITE:log(TestPid),
-    reply(TestPid, {registered, SchedulerInfo, SubscribedEvent}),
+    reply(TestPid, {registered, self(), SchedulerInfo, SubscribedEvent}),
     {ok, State#state{callback = registered}}.
 
 reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {reregistered, SchedulerInfo}),
+    reply(TestPid, {reregistered, self(), SchedulerInfo}),
     {ok, State#state{callback = reregistered}}.
 
+disconnected(SchedulerInfo, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {disconnected, self(), SchedulerInfo}),
+    {ok, State#state{callback = disconnected}}.
 
 
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, SchedulerInfo, ErrorEvent}),
     {ok, State#state{callback = error}}.
-
-
 
 handle_info(_SchedulerInfo, _Info, State) ->
     {ok, State}.

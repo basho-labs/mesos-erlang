@@ -11,17 +11,24 @@
 config(Config) ->
     file:consult(filename:join(test_dir_path(Config), "cluster.config")).
 
-config(masters, Config) ->
+config(Key, Config) ->
     case config(Config) of
         {ok, Terms} ->
-            {ok, proplists:get_value(masters, Terms)};
+            case proplists:get_value(Key, Terms) of
+                undefined ->
+                    {error, not_found};
+                Value ->
+                    {ok, Value}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
 
 start(Config) ->
     ClusterPath = cluster_path(Config),
-    os:cmd(ClusterPath ++ " start").
+    os:cmd(ClusterPath ++ " start"),
+    {ok, StartTimeout} = config(start_timeout, Config),
+    timer:sleep(StartTimeout).
 
 stop(Config) ->
     ClusterPath = cluster_path(Config),
