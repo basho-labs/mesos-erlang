@@ -13,7 +13,7 @@
 
 -export([bad_options/1,
          subscribe/1]).
-
+-export([log/1]).
 all() ->
     [bad_options, {group, cluster}].
 
@@ -22,13 +22,6 @@ groups() ->
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
-    Config.
-
-end_per_suite(_Config) ->
-    application:stop(erl_mesos),
-    ok.
-
-init_per_group(cluster, Config) ->
     Scheduler = erl_mesos_test_scheduler,
     SchedulerOptions = [{user, <<"user">>},
                         {name, <<"erl_mesos_test_scheduler">>}],
@@ -40,12 +33,20 @@ init_per_group(cluster, Config) ->
      {options, Options} |
      Config].
 
+end_per_suite(_Config) ->
+    application:stop(erl_mesos),
+    ok.
+
+init_per_group(cluster, Config) ->
+    Config.
+
 end_per_group(cluster, _Config) ->
     ok.
 
 init_per_testcase(TestCase, Config) ->
     case lists:member(TestCase, proplists:get_value(cluster, groups())) of
         true ->
+            erl_mesos_cluster:start(Config),
             Config;
         false ->
             Config
@@ -54,6 +55,7 @@ init_per_testcase(TestCase, Config) ->
 end_per_testcase(TestCase, Config) ->
     case lists:member(TestCase, proplists:get_value(cluster, groups())) of
         true ->
+            erl_mesos_cluster:stop(Config),
             Config;
         false ->
             Config
@@ -100,9 +102,30 @@ bad_options(Config) ->
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options6).
 
 subscribe(Config) ->
+    Ref = {erl_mesos_scheduler, subscribe},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    log(os:cmd("docker ps -a")),
+    {ok, _Pid} = erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions1,
+                                           Options),
+    Reply = recv_reply(),
+    log(Reply),
     ok.
 
 %% Internal functions.
+
+set_test_pid(SchedulerOptions) ->
+    [{test_pid, self()} | SchedulerOptions].
+
+recv_reply() ->
+    receive
+        {registered, SchedulerInfo, SubscribedEvent} ->
+            {registered, SchedulerInfo, SubscribedEvent}
+    after 5000 ->
+        {error, timeout}
+    end.
 
 log(Data) ->
     {ok, Dir} = file:get_cwd(),

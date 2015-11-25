@@ -9,7 +9,7 @@
          reregistered/2,
          error/3,
          handle_info/3,
-         terminate/2]).
+         terminate/3]).
 
 -record(state, {callback,
                 test_pid}).
@@ -24,12 +24,16 @@ init(Options) ->
 
 registered(SchedulerInfo, SubscribedEvent,
            #state{test_pid = TestPid} = State) ->
+    erl_mesos_scheduler_SUITE:log(TestPid),
     reply(TestPid, {registered, SchedulerInfo, SubscribedEvent}),
     {ok, State#state{callback = registered}}.
 
 reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {reregistered, SchedulerInfo}),
     {ok, State#state{callback = reregistered}}.
+
+
+
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, SchedulerInfo, ErrorEvent}),
@@ -40,7 +44,7 @@ error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
 handle_info(_SchedulerInfo, _Info, State) ->
     {ok, State}.
 
-terminate(Reason, #state{test_pid = TestPid}) ->
+terminate(_SchedulerInfo, Reason, #state{test_pid = TestPid}) ->
     reply(TestPid, {terminate, Reason}).
 
 %% Internal functions.
