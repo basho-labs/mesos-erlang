@@ -646,7 +646,7 @@ resubscribe(#state{data_format = DataFormat,
         {ok, ClientRef} ->
             {noreply, State#state{client_ref = ClientRef}};
         {error, Reason} ->
-            log_error("** Can not subscribe~n",
+            log_error("** Can not resubscribe~n",
                       "** Host == ~s~n"
                       "** Error reason == ~p~n",
                       [MasterHost, Reason],
