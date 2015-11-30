@@ -15,7 +15,10 @@
 
 -export([bad_options/1,
          registered/1]).
--export([log/1]).
+
+-record(state, {callback,
+                test_pid}).
+
 all() ->
     [bad_options, {group, cluster}].
 
@@ -125,7 +128,8 @@ registered(Config) ->
         SubscribedEvent,
     true = is_integer(HeartbeatIntervalSeconds),
     %% Test scheduler state.
-    ok.
+    FormatState = format_state(SchedulerPid),
+    #state{callback = registered} = scheduler_state(FormatState).
 
 %% Internal functions.
 
@@ -136,9 +140,17 @@ recv_reply() ->
     receive
         {registered, SchedulerPid, SchedulerInfo, SubscribedEvent} ->
             {registered, SchedulerPid, SchedulerInfo, SubscribedEvent}
-    after 5000 ->
+    after 10000 ->
         {error, timeout}
     end.
+
+scheduler_state(FormatState) ->
+    proplists:get_value("Scheduler state", FormatState).
+
+format_state(SchedulerPid) ->
+    {status, _Pid, _Module, Items} = sys:get_status(SchedulerPid),
+    {data, Format} = lists:last(lists:last(Items)),
+    proplists:get_value("State", Format).
 
 log(Data) ->
     {ok, Dir} = file:get_cwd(),
