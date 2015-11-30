@@ -9,7 +9,7 @@ zk:
 mesos_master_1:
     image: mesos_master
     environment:
-        - conf=--port=5050 --zk=zk://zk:2181/mesos --quorum=2 --hostname=localhost
+        - conf=--port=5050 --zk=zk://zk:2181/mesos --quorum=1 --hostname=localhost
     container_name: mesos_master_1
     links:
         - zk
@@ -20,7 +20,7 @@ mesos_master_2:
     image: mesos_master
     container_name: mesos_master_2
     environment:
-        - conf=--port=5060 --zk=zk://zk:2181/mesos --quorum=2 --hostname=localhost
+        - conf=--port=5060 --zk=zk://zk:2181/mesos --quorum=1 --hostname=localhost
     links:
         - zk
     ports:
@@ -30,7 +30,7 @@ mesos_master_3:
     image: mesos_master
     container_name: mesos_master_3
     environment:
-        - conf=--port=5070 --zk=zk://zk:2181/mesos --quorum=2 --hostname=localhost
+        - conf=--port=5070 --zk=zk://zk:2181/mesos --quorum=1 --hostname=localhost
     links:
         - zk
     ports:

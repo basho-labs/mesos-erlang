@@ -26,9 +26,7 @@ config(Key, Config) ->
 
 start(Config) ->
     ClusterPath = cluster_path(Config),
-    os:cmd(ClusterPath ++ " start"),
-    {ok, StartTimeout} = config(start_timeout, Config),
-    timer:sleep(StartTimeout).
+    os:cmd(ClusterPath ++ " start").
 
 stop(Config) ->
     ClusterPath = cluster_path(Config),

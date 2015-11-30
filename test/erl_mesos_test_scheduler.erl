@@ -28,25 +28,25 @@ registered(SchedulerInfo, SubscribedEvent,
     reply(TestPid, {registered, self(), SchedulerInfo, SubscribedEvent}),
     {ok, State#state{callback = registered}}.
 
-reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {reregistered, self(), SchedulerInfo}),
-    {ok, State#state{callback = reregistered}}.
-
 disconnected(SchedulerInfo, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {disconnected, self(), SchedulerInfo}),
     {ok, State#state{callback = disconnected}}.
 
-
+reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {reregistered, self(), SchedulerInfo}),
+    {ok, State#state{callback = reregistered}}.
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, SchedulerInfo, ErrorEvent}),
     {ok, State#state{callback = error}}.
 
+handle_info(_SchedulerInfo, stop, State) ->
+    {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->
     {ok, State}.
 
-terminate(_SchedulerInfo, Reason, #state{test_pid = TestPid}) ->
-    reply(TestPid, {terminate, Reason}).
+terminate(SchedulerInfo, Reason, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {terminate, self(), SchedulerInfo, Reason, State}).
 
 %% Internal functions.
 
