@@ -228,7 +228,7 @@ reregistered(Config) ->
 
 error(Config) ->
     ct:pal("** Error test cases"),
-    Ref = {erl_mesos_scheduler, reregistered},
+    Ref = {erl_mesos_scheduler, error},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     SchedulerOptions1 = [{failover_timeout, 0} |
