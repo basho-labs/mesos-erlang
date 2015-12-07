@@ -16,7 +16,8 @@
 -export([bad_options/1,
          registered/1,
          disconnected/1,
-         reregistered/1]).
+         reregistered/1,
+         error/1]).
 
 -record(state, {callback,
                 test_pid}).
@@ -27,7 +28,8 @@ all() ->
 groups() ->
     [{cluster, [registered,
                 disconnected,
-                reregistered]}].
+                reregistered,
+                error]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -223,6 +225,31 @@ reregistered(Config) ->
     %% Test scheduler state.
     FormatState2 = format_state(SchedulerPid1),
     #state{callback = reregistered} = scheduler_state(FormatState2).
+
+error(Config) ->
+    ct:pal("** Error test cases"),
+    Ref = {erl_mesos_scheduler, reregistered},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = [{failover_timeout, 0} |
+                         set_test_pid(SchedulerOptions)],
+    Options = ?config(options, Config),
+    Options1 = [{max_num_resubscribe, 1},
+                {resubscribe_interval, 1000} |
+                Options],
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    FormatState = format_state(SchedulerPid),
+    ClientRef = state_client_ref(FormatState),
+    Pid = response_pid(ClientRef),
+    exit(Pid, kill),
+    {disconnected, SchedulerPid, _} = recv_reply(),
+    {error, SchedulerPid, _SchedulerInfo, ErrorEvent} = recv_reply(),
+    %% Test error event.
+    #error_event{message = undefined} = ErrorEvent,
+    %% Test scheduler state.
+    {terminate, SchedulerPid, _, _, State} = recv_reply(),
+    #state{callback = error} = State.
 
 %% Internal functions.
 

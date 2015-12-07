@@ -38,7 +38,7 @@ reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, ErrorEvent}),
-    {ok, State#state{callback = error}}.
+    {stop, State#state{callback = error}}.
 
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
