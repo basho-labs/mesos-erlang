@@ -458,17 +458,18 @@ handle_subscribe_response({headers, Headers},
                                                               Headers},
     hackney:stream_next(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse1}};
-handle_subscribe_response(Events,
+handle_subscribe_response(Body,
                           #state{data_format = DataFormat,
                                  subscribe_state =
                                  #subscribe_response{status = 200,
                                                      headers = Headers}} =
-                          State)
-  when is_binary(Events) ->
+                          State) ->
     ContentType = proplists:get_value(<<"Content-Type">>, Headers),
     case erl_mesos_data_format:content_type(DataFormat) of
-        ContentType ->
-            handle_events(Events, State);
+        ContentType when is_binary(Body) ->
+            handle_events(Body, State);
+        ContentType when Body =:= done ->
+            {noreply, State};
         _ContentType ->
             log_error("** Invalid content type~n",
                       "** Content type == ~s~n",
@@ -600,6 +601,11 @@ handle_unsubscribe(#state{client_ref = ClientRef} = State) ->
 %% @private
 -spec start_resubscribe_timer(state()) ->
     {noreply, state()} | {stop, term(), state()}.
+start_resubscribe_timer(#state{framework_info =
+                               #framework_info{failover_timeout =
+                                               undefined}} = State) ->
+    {stop, {shutdown, {resubscribe, {error, {failover_timeout, undefined}}}},
+     State};
 start_resubscribe_timer(#state{max_num_resubscribe = 0} = State) ->
     {stop, {shutdown, {resubscribe, {error, max_num_resubscribe}}}, State};
 start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
