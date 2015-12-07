@@ -2,7 +2,7 @@
 
 -export([config/1, config/2]).
 
--export([start/1, stop/1, restart/1]).
+-export([start/1, stop/1, stop_master/2, restart/1]).
 
 -define(CLUSTER_PATH, "mesos_cluster/cluster.sh").
 
@@ -31,6 +31,10 @@ start(Config) ->
 stop(Config) ->
     ClusterPath = cluster_path(Config),
     os:cmd(ClusterPath ++ " stop").
+
+stop_master(Config, MasterContainer) ->
+    ClusterPath = cluster_path(Config),
+    os:cmd(ClusterPath ++ " stop_master " ++ MasterContainer).
 
 restart(Config) ->
     ClusterPath = cluster_path(Config),

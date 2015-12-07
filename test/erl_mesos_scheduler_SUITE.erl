@@ -15,7 +15,8 @@
 
 -export([bad_options/1,
          registered/1,
-         disconnected/1]).
+         disconnected/1,
+         reregistered/1]).
 
 -record(state, {callback,
                 test_pid}).
@@ -24,7 +25,9 @@ all() ->
     [bad_options, {group, cluster}].
 
 groups() ->
-    [{cluster, [registered, disconnected]}].
+    [{cluster, [registered,
+                disconnected,
+                reregistered]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -52,13 +55,9 @@ end_per_group(cluster, _Config) ->
 init_per_testcase(TestCase, Config) ->
     case lists:member(TestCase, proplists:get_value(cluster, groups())) of
         true ->
-            erl_mesos_cluster:stop(Config),
-            StartRes = erl_mesos_cluster:start(Config),
-            ct:pal("Start test mesos cluster.~n"
-                   "Output: ~s~n", [StartRes]),
-            {ok, StartTimeout} = erl_mesos_cluster:config(start_timeout,
-                                                          Config),
-            timer:sleep(StartTimeout),
+            stop_mesos_cluster(Config),
+            start_mesos_cluster(Config),
+            mesos_cluster_start_timeout_sleep(Config),
             Config;
         false ->
             Config
@@ -67,9 +66,7 @@ init_per_testcase(TestCase, Config) ->
 end_per_testcase(TestCase, Config) ->
     case lists:member(TestCase, proplists:get_value(cluster, groups())) of
         true ->
-            StopRes = erl_mesos_cluster:stop(Config),
-            ct:pal("Stop test mesos cluster.~n"
-                   "Output: ~s~n", [StopRes]),
+            stop_mesos_cluster(Config),
             Config;
         false ->
             Config
@@ -163,7 +160,6 @@ disconnected(Config) ->
     true = lists:member(binary_to_list(MasterHost), MasterHosts),
     false = erl_mesos_scheduler:subscribed(SchedulerInfo),
     %% Test scheduler state.
-    stop_scheduler(Ref),
     {terminate, SchedulerPid, _, _, State} = recv_reply(),
     #state{callback = disconnected} = State,
     %% Test claster stop.
@@ -180,7 +176,86 @@ disconnected(Config) ->
     {terminate, SchedulerPid1, _, _, State1} = recv_reply(),
     #state{callback = disconnected} = State1.
 
+reregistered(Config) ->
+    ct:pal("** Reregistered test cases"),
+    Ref = {erl_mesos_scheduler, reregistered},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = [{failover_timeout, 1000} |
+                         set_test_pid(SchedulerOptions)],
+    Options = ?config(options, Config),
+    Options1 = [{max_num_resubscribe, 2},
+                {resubscribe_interval, 2000} |
+                Options],
+    %% Test connection crash.
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    FormatState = format_state(SchedulerPid),
+    ClientRef = state_client_ref(FormatState),
+    Pid = response_pid(ClientRef),
+    exit(Pid, kill),
+    {disconnected, SchedulerPid, _} = recv_reply(),
+    {reregistered, SchedulerPid, SchedulerInfo} = recv_reply(),
+    %% Test scheduler info.
+    MasterHost = erl_mesos_scheduler:master_host(SchedulerInfo),
+    MasterHosts = proplists:get_value(master_hosts, Options),
+    true = lists:member(binary_to_list(MasterHost), MasterHosts),
+    true = erl_mesos_scheduler:subscribed(SchedulerInfo),
+    %% Test scheduler state.
+    FormatState1 = format_state(SchedulerPid),
+    #state{callback = reregistered} = scheduler_state(FormatState1),
+    ok = stop_scheduler(Ref),
+    Ref1 = {erl_mesos_scheduler, reregistered, 1},
+    %% Test stop master.
+    {ok, _} = start_scheduler(Ref1, Scheduler, SchedulerOptions1, Options1),
+    {registered, SchedulerPid1, SchedulerInfo1, _} = recv_reply(),
+    MasterHost1 = erl_mesos_scheduler:master_host(SchedulerInfo1),
+    MasterContainer = master_container(MasterHost1, Config),
+    mesos_cluster_stop_master(Config, MasterContainer),
+    mesos_cluster_leader_choose_timeout_sleep(Config),
+    {disconnected, SchedulerPid1, _} = recv_reply(),
+    {reregistered, SchedulerPid1, SchedulerInfo2} = recv_reply(),
+    %% Test scheduler info.
+    MasterHost2 = erl_mesos_scheduler:master_host(SchedulerInfo2),
+    true = MasterHost2 =/= MasterHost1,
+    true = lists:member(binary_to_list(MasterHost2), MasterHosts),
+    true = erl_mesos_scheduler:subscribed(SchedulerInfo2),
+    %% Test scheduler state.
+    FormatState2 = format_state(SchedulerPid1),
+    #state{callback = reregistered} = scheduler_state(FormatState2).
+
 %% Internal functions.
+
+start_mesos_cluster(Config) ->
+    StartRes = erl_mesos_cluster:start(Config),
+    ct:pal("Start test mesos cluster.~n"
+           "Output: ~s~n",
+           [StartRes]),
+    ok.
+
+stop_mesos_cluster(Config) ->
+    StopRes = erl_mesos_cluster:stop(Config),
+    ct:pal("Stop test mesos cluster.~n"
+           "Output: ~s~n",
+           [StopRes]),
+    ok.
+
+mesos_cluster_stop_master(Config, MasterContainer) ->
+    StopRes = erl_mesos_cluster:stop_master(Config, MasterContainer),
+    ct:pal("Stop test mesos master.~n"
+           "Master container: ~s~n"
+           "Output: ~s~n",
+           [MasterContainer, StopRes]),
+    ok.
+
+mesos_cluster_start_timeout_sleep(Config) ->
+    {ok, StartTimeout} = erl_mesos_cluster:config(start_timeout, Config),
+    timer:sleep(StartTimeout).
+
+mesos_cluster_leader_choose_timeout_sleep(Config) ->
+    {ok, LeaderChooseTimeout} = erl_mesos_cluster:config(leader_choose_timeout,
+                                                         Config),
+    timer:sleep(LeaderChooseTimeout).
 
 set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].
@@ -191,11 +266,15 @@ recv_reply() ->
             {registered, SchedulerPid, SchedulerInfo, SubscribedEvent};
         {disconnected, SchedulerPid, SchedulerInfo} ->
             {disconnected, SchedulerPid, SchedulerInfo};
+        {reregistered, SchedulerPid, SchedulerInfo} ->
+            {reregistered, SchedulerPid, SchedulerInfo};
+        {error, SchedulerPid, SchedulerInfo, ErrorEvent} ->
+            {error, SchedulerPid, SchedulerInfo, ErrorEvent};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->
             {error, {bad_reply, Reply}}
-    after 5000 ->
+    after 20000 ->
         {error, timeout}
     end.
 
@@ -229,3 +308,7 @@ stop_scheduler(Ref) ->
 response_pid(ClientRef) ->
     {ok, Pid} = hackney_manager:async_response_pid(ClientRef),
     Pid.
+
+master_container(MasterHost, Config) ->
+    {ok, Masters} = erl_mesos_cluster:config(masters, Config),
+    proplists:get_value(binary_to_list(MasterHost), Masters).
