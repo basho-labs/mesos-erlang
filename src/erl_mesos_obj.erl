@@ -43,7 +43,7 @@ get_value(Key, Obj) ->
     get_value(Key, Obj, undefined).
 
 %% @doc Returns value.
--spec get_value(data_string(), data_obj(), term()) -> undefined | data().
+-spec get_value(data_string(), data_obj(), term()) -> term() | data().
 get_value(Key, {struct, Fields}, DefaultValue) ->
     proplists:get_value(Key, Fields, DefaultValue).
 
