@@ -5,6 +5,8 @@ zk:
         - initLimit=10
         - syncLimit=2
         - clientPort=2181
+    ports:
+        - "2181:2181"
 
 mesos_master_1:
     image: mesos_master

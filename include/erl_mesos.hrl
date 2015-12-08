@@ -1,3 +1,10 @@
+%% Scheduler info.
+-record(scheduler_info, {data_format :: erl_mesos_data_format:data_format(),
+                         master_host :: binary(),
+                         subscribed :: boolean(),
+                         framework_id :: framework_id()}).
+
+%% Framework info.
 -record(framework_info, {%% Used to determine the Unix user that an executor or
                          %% task shouldbe launched as. If the user field is set
                          %% to an empty string Mesos will automagically set it
@@ -66,14 +73,19 @@
                          %% labels are not interpreted by Mesos itself.
                          labels}).
 
+%% Framework id.
 -record(framework_id, {value :: binary()}).
 
+%% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
                                            erl_mesos_obj:data_obj(),
                            heartbeat_interval_seconds :: undefined |
                                                          pos_integer()}).
 
+%% Error event.
 -record(error_event, {message :: erl_mesos_obj:data_string()}).
+
+-type scheduler_info() :: #scheduler_info{}.
 
 -type framework_info() :: #framework_info{}.
 

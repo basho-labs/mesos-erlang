@@ -6,8 +6,6 @@
 
 -export([start_link/4]).
 
--export([master_host/1, subscribed/1, framework_id/1]).
-
 -export([teardown/1, teardown/2]).
 
 -export([init/1,
@@ -43,11 +41,6 @@
 -record(subscribe_response, {status :: undefined | non_neg_integer(),
                              headers :: undefined | [{binary(), binary()}]}).
 
--record(scheduler_info, {data_format :: erl_mesos_data_format:data_format(),
-                         master_host :: binary(),
-                         subscribed :: boolean(),
-                         framework_id :: framework_id()}).
-
 -type options() :: [{atom(), term()}].
 -export_type([options/0]).
 
@@ -56,8 +49,6 @@
 -type subscribe_response() :: subscribe_response().
 
 -type subscribe_state() :: subscribe_response() | subscribed.
-
--type scheduler_info() :: #scheduler_info{}.
 
 %% Callbacks.
 
@@ -103,21 +94,6 @@
 start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
-
-%% @doc Returns master host.
--spec master_host(scheduler_info()) -> binary().
-master_host(#scheduler_info{master_host = MasterHost}) ->
-    MasterHost.
-
-%% @doc Returns subscribed.
--spec subscribed(scheduler_info()) -> boolean().
-subscribed(#scheduler_info{subscribed = Subscribed}) ->
-    Subscribed.
-
-%% @doc Returns framework id.
--spec framework_id(scheduler_info()) -> framework_id().
-framework_id(#scheduler_info{framework_id = FrameworkId}) ->
-    FrameworkId.
 
 %% @equiv teardown(scheduler_info(), [])
 -spec teardown(scheduler_info()) -> ok | {error, term()}.

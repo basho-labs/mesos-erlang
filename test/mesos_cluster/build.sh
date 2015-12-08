@@ -21,3 +21,11 @@ echo "* Build mesos master image *"
 echo "****************************"
 echo ""
 docker build -t mesos_master "$script_dir"/mesos_master
+
+# Build mesos slave.
+echo ""
+echo "****************************"
+echo "* Build mesos slave image *"
+echo "****************************"
+echo ""
+docker build -t mesos_slave "$script_dir"/mesos_slave

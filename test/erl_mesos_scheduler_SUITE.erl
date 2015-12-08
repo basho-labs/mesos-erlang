@@ -125,11 +125,11 @@ registered(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
     {registered, SchedulerPid, SchedulerInfo, SubscribedEvent} = recv_reply(),
     %% Test scheduler info.
-    MasterHost = erl_mesos_scheduler:master_host(SchedulerInfo),
+    #scheduler_info{master_host = MasterHost,
+                    subscribed = true,
+                    framework_id = FrameworkId} = SchedulerInfo,
     MasterHosts = proplists:get_value(master_hosts, Options),
     true = lists:member(binary_to_list(MasterHost), MasterHosts),
-    true = erl_mesos_scheduler:subscribed(SchedulerInfo),
-    FrameworkId = erl_mesos_scheduler:framework_id(SchedulerInfo),
     %% Test subscribed event.
     #subscribed_event{framework_id = FrameworkId,
                       heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
@@ -157,10 +157,10 @@ disconnected(Config) ->
     exit(Pid, kill),
     {disconnected, SchedulerPid, SchedulerInfo} = recv_reply(),
     %% Test scheduler info.
-    MasterHost = erl_mesos_scheduler:master_host(SchedulerInfo),
+    #scheduler_info{master_host = MasterHost,
+                    subscribed = false} = SchedulerInfo,
     MasterHosts = proplists:get_value(master_hosts, Options),
     true = lists:member(binary_to_list(MasterHost), MasterHosts),
-    false = erl_mesos_scheduler:subscribed(SchedulerInfo),
     %% Test scheduler state.
     {terminate, SchedulerPid, _, _, State} = recv_reply(),
     #state{callback = disconnected} = State,
@@ -171,9 +171,9 @@ disconnected(Config) ->
     erl_mesos_cluster:stop(Config),
     {disconnected, SchedulerPid1, SchedulerInfo1} = recv_reply(),
     %% Test scheduler info.
-    MasterHost1 = erl_mesos_scheduler:master_host(SchedulerInfo1),
+    #scheduler_info{master_host = MasterHost1,
+                    subscribed = false} = SchedulerInfo1,
     true = lists:member(binary_to_list(MasterHost1), MasterHosts),
-    false = erl_mesos_scheduler:subscribed(SchedulerInfo1),
     %% Test scheduler state.
     {terminate, SchedulerPid1, _, _, State1} = recv_reply(),
     #state{callback = disconnected} = State1.
@@ -199,10 +199,10 @@ reregistered(Config) ->
     {disconnected, SchedulerPid, _} = recv_reply(),
     {reregistered, SchedulerPid, SchedulerInfo} = recv_reply(),
     %% Test scheduler info.
-    MasterHost = erl_mesos_scheduler:master_host(SchedulerInfo),
+    #scheduler_info{master_host = MasterHost,
+                    subscribed = true} = SchedulerInfo,
     MasterHosts = proplists:get_value(master_hosts, Options),
     true = lists:member(binary_to_list(MasterHost), MasterHosts),
-    true = erl_mesos_scheduler:subscribed(SchedulerInfo),
     %% Test scheduler state.
     FormatState1 = format_state(SchedulerPid),
     #state{callback = reregistered} = scheduler_state(FormatState1),
@@ -211,17 +211,17 @@ reregistered(Config) ->
     %% Test stop master.
     {ok, _} = start_scheduler(Ref1, Scheduler, SchedulerOptions1, Options1),
     {registered, SchedulerPid1, SchedulerInfo1, _} = recv_reply(),
-    MasterHost1 = erl_mesos_scheduler:master_host(SchedulerInfo1),
+    #scheduler_info{master_host = MasterHost1} = SchedulerInfo1,
     MasterContainer = master_container(MasterHost1, Config),
     mesos_cluster_stop_master(Config, MasterContainer),
     mesos_cluster_leader_choose_timeout_sleep(Config),
     {disconnected, SchedulerPid1, _} = recv_reply(),
     {reregistered, SchedulerPid1, SchedulerInfo2} = recv_reply(),
     %% Test scheduler info.
-    MasterHost2 = erl_mesos_scheduler:master_host(SchedulerInfo2),
+    #scheduler_info{master_host = MasterHost2,
+                    subscribed = true} = SchedulerInfo2,
     true = MasterHost2 =/= MasterHost1,
     true = lists:member(binary_to_list(MasterHost2), MasterHosts),
-    true = erl_mesos_scheduler:subscribed(SchedulerInfo2),
     %% Test scheduler state.
     FormatState2 = format_state(SchedulerPid1),
     #state{callback = reregistered} = scheduler_state(FormatState2).
