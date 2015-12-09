@@ -8,6 +8,7 @@
          registered/3,
          reregistered/2,
          disconnected/2,
+         resource_offers/3,
          error/3,
          handle_info/3,
          terminate/3]).
@@ -35,6 +36,10 @@ disconnected(SchedulerInfo, #state{test_pid = TestPid} = State) ->
 reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {reregistered, self(), SchedulerInfo}),
     {ok, State#state{callback = reregistered}}.
+
+resource_offers(SchedulerInfo, Offers, State) ->
+    erl_mesos_logger:info("~n~nOFFERS ~p~n~n", [Offers]),
+    {ok, State}.
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, ErrorEvent}),

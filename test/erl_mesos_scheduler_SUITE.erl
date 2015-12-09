@@ -17,6 +17,7 @@
          registered/1,
          disconnected/1,
          reregistered/1,
+         resource_offers/1,
          error/1]).
 
 -record(state, {callback,
@@ -29,6 +30,7 @@ groups() ->
     [{cluster, [registered,
                 disconnected,
                 reregistered,
+                %resource_offers]}].
                 error]}].
 
 init_per_suite(Config) ->
@@ -120,7 +122,9 @@ registered(Config) ->
     Ref = {erl_mesos_scheduler, registered},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Labels = [#label{key = <<"key">>, value = <<"value">>}],
+    SchedulerOptions1 = [{labels, Labels} |
+                         set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
     {registered, SchedulerPid, SchedulerInfo, SubscribedEvent} = recv_reply(),
@@ -183,7 +187,9 @@ reregistered(Config) ->
     Ref = {erl_mesos_scheduler, reregistered},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = [{failover_timeout, 1000} |
+    Labels = [#label{key = <<"key">>, value = <<"value">>}],
+    SchedulerOptions1 = [{labels, Labels},
+                         {failover_timeout, 1000} |
                          set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
     Options1 = [{max_num_resubscribe, 2},
@@ -225,6 +231,18 @@ reregistered(Config) ->
     %% Test scheduler state.
     FormatState2 = format_state(SchedulerPid1),
     #state{callback = reregistered} = scheduler_state(FormatState2).
+
+resource_offers(Config) ->
+    ct:pal("** Resource offers"),
+    Ref = {erl_mesos_scheduler, resource_offers},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions, Options),
+    mesos_cluster_start_empty_slave(Config),
+    timer:sleep(5000),
+    mesos_cluster_stop_empty_slave(Config),
+    ok.
 
 error(Config) ->
     ct:pal("** Error test cases"),
@@ -283,6 +301,12 @@ mesos_cluster_leader_choose_timeout_sleep(Config) ->
     {ok, LeaderChooseTimeout} = erl_mesos_cluster:config(leader_choose_timeout,
                                                          Config),
     timer:sleep(LeaderChooseTimeout).
+
+mesos_cluster_start_empty_slave(Config) ->
+    erl_mesos_cluster:start_empty_slave(Config).
+
+mesos_cluster_stop_empty_slave(Config) ->
+    erl_mesos_cluster:stop_empty_slave(Config).
 
 set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].

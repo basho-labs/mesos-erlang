@@ -20,8 +20,7 @@
                 request_options(), framework_info(), boolean()) ->
     {ok, hackney:client_ref()} | {error, term()}.
 subscribe(DataFormat, MasterHost, Options, FrameworkInfo, Force) ->
-    FrameworkInfoObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_info,
-                                                  FrameworkInfo),
+    FrameworkInfoObj = framework_info_obj_from_record(FrameworkInfo),
     SubscribeObj = erl_mesos_obj:new([{<<"framework_info">>,
                                        FrameworkInfoObj},
                                       {<<"force">>, Force}]),
@@ -36,8 +35,7 @@ subscribe(DataFormat, MasterHost, Options, FrameworkInfo, Force) ->
 resubscribe(DataFormat, MasterHost, Options, FrameworkInfo, FrameworkId) ->
     FrameworkIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_id, FrameworkId),
     FrameworkInfo1 = FrameworkInfo#framework_info{id = FrameworkIdObj},
-    FrameworkInfoObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_info,
-                                                  FrameworkInfo1),
+    FrameworkInfoObj = framework_info_obj_from_record(FrameworkInfo1),
     SubscribeObj = erl_mesos_obj:new([{<<"framework_info">>,
                                        FrameworkInfoObj}]),
     ReqObj = erl_mesos_obj:new([{<<"type">>, <<"SUBSCRIBE">>},
@@ -104,3 +102,33 @@ convert_response(Response) ->
         {error, Reason} ->
             {error, Reason}
     end.
+
+%% @doc Converts framework info to obj.
+%% @private
+-spec framework_info_obj_from_record(framework_info()) ->
+    erl_mesos_obj:data_obj().
+framework_info_obj_from_record(#framework_info{labels = Labels} =
+                               FrameworkInfo) ->
+    LabelObjs = lebel_obj_from_record(Labels),
+    FrameworkInfo1 = FrameworkInfo#framework_info{labels = LabelObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(framework_info, FrameworkInfo1).
+
+%% @doc Converts labels info to obj.
+%% @private
+-spec lebel_obj_from_record(undefined | [label()]) -> erl_mesos_obj:data_obj().
+lebel_obj_from_record(undefined) ->
+    undefined;
+lebel_obj_from_record(Labels) ->
+    LebelObjs = lebel_obj_from_record(Labels, []),
+    erl_mesos_obj:new([{<<"labels">>, LebelObjs}]).
+
+%% @doc Converts labels info to objs.
+%% @private
+-spec lebel_obj_from_record(undefined | [label()],
+                            [erl_mesos_obj:data_obj()]) ->
+    [erl_mesos_obj:data_obj()].
+lebel_obj_from_record([Label | Labels], LabelObjs) ->
+    LabelObj = ?ERL_MESOS_OBJ_FROM_RECORD(label, Label),
+    lebel_obj_from_record(Labels, [LabelObj | LabelObjs]);
+lebel_obj_from_record([], LabelObjs) ->
+    lists:reverse(LabelObjs).

@@ -4,6 +4,19 @@
                          subscribed :: boolean(),
                          framework_id :: framework_id()}).
 
+%% Offer id.
+-record(offer_id, {value :: erl_mesos_obj:data_string()}).
+
+%% Framework id.
+-record(framework_id, {value :: erl_mesos_obj:data_string()}).
+
+%% Agent id.
+-record(agent_id, {value :: erl_mesos_obj:data_string()}).
+
+%% Label.
+-record(label, {key :: erl_mesos_obj:data_string(),
+                value :: undefined | erl_mesos_obj:data_string()}).
+
 %% Framework info.
 -record(framework_info, {%% Used to determine the Unix user that an executor or
                          %% task shouldbe launched as. If the user field is set
@@ -65,16 +78,21 @@
                          %% This field allows a framework to advertise its set
                          %% of capabilities (e.g., ability to receive offers for
                          %% revocable resources).
-                         capabilities,
+                         capabilities :: undefined,
 
                          %% Labels are free-form key value pairs supplied by the
                          %% framework scheduler (e.g., to describe additional
                          %% functionality offered by the framework). These
                          %% labels are not interpreted by Mesos itself.
-                         labels}).
+                         labels :: undefined | [label()] |
+                                   erl_mesos_obj:data_obj()}).
 
-%% Framework id.
--record(framework_id, {value :: binary()}).
+%-record(framework_info_capabilitie, {type }
+
+%% Offer.
+-record(offer, {id :: offer_id(),
+                framework_id :: framework_id(),
+                agent_id :: agent_id()}).
 
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
@@ -85,11 +103,19 @@
 %% Error event.
 -record(error_event, {message :: erl_mesos_obj:data_string()}).
 
+-type offer_id() :: #offer_id{}.
+
+-type framework_id() :: #framework_id{}.
+
+-type agent_id() :: #agent_id{}.
+
+-type label() :: #label{}.
+
 -type scheduler_info() :: #scheduler_info{}.
 
 -type framework_info() :: #framework_info{}.
 
--type framework_id() :: #framework_id{}.
+-type offer() :: #offer{}.
 
 -type subscribed_event() :: #subscribed_event{}.
 
