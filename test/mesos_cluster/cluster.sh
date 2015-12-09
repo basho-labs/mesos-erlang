@@ -32,7 +32,7 @@ function stop_master {
 }
 
 function start_empty_slave {
-    docker run --privileged\git 
+    docker run --privileged\
                --name=mesos_empty_slave \
                --link=zk:zk\
                -d\
