@@ -1,12 +1,11 @@
 zk:
     image: zk
+    container_name: zk
     environment:
         - tickTime=2000
         - initLimit=10
         - syncLimit=2
         - clientPort=2181
-    ports:
-        - "2181:2181"
 
 mesos_master_1:
     image: mesos_master
@@ -37,4 +36,3 @@ mesos_master_3:
         - zk
     ports:
         - "5070:5070"
-
