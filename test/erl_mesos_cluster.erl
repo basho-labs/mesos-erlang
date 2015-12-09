@@ -2,7 +2,12 @@
 
 -export([config/1, config/2]).
 
--export([start/1, stop/1, stop_master/2, restart/1]).
+-export([start/1,
+         stop/1,
+         stop_master/2,
+         restart/1,
+         start_empty_slave/1,
+         stop_empty_slave/1]).
 
 -define(CLUSTER_PATH, "mesos_cluster/cluster.sh").
 
@@ -39,6 +44,14 @@ stop_master(Config, MasterContainer) ->
 restart(Config) ->
     ClusterPath = cluster_path(Config),
     os:cmd(ClusterPath ++ " restart").
+
+start_empty_slave(Config) ->
+    ClusterPath = cluster_path(Config),
+    os:cmd(ClusterPath ++ " start_empty_slave").
+
+stop_empty_slave(Config) ->
+    ClusterPath = cluster_path(Config),
+    os:cmd(ClusterPath ++ " stop_empty_slave").
 
 %% Internal functions.
 
