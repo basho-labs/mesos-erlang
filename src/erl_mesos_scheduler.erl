@@ -29,7 +29,7 @@
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
-                client_ref :: undefined | reference(),
+                client_ref :: undefined | erl_mesos_http:client_ref(),
                 subscribe_state :: undefined | subscribe_state(),
                 framework_id :: undefined | framework_id(),
                 num_redirect = 0 :: non_neg_integer(),
@@ -39,7 +39,7 @@
                 resubscribe_timer_ref :: undefined | reference()}).
 
 -record(subscribe_response, {status :: undefined | non_neg_integer(),
-                             headers :: undefined | [{binary(), binary()}]}).
+                             headers :: undefined | erl_mesos_http:headers()}).
 
 -type options() :: [{atom(), term()}].
 -export_type([options/0]).
@@ -104,7 +104,7 @@ teardown(Scheduler) ->
     teardown(Scheduler, []).
 
 %% @doc Sends teardown request.
--spec teardown(scheduler_info(), erl_mesos_api:request_options()) ->
+-spec teardown(scheduler_info(), erl_mesos_http:options()) ->
     ok | {error, term()}.
 teardown(#scheduler_info{data_format = DataFormat,
                          master_host = MasterHost,
@@ -143,40 +143,39 @@ handle_cast(Request, State) ->
 %% @private
 -spec handle_info(term(), state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_info({hackney_response, ClientRef, Response},
-            #state{client_ref = ClientRef} = State) ->
-    handle_subscribe_response(Response, State);
-handle_info({'DOWN', ClientRef, Reason},
-            #state{client_ref = ClientRef} = State) ->
-    log_error("** Client process crashed~n",
-              "** Reason == ~p~n",
-              [Reason],
-              State),
-    handle_unsubscribe(State);
-handle_info({timeout, HeartbeatTimerRef, heartbeat},
-            #state{subscribe_state = subscribed,
-                   heartbeat_timer_ref = HeartbeatTimerRef} = State) ->
-    log_error("** Heartbeat timeout occurred~n",
-              "",
-              [],
-              State),
-    handle_unsubscribe(State);
-handle_info({timeout, HeartbeatTimerRef, heartbeat},
-            #state{heartbeat_timer_ref = HeartbeatTimerRef} = State) ->
-    {noreply, State};
-handle_info({timeout, ResubscribeTimerRef, resubscribe},
-            #state{subscribe_state = undefined,
-                   resubscribe_timer_ref = ResubscribeTimerRef} = State) ->
-    resubscribe(State);
-handle_info({timeout, ResubscribeTimerRef, resubscribe},
-            #state{resubscribe_timer_ref = ResubscribeTimerRef} = State) ->
-    {noreply, State};
-handle_info(Info, State) ->
-    case call(handle_info, Info, State) of
-        {ok, State1} ->
-            {noreply, State1};
-        {stop, State1} ->
-            {stop, shutdown, State1}
+handle_info(Info, #state{client_ref = ClientRef,
+                         subscribe_state = SubscribeState,
+                         heartbeat_timer_ref = HeartbeatTimerRef,
+                         resubscribe_timer_ref = ResubscribeTimerRef} =
+                  State) ->
+    case erl_mesos_http:async_response(Info, ClientRef) of
+        {ok, Response} ->
+            handle_async_response(Response, State);
+        not_async_response ->
+            case Info of
+                {'DOWN', ClientRef, Reason} ->
+                    log_error("** Client process crashed~n",
+                              "** Reason == ~p~n",
+                              [Reason],
+                              State),
+                    handle_unsubscribe(State);
+                {timeout, HeartbeatTimerRef, heartbeat}
+                  when SubscribeState =:= subscribed ->
+                    log_error("** Heartbeat timeout occurred~n",
+                              "",
+                              [],
+                              State),
+                    handle_unsubscribe(State);
+                {timeout, HeartbeatTimerRef, heartbeat} ->
+                    {noreply, State};
+                {timeout, ResubscribeTimerRef, resubscribe}
+                  when SubscribeState =:= undefined ->
+                    resubscribe(State);
+                {timeout, ResubscribeTimerRef, resubscribe} ->
+                    {noreply, State};
+                _Info ->
+                    call_handle_info(Info, State)
+            end
     end.
 
 %% @private
@@ -417,31 +416,31 @@ subscribe(#state{data_format = DataFormat,
 subscribe(#state{master_hosts_queue = []}) ->
     {error, bad_hosts}.
 
-%% @doc Handles subscribe response.
+%% @doc Handles async response.
 %% @private
--spec handle_subscribe_response(term(), state()) ->
+-spec handle_async_response(term(), state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_subscribe_response({status, Status, _Message},
-                          #state{client_ref = ClientRef,
-                                 subscribe_state = undefined} = State) ->
+handle_async_response({status, Status, _Message},
+                      #state{client_ref = ClientRef,
+                             subscribe_state = undefined} = State) ->
     SubscribeResponse = #subscribe_response{status = Status},
-    hackney:stream_next(ClientRef),
+    stream_next_chunk(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse}};
-handle_subscribe_response({headers, Headers},
-                          #state{client_ref = ClientRef,
-                                 subscribe_state =
-                                 #subscribe_response{headers = undefined} =
-                                 SubscribeResponse} = State) ->
+handle_async_response({headers, Headers},
+                       #state{client_ref = ClientRef,
+                              subscribe_state =
+                              #subscribe_response{headers = undefined} =
+                              SubscribeResponse} = State) ->
     SubscribeResponse1 = SubscribeResponse#subscribe_response{headers =
                                                               Headers},
-    hackney:stream_next(ClientRef),
+    stream_next_chunk(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse1}};
-handle_subscribe_response(Body,
-                          #state{data_format = DataFormat,
-                                 subscribe_state =
-                                 #subscribe_response{status = 200,
-                                                     headers = Headers}} =
-                          State)
+handle_async_response(Body,
+                      #state{data_format = DataFormat,
+                             subscribe_state =
+                             #subscribe_response{status = 200,
+                                                 headers = Headers}} =
+                      State)
   when is_binary(Body) ->
     ContentType = proplists:get_value(<<"Content-Type">>, Headers),
     case erl_mesos_data_format:content_type(DataFormat) of
@@ -454,31 +453,30 @@ handle_subscribe_response(Body,
                       State),
             handle_unsubscribe(State)
     end;
-handle_subscribe_response(Events,
-                          #state{subscribe_state = subscribed} = State)
+handle_async_response(Events, #state{subscribe_state = subscribed} = State)
   when is_binary(Events) ->
     handle_events(Events, State);
-handle_subscribe_response(_Body,
-                          #state{subscribe_state =
-                                 #subscribe_response{status = 307}} = State) ->
+handle_async_response(_Body,
+                      #state{subscribe_state =
+                             #subscribe_response{status = 307}} = State) ->
     handle_redirect(State);
-handle_subscribe_response(Body,
-                          #state{subscribe_state =
-                                 #subscribe_response{status = Status}} =
-                          State) ->
-    log_error("** Invalid http resposne~n",
+handle_async_response(Body,
+                      #state{subscribe_state =
+                             #subscribe_response{status = Status}} =
+                      State) ->
+    log_error("** Invalid http response~n",
               "** Status == ~p~n"
               "** Body == ~s~n",
               [Status, Body],
               State),
     handle_unsubscribe(State);
-handle_subscribe_response(done, State) ->
+handle_async_response(done, State) ->
     log_error("** Connection closed~n",
               "",
               [],
               State),
     handle_unsubscribe(State);
-handle_subscribe_response({error, Reason}, State) ->
+handle_async_response({error, Reason}, State) ->
     log_error("** Connection error~n",
               "** Reason == ~p~n",
               [Reason],
@@ -646,7 +644,7 @@ handle_events(Events, #state{data_format = DataFormat,
     Objs = erl_mesos_data_format:decode_events(DataFormat, Events),
     case apply_events(Objs, State) of
         {ok, State1} ->
-            hackney:stream_next(ClientRef),
+            stream_next_chunk(ClientRef),
             {noreply, State1};
         {stop, State1} ->
             {stop, shutdown, State1}
@@ -704,6 +702,18 @@ apply_event(Obj, #state{master_host = MasterHost,
         Event ->
             io:format("New unhandled event arrived: ~p~n", [Event]),
             {ok, State}
+    end.
+
+%% @doc Calls Scheduler:handle_info/3.
+%% @private
+-spec call_handle_info(term(), state()) ->
+    {noreply, state()} | {stop, shutdown, state()}.
+call_handle_info(Info, State) ->
+    case call(handle_info, Info, State) of
+        {ok, State1} ->
+            {noreply, State1};
+        {stop, State1} ->
+            {stop, shutdown, State1}
     end.
 
 %% @doc Calls Scheduler:Callback/2.
@@ -775,13 +785,19 @@ cancel_heartbeat_timer(undefined) ->
 cancel_heartbeat_timer(HeartbeatTimerRef) ->
     erlang:cancel_timer(HeartbeatTimerRef).
 
-%% @doc Closes the subscribe connection.
+%% @doc Stream next chunk.
 %% @private
--spec close(undefined | reference()) -> ok | {error, term()}.
+-spec stream_next_chunk(erl_mesos_http:client_ref()) -> ok | {error, term()}.
+stream_next_chunk(ClientRef) ->
+    erl_mesos_http:stream_next_chunk(ClientRef).
+
+%% @doc Closes the connection.
+%% @private
+-spec close(undefined | erl_mesos_http:client_ref()) -> ok | {error, term()}.
 close(undefined) ->
     ok;
 close(ClientRef) ->
-    hackney:close(ClientRef).
+    erl_mesos_http:close_async_response(ClientRef).
 
 %% @doc Logs info.
 %% @private
