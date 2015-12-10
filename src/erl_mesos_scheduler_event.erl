@@ -10,36 +10,23 @@
                  {offers, [offer()]} |
                  {error, error_event()} |
                  heartbeat |
-                 erl_mesos_obj:data_obj().
+                 term().
 -export_type([event/0]).
 
--define(DEFAULT_HEARTBEAT_INTERVAL_SECONDS, 15). %% Seconds.
+-define(DEFAULT_HEARTBEAT_INTERVAL_SECONDS, 15).
 
 %% External functions.
 
 %% @doc Parses obj.
 -spec parse_obj(erl_mesos_obj:data_obj()) -> event().
 parse_obj(Obj) ->
-    case erl_mesos_obj:get_value(<<"type">>, Obj) of
-        <<"SUBSCRIBED">> ->
-            {subscribed, parse_subscribed_obj(Obj)};
-        <<"OFFERS">> ->
-            {offers, parse_offer_objs(Obj)};
-        <<"ERROR">> ->
-            {error, parse_error_obj(Obj)};
-        <<"HEARTBEAT">> ->
-            heartbeat;
-        _Type ->
-            Obj
-    end.
+    parse_obj(erl_mesos_obj:get_value(<<"type">>, Obj), Obj).
 
 %% Internal functions.
 
-%% @doc Parses subscribed obj.
-%% @private
--spec parse_subscribed_obj(erl_mesos_obj:data_obj()) ->
-    {subscribed_event(), pos_integer()}.
-parse_subscribed_obj(Obj) ->
+-spec parse_obj(erl_mesos_obj:data_string(), erl_mesos_obj:data_obj()) ->
+    event().
+parse_obj(<<"SUBSCRIBED">>, Obj) ->
     SubscribedObj = erl_mesos_obj:get_value(<<"subscribed">>, Obj),
     #subscribed_event{framework_id = FrameworkIdObj,
                       heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
@@ -47,9 +34,21 @@ parse_subscribed_obj(Obj) ->
     FrameworkId = ?ERL_MESOS_OBJ_TO_RECORD(framework_id, FrameworkIdObj),
     HeartbeatIntervalSeconds1 =
         heartbeat_interval_seconds(HeartbeatIntervalSeconds),
-    {#subscribed_event{framework_id = FrameworkId,
-                       heartbeat_interval_seconds = HeartbeatIntervalSeconds1},
-                      HeartbeatIntervalSeconds1 * 1000}.
+    SubscribedEvent = #subscribed_event{framework_id = FrameworkId,
+                                        heartbeat_interval_seconds =
+                                            HeartbeatIntervalSeconds1},
+    {subscribed, {SubscribedEvent, HeartbeatIntervalSeconds1 * 1000}};
+parse_obj(<<"OFFERS">>, Obj) ->
+    %% TO DO offers_event
+    _OfferObjs = erl_mesos_obj:get_value(<<"offers">>, Obj),
+    {offers, [#offer{}]};
+parse_obj(<<"ERROR">>, Obj) ->
+    ErrorEvent = ?ERL_MESOS_OBJ_TO_RECORD(error_event, Obj),
+    {error, ErrorEvent};
+parse_obj(<<"HEARTBEAT">>, _Obj) ->
+    heartbeat;
+parse_obj(_Type, Obj) ->
+    Obj.
 
 %% @doc Returns heartbeat interval.
 %% @private
@@ -58,16 +57,3 @@ heartbeat_interval_seconds(undefined) ->
     ?DEFAULT_HEARTBEAT_INTERVAL_SECONDS;
 heartbeat_interval_seconds(HeartbeatIntervalSeconds) ->
     HeartbeatIntervalSeconds.
-
-%% @doc Parses error obj.
-%% @private
--spec parse_error_obj(erl_mesos_obj:data_obj()) -> error_event().
-parse_error_obj(Obj) ->
-    ?ERL_MESOS_OBJ_TO_RECORD(error_event, Obj).
-
-%% @doc Parses offer objs.
-%% @private
--spec parse_offer_objs(erl_mesos_obj:data_obj()) -> [offer()].
-parse_offer_objs(Obj) ->
-    _OfferObjs = erl_mesos_obj:get_value(<<"offers">>, Obj),
-    [#offer{}].

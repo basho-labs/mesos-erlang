@@ -695,8 +695,8 @@ apply_event(Obj, #state{master_host = MasterHost,
             State1 = State#state{heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(set_subscribed(State1)),
             call(reregistered, State2);
-        {offers, Offers} ->
-            call(resource_offers, Offers, State);
+%%         {offers, Offers} ->
+%%             call(resource_offers, Offers, State);
         {error, ErrorEvent} ->
             call(error, ErrorEvent, State);
         heartbeat ->
