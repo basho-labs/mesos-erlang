@@ -2,6 +2,8 @@
 
 -export([info/2, warning/2, error/2]).
 
+%% External functions.
+
 %% @doc Logs info.
 -spec info(string(), list()) -> ok.
 info(Format, Data) ->
