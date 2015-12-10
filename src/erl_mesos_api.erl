@@ -11,7 +11,7 @@
 -type request_options() :: [{atom(), term()}].
 -export_type([request_options/0]).
 
--define(PATH, "/api/v1/scheduler").
+-define(SCHEDULER_API_PATH, "/api/v1/scheduler").
 
 %% External functions.
 
@@ -72,7 +72,7 @@ request(DataFormat, MasterHost, Options, ReqObj) ->
 %% @private
 -spec request_url(binary()) -> binary().
 request_url(MasterHost) ->
-    <<"http://", MasterHost/binary, ?PATH>>.
+    <<"http://", MasterHost/binary, ?SCHEDULER_API_PATH>>.
 
 %% @doc Returns request headers.
 %% @private
