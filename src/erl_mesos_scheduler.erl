@@ -109,7 +109,8 @@ teardown(Scheduler) ->
 teardown(#scheduler_info{data_format = DataFormat,
                          master_host = MasterHost,
                          framework_id = FrameworkId}, Options) ->
-    erl_mesos_api:teardown(DataFormat, MasterHost, Options, FrameworkId).
+    erl_mesos_scheduler_api:teardown(DataFormat, MasterHost, Options,
+                                     FrameworkId).
 
 %% gen_server callback functions.
 
@@ -399,8 +400,9 @@ subscribe(#state{data_format = DataFormat,
              "** Host == ~s~n",
              [MasterHost],
              State),
-    case erl_mesos_api:subscribe(DataFormat, MasterHost, SubscribeReqOptions,
-                                 FrameworkInfo, Force) of
+    case erl_mesos_scheduler_api:subscribe(DataFormat, MasterHost,
+                                           SubscribeReqOptions, FrameworkInfo,
+                                           Force) of
         {ok, ClientRef} ->
             {ok, State#state{master_hosts_queue = MasterHostsQueue,
                              master_host = MasterHost,
@@ -622,8 +624,9 @@ resubscribe(#state{data_format = DataFormat,
              "** Host == ~s~n",
              [MasterHost],
              State),
-    case erl_mesos_api:resubscribe(DataFormat, MasterHost, SubscribeReqOptions,
-                                   FrameworkInfo, FrameworkId) of
+    case erl_mesos_scheduler_api:resubscribe(DataFormat, MasterHost,
+                                             SubscribeReqOptions, FrameworkInfo,
+                                             FrameworkId) of
         {ok, ClientRef} ->
             {noreply, State#state{client_ref = ClientRef}};
         {error, Reason} ->

@@ -1,4 +1,4 @@
--module(erl_mesos_api).
+-module(erl_mesos_scheduler_api).
 
 -include("erl_mesos.hrl").
 
@@ -8,7 +8,7 @@
          resubscribe/5,
          teardown/4]).
 
--define(SCHEDULER_API_PATH, "/api/v1/scheduler").
+-define(API_PATH, "/api/v1/scheduler").
 
 %% External functions.
 
@@ -70,7 +70,7 @@ request(DataFormat, MasterHost, Options, ReqObj) ->
 %% @private
 -spec request_url(binary()) -> binary().
 request_url(MasterHost) ->
-    <<"http://", MasterHost/binary, ?SCHEDULER_API_PATH>>.
+    <<"http://", MasterHost/binary, ?API_PATH>>.
 
 %% @doc Returns request headers.
 %% @private
