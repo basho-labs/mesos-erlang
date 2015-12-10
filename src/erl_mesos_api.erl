@@ -8,17 +8,14 @@
          resubscribe/5,
          teardown/4]).
 
--type request_options() :: [{atom(), term()}].
--export_type([request_options/0]).
-
 -define(SCHEDULER_API_PATH, "/api/v1/scheduler").
 
 %% External functions.
 
 %% @doc Sends subscribe request.
 -spec subscribe(erl_mesos_data_format:data_format(), binary(),
-                request_options(), framework_info(), boolean()) ->
-    {ok, hackney:client_ref()} | {error, term()}.
+                erl_mesos_http:options(), framework_info(), boolean()) ->
+    {ok, erl_mesos_http:client_ref()} | {error, term()}.
 subscribe(DataFormat, MasterHost, Options, FrameworkInfo, Force) ->
     FrameworkInfoObj = framework_info_obj_from_record(FrameworkInfo),
     SubscribeObj = erl_mesos_obj:new([{<<"framework_info">>,
@@ -30,8 +27,8 @@ subscribe(DataFormat, MasterHost, Options, FrameworkInfo, Force) ->
 
 %% @doc Sends resubscribe request.
 -spec resubscribe(erl_mesos_data_format:data_format(), binary(),
-                  request_options(), framework_info(), framework_id()) ->
-    {ok, hackney:client_ref()} | {error, term()}.
+                  erl_mesos_http:options(), framework_info(), framework_id()) ->
+    {ok, erl_mesos_http:client_ref()} | {error, term()}.
 resubscribe(DataFormat, MasterHost, Options, FrameworkInfo, FrameworkId) ->
     FrameworkIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_id, FrameworkId),
     FrameworkInfo1 = FrameworkInfo#framework_info{id = FrameworkIdObj},
@@ -44,8 +41,8 @@ resubscribe(DataFormat, MasterHost, Options, FrameworkInfo, FrameworkId) ->
     request(DataFormat, MasterHost, Options, ReqObj).
 
 %% @doc Sends teardown request.
--spec teardown(erl_mesos_data_format:data_format(), binary(), request_options(),
-               framework_id()) ->
+-spec teardown(erl_mesos_data_format:data_format(), binary(),
+               erl_mesos_http:options(), framework_id()) ->
     ok | {error, term()}.
 teardown(DataFormat, MasterHost, Options, FrameworkId) ->
     FrameworkIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_id, FrameworkId),
@@ -57,16 +54,17 @@ teardown(DataFormat, MasterHost, Options, FrameworkId) ->
 
 %% @doc Sends http request to the mesos master.
 %% @private
--spec request(erl_mesos_data_format:data_format(), binary(), request_options(),
-              erl_mesos_obj:data_obj()) ->
-    {ok, hackney:client_ref()} |
-    {ok, non_neg_integer(), [{binary(), binary()}], reference()} |
+-spec request(erl_mesos_data_format:data_format(), binary(),
+              erl_mesos_http:options(), erl_mesos_obj:data_obj()) ->
+    {ok, erl_mesos_http:client_ref()} |
+    {ok, non_neg_integer(), erl_mesos_http:headers(),
+     erl_mesos_http:client_ref()} |
     {error, term()}.
 request(DataFormat, MasterHost, Options, ReqObj) ->
     Url = request_url(MasterHost),
     ReqHeaders = request_headers(DataFormat),
     ReqBody = erl_mesos_data_format:encode(DataFormat, ReqObj),
-    hackney:request(post, Url, ReqHeaders, ReqBody, Options).
+    erl_mesos_http:request(post, Url, ReqHeaders, ReqBody, Options).
 
 %% @doc Returns request url.
 %% @private
@@ -77,14 +75,14 @@ request_url(MasterHost) ->
 %% @doc Returns request headers.
 %% @private
 -spec request_headers(erl_mesos_data_format:data_format()) ->
-    [{binary(), binary()}].
+    erl_mesos_http:headers().
 request_headers(DataFormat) ->
     [{<<"Content-Type">>, erl_mesos_data_format:content_type(DataFormat)},
      {<<"Connection">>, <<"close">>}].
 
 %% @doc Converts response.
 %% @private
--spec convert_response({ok, non_neg_integer(), [{binary(), binary()}],
+-spec convert_response({ok, non_neg_integer(), erl_mesos_http:headers(),
                         reference()} | {error, term()}) ->
     ok | {error, term()} |
     {error, {http_response, non_neg_integer(), binary()}}.
@@ -93,7 +91,7 @@ convert_response(Response) ->
         {ok, 202, _Headers, _ClientRef} ->
             ok;
         {ok, Status, _Headers, ClientRef} ->
-            case hackney:body(ClientRef) of
+            case erl_mesos_http:body(ClientRef) of
                 {ok, Body} ->
                     {error, {http_response, Status, Body}};
                 {error, Reason} ->
