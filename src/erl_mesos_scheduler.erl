@@ -442,13 +442,12 @@ handle_subscribe_response(Body,
                                  subscribe_state =
                                  #subscribe_response{status = 200,
                                                      headers = Headers}} =
-                          State) ->
+                          State)
+  when is_binary(Body) ->
     ContentType = proplists:get_value(<<"Content-Type">>, Headers),
     case erl_mesos_data_format:content_type(DataFormat) of
-        ContentType when is_binary(Body) ->
+        ContentType ->
             handle_events(Body, State);
-        ContentType when Body =:= done ->
-            {noreply, State};
         _ContentType ->
             log_error("** Invalid content type~n",
                       "** Content type == ~s~n",
@@ -809,11 +808,11 @@ log_warning(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
 %% @private
 -spec log_error(string(), string(), list(), state()) -> ok.
 log_error(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:warning(Message ++
-                             "** Ref == ~p~n"
-                             "** Scheduler == ~p~n" ++
-                             Format,
-                             [Ref, Scheduler] ++ Data).
+    erl_mesos_logger:error(Message ++
+                           "** Ref == ~p~n"
+                           "** Scheduler == ~p~n" ++
+                           Format,
+                           [Ref, Scheduler] ++ Data).
 
 %% @doc Formats state.
 %% @private
