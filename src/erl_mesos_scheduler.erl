@@ -209,8 +209,7 @@ format_status(terminate, [_Dict, State]) ->
     {ok, {master_hosts, [binary()]}} | {error, {bad_master_host, term()}} |
     {error, {bad_master_hosts, term()}}.
 master_hosts(Options) ->
-    case erl_mesos_options:get_value(master_hosts, Options,
-                                     ?DEFAULT_MASTER_HOSTS) of
+    case proplists:get_value(master_hosts, Options, ?DEFAULT_MASTER_HOSTS) of
         MasterHosts when is_list(MasterHosts) andalso length(MasterHosts) > 0 ->
             case master_hosts(MasterHosts, []) of
                 {ok, ValidMasterHosts} ->
@@ -242,15 +241,18 @@ master_hosts([], ValidMasterHosts) ->
     {ok, {subscribe_req_options, [{atom(), term()}]}} |
     {error, {bad_subscribe_req_options, term()}}.
 subscribe_req_options(Options) ->
-    case erl_mesos_options:get_value(subscribe_req_options, Options,
-                                     ?DEFAULT_SUBSCRIBE_REQ_OPTIONS) of
+    case proplists:get_value(subscribe_req_options, Options,
+                             ?DEFAULT_SUBSCRIBE_REQ_OPTIONS) of
         SubscribeReqOptions when is_list(SubscribeReqOptions) ->
             DeleteKeys = [async, recv_timeout, following_redirect],
-            SubscribeReqOptions1 = [{async, once},
+            SubscribeReqOptions1 =
+                [Option || {Key, _Value} = Option <- SubscribeReqOptions,
+                 not lists:member(Key, DeleteKeys)],
+            SubscribeReqOptions2 = [{async, once},
                                     {recv_timeout, infinity},
-                                    {following_redirect, false}] ++
-                erl_mesos_options:delete(DeleteKeys, SubscribeReqOptions),
-            {ok, {subscribe_req_options, SubscribeReqOptions1}};
+                                    {following_redirect, false} |
+                                    SubscribeReqOptions1],
+            {ok, {subscribe_req_options, SubscribeReqOptions2}};
         SubscribeReqOptions ->
             {error, {bad_subscribe_req_options, SubscribeReqOptions}}
     end.
@@ -261,8 +263,8 @@ subscribe_req_options(Options) ->
     {ok, {heartbeat_timeout_window, non_neg_integer()}} |
     {error, {bad_heartbeat_timeout_window, term()}}.
 heartbeat_timeout_window(Options) ->
-    case erl_mesos_options:get_value(heartbeat_timeout_window, Options,
-                                     ?DEFAULT_HEARTBEAT_TIMEOUT_WINDOW) of
+    case proplists:get_value(heartbeat_timeout_window, Options,
+                             ?DEFAULT_HEARTBEAT_TIMEOUT_WINDOW) of
         HeartbeatTimeoutWindow
           when is_integer(HeartbeatTimeoutWindow) andalso
                HeartbeatTimeoutWindow >= 0 ->
@@ -277,8 +279,8 @@ heartbeat_timeout_window(Options) ->
     {ok, {max_num_resubscribe, non_neg_integer() | infinity}} |
     {error, {bad_max_num_resubscribe, term()}}.
 max_num_resubscribe(Options) ->
-    case erl_mesos_options:get_value(max_num_resubscribe, Options,
-                                     ?DEFAULT_MAX_NUM_RESUBSCRIBE) of
+    case proplists:get_value(max_num_resubscribe, Options,
+                             ?DEFAULT_MAX_NUM_RESUBSCRIBE) of
         MaxNumResubscribe
           when is_integer(MaxNumResubscribe) andalso MaxNumResubscribe >= 0 ->
             {ok, {max_num_resubscribe, MaxNumResubscribe}};
@@ -292,8 +294,8 @@ max_num_resubscribe(Options) ->
     {ok, {resubscribe_interval, non_neg_integer()}} |
     {error, {bad_resubscribe_interval, term()}}.
 resubscribe_interval(Options) ->
-    case erl_mesos_options:get_value(resubscribe_interval, Options,
-                                     ?DEFAULT_RESUBSCRIBE_INTERVAL) of
+    case proplists:get_value(resubscribe_interval, Options,
+                             ?DEFAULT_RESUBSCRIBE_INTERVAL) of
         ResubscribeInterval
           when is_integer(ResubscribeInterval) andalso
                ResubscribeInterval >= 0 ->
@@ -354,15 +356,12 @@ init(Ref, Scheduler, SchedulerOptions, Options) ->
 %% @private
 -spec state(term(), module(), options()) -> state().
 state(Ref, Scheduler, Options) ->
-    MasterHosts = erl_mesos_options:get_value(master_hosts, Options),
-    SubscribeReqOptions = erl_mesos_options:get_value(subscribe_req_options,
-                                                      Options),
-    HeartbeatTimeoutWindow =
-        erl_mesos_options:get_value(heartbeat_timeout_window, Options),
-    MaxNumResubscribe = erl_mesos_options:get_value(max_num_resubscribe,
-                                                    Options),
-    ResubscribeInterval = erl_mesos_options:get_value(resubscribe_interval,
-                                                      Options),
+    MasterHosts = proplists:get_value(master_hosts, Options),
+    SubscribeReqOptions = proplists:get_value(subscribe_req_options, Options),
+    HeartbeatTimeoutWindow = proplists:get_value(heartbeat_timeout_window,
+                                                 Options),
+    MaxNumResubscribe = proplists:get_value(max_num_resubscribe, Options),
+    ResubscribeInterval = proplists:get_value(resubscribe_interval, Options),
     #state{ref = Ref,
            scheduler = Scheduler,
            data_format = ?DATA_FORMAT,
