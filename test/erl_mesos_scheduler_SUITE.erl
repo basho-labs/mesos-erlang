@@ -249,7 +249,7 @@ error(Config) ->
     Ref = {erl_mesos_scheduler, error},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = [{failover_timeout, 0} |
+    SchedulerOptions1 = [{failover_timeout, 1} |
                          set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
     Options1 = [{max_num_resubscribe, 1},

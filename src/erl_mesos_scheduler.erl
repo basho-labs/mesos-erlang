@@ -580,9 +580,10 @@ handle_unsubscribe(#state{client_ref = ClientRef} = State) ->
     {noreply, state()} | {stop, term(), state()}.
 start_resubscribe_timer(#state{framework_info =
                                #framework_info{failover_timeout =
-                                               undefined}} = State) ->
-    {stop, {shutdown, {resubscribe, {error, {failover_timeout, undefined}}}},
-     State};
+                                               FailoverTimeout}} = State)
+  when FailoverTimeout =:= undefined; FailoverTimeout == 0 ->
+    {stop, {shutdown, {resubscribe,
+     {error, {failover_timeout, FailoverTimeout}}}}, State};
 start_resubscribe_timer(#state{max_num_resubscribe = 0} = State) ->
     {stop, {shutdown, {resubscribe, {error, max_num_resubscribe}}}, State};
 start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
