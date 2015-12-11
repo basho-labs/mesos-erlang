@@ -41,11 +41,8 @@ parse_obj(<<"SUBSCRIBED">>, Obj) ->
 parse_obj(<<"OFFERS">>, Obj) ->
     Obj1 = erl_mesos_obj:get_value(<<"offers">>, Obj),
     OfferObjs = erl_mesos_obj:get_value(<<"offers">>, Obj1),
-    io:format("OfferObjs ~p~n", [OfferObjs]),
-
-    parse_offer_objs(OfferObjs, []),
-
-    OffersEvent = #offers_event{offers = [#offer{}]},
+    Offers = parse_offer_objs(OfferObjs, []),
+    OffersEvent = #offers_event{offers = Offers},
     {offers, OffersEvent};
 parse_obj(<<"ERROR">>, Obj) ->
     ErrorEvent = ?ERL_MESOS_OBJ_TO_RECORD(error_event, Obj),
@@ -73,13 +70,12 @@ parse_offer_objs([OfferObj | OfferObjs], Offers) ->
                                            Offer#offer.framework_id),
     AgentId = ?ERL_MESOS_OBJ_TO_RECORD(agent_id, Offer#offer.agent_id),
     Url = parse_url_obj(Offer#offer.url),
-    Resources = parse_resource_objs(Offer#offer.resources, []),
+    Resources = parse_resource_objs(Offer#offer.resources),
     Offer1 = Offer#offer{id = Id,
                          framework_id = FrameworkId,
                          agent_id = AgentId,
                          url = Url,
                          resources = Resources},
-    io:format("Offer ~p~n", [Offer1]),
     parse_offer_objs(OfferObjs, [Offer1 | Offers]);
 parse_offer_objs([], Offers) ->
     lists:reverse(Offers).
@@ -104,6 +100,15 @@ parse_parameter_objs(undefined) ->
 parse_parameter_objs(ParameterObjs) ->
     [?ERL_MESOS_OBJ_TO_RECORD(parameter, ParameterObj) ||
      ParameterObj <- ParameterObjs].
+
+%% @doc Parses resource objs.
+%% @private
+-spec parse_resource_objs(undefined | [erl_mesos_obj:data_obj()]) ->
+    undefined | [resource()].
+parse_resource_objs(undefined) ->
+    undefined;
+parse_resource_objs(ResourceObjs) ->
+    parse_resource_objs(ResourceObjs, []).
 
 %% @doc Parses resource objs.
 %% @private

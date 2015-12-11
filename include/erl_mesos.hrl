@@ -97,7 +97,8 @@
                 agent_id :: agent_id() | erl_mesos_obj:data_obj(),
                 hostname :: erl_mesos_obj:data_string(),
                 url :: undefined | url() | erl_mesos_obj:data_obj(),
-                resources :: [resource() | erl_mesos_obj:data_obj()]}).
+                resources :: undefined | [resource() |
+                             erl_mesos_obj:data_obj()]}).
 
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
