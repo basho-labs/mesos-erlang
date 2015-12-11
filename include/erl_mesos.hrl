@@ -94,10 +94,52 @@
 
 -record(framework_info_capabilitie, {type :: erl_mesos_obj:data_string()}).
 
+%% Value.
+-record(value, {type :: value_type(),
+                scalar :: undefined | value_scalar(),
+                ranges :: undefined | value_ranges(),
+                set :: undefined | value_set(),
+                text :: value_text()}).
+
+%% Value type.
+-record(value_type, {type :: erl_mesos_obj:data_string()}).
+
+%% Value scalar.
+-record(value_scalar, {value :: float()}).
+
+%% Value range.
+-record(value_range, {'begin' :: non_neg_integer(),
+                      'end' :: non_neg_integer()}).
+
+%% Value ranges.
+-record(value_ranges, {ranges :: [value_range()]}).
+
+%% Value set.
+-record(value_set, {item :: erl_mesos_obj:data_string()}).
+
+%% Value text.
+-record(value_text, {value :: erl_mesos_obj:data_string()}).
+
+%% Resource.
+-record(resource, {name :: erl_mesos_obj:data_string(),
+                   type :: erl_mesos_obj:data_string(),
+                   scalar :: undefined | value_scalar() |
+                             erl_mesos_obj:data_obj(),
+                   ranges :: undefined | resource_ranges() |
+                             erl_mesos_obj:data_obj(),
+                   set :: undefined | value_set() | erl_mesos_obj:data_obj(),
+                   role :: undefined | erl_mesos_obj:data_string()}).
+
+%% Resource ranges.
+-record(resource_ranges, {range :: [value_range() | erl_mesos_obj:data_obj()]}).
+
 %% Offer.
--record(offer, {id :: offer_id(),
-                framework_id :: framework_id(),
-                agent_id :: agent_id()}).
+-record(offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
+                framework_id :: framework_id() | erl_mesos_obj:data_obj(),
+                agent_id :: agent_id() | erl_mesos_obj:data_obj(),
+                hostname :: erl_mesos_obj:data_string(),
+                url :: undefined | erl_mesos_obj:data_obj(),
+                resources :: [resource() | erl_mesos_obj:data_obj()]}).
 
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
@@ -126,6 +168,24 @@
 -type framework_info() :: #framework_info{}.
 
 -type framework_info_capabilitie() :: #framework_info_capabilitie{}.
+
+-type value() :: #value{}.
+
+-type value_type() :: #value_type{}.
+
+-type value_scalar() :: #value_scalar{}.
+
+-type value_range() :: #value_range{}.
+
+-type value_ranges() :: #value_ranges{}.
+
+-type value_set() :: #value_set{}.
+
+-type value_text() :: #value_text{}.
+
+-type resource() :: #resource{}.
+
+-type resource_ranges() :: #resource_ranges{}.
 
 -type offer() :: #offer{}.
 

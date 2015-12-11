@@ -27,11 +27,11 @@ all() ->
     [bad_options, {group, cluster}].
 
 groups() ->
-    [{cluster, [registered,
-                disconnected,
-                reregistered,
-                %resource_offers]}].
-                error]}].
+    [{cluster, [%registered,
+                %disconnected,
+                %reregistered,
+                resource_offers]}].
+                %error]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
