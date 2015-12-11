@@ -150,9 +150,7 @@ handle_info(Info, #state{client_ref = ClientRef,
                          resubscribe_timer_ref = ResubscribeTimerRef} =
                   State) ->
     case erl_mesos_http:async_response(Info, ClientRef) of
-        {ok, Response} ->
-            handle_async_response(Response, State);
-        not_async_response ->
+        undefined ->
             case Info of
                 {'DOWN', ClientRef, Reason} ->
                     log_error("** Client process crashed~n",
@@ -176,7 +174,9 @@ handle_info(Info, #state{client_ref = ClientRef,
                     {noreply, State};
                 _Info ->
                     call_handle_info(Info, State)
-            end
+            end;
+        Response ->
+            handle_async_response(Response, State)
     end.
 
 %% @private

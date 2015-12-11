@@ -36,11 +36,11 @@ body(ResponseRef) ->
 %% @doc Returns async response.
 -spec async_response({hackney_response, client_ref(), async_response()} |
                       term(), client_ref()) ->
-    {ok, async_response()} | not_async_response.
+    async_response() | undefined.
 async_response({hackney_response, ClientRef, Response}, ClientRef) ->
-    {ok, Response};
+    Response;
 async_response(_Info, _ClientRef) ->
-    not_async_response.
+    undefined.
 
 %% @doc Stream next chunk.
 -spec stream_next_chunk(client_ref()) -> ok | {error, term()}.
