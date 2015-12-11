@@ -112,7 +112,7 @@
                       'end' :: non_neg_integer()}).
 
 %% Value ranges.
--record(value_ranges, {ranges :: [value_range()]}).
+-record(value_ranges, {range :: [value_range() | erl_mesos_obj:data_obj()]}).
 
 %% Value set.
 -record(value_set, {item :: erl_mesos_obj:data_string()}).
@@ -125,13 +125,10 @@
                    type :: erl_mesos_obj:data_string(),
                    scalar :: undefined | value_scalar() |
                              erl_mesos_obj:data_obj(),
-                   ranges :: undefined | resource_ranges() |
+                   ranges :: undefined | value_ranges() |
                              erl_mesos_obj:data_obj(),
                    set :: undefined | value_set() | erl_mesos_obj:data_obj(),
                    role :: undefined | erl_mesos_obj:data_string()}).
-
-%% Resource ranges.
--record(resource_ranges, {range :: [value_range() | erl_mesos_obj:data_obj()]}).
 
 %% Offer.
 -record(offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
@@ -184,8 +181,6 @@
 -type value_text() :: #value_text{}.
 
 -type resource() :: #resource{}.
-
--type resource_ranges() :: #resource_ranges{}.
 
 -type offer() :: #offer{}.
 

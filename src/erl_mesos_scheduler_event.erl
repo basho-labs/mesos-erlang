@@ -89,7 +89,7 @@ parse_offer_objs([], Offers) ->
 parse_resource_objs([ResourceObj | ResourceObjs], Resources) ->
     Resource = ?ERL_MESOS_OBJ_TO_RECORD(resource, ResourceObj),
     Scalar = parse_value_scalar_obj(Resource#resource.scalar),
-    Ranges = parse_resource_ranges_obj(Resource#resource.ranges),
+    Ranges = parse_value_ranges_obj(Resource#resource.ranges),
     Set = parse_value_set_obj(Resource#resource.set),
     Resource1 = Resource#resource{scalar = Scalar,
                                   ranges = Ranges,
@@ -107,19 +107,18 @@ parse_value_scalar_obj(undefined) ->
 parse_value_scalar_obj(ValueScalarObj) ->
     ?ERL_MESOS_OBJ_TO_RECORD(value_scalar, ValueScalarObj).
 
-%% @doc Parses resource ranges obj.
+%% @doc Parses value ranges obj.
 %% @private
--spec parse_resource_ranges_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | resource_ranges().
-parse_resource_ranges_obj(undefined) ->
+-spec parse_value_ranges_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | value_ranges().
+parse_value_ranges_obj(undefined) ->
     undefined;
-parse_resource_ranges_obj(ResourceRangesObj) ->
-    ResourceRanges = ?ERL_MESOS_OBJ_TO_RECORD(resource_ranges,
-                                              ResourceRangesObj),
-    #resource_ranges{range = ValueRangeObjs} = ResourceRanges,
-    ValueRanges = [?ERL_MESOS_OBJ_TO_RECORD(value_range, ValueRangeObj) ||
-                   ValueRangeObj <- ValueRangeObjs],
-    ResourceRanges#resource_ranges{range = ValueRanges}.
+parse_value_ranges_obj(ValueRangesObj) ->
+    ValueRanges = ?ERL_MESOS_OBJ_TO_RECORD(value_ranges, ValueRangesObj),
+    #value_ranges{range = ValueRangeObjs} = ValueRanges,
+    ValueRanges#value_ranges{range =
+        [?ERL_MESOS_OBJ_TO_RECORD(value_range, ValueRangeObj) ||
+         ValueRangeObj <- ValueRangeObjs]}.
 
 %% @doc Parses value set obj.
 %% @private
