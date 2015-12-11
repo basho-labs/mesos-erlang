@@ -243,10 +243,14 @@ resource_offers(Config) ->
     Ref = {erl_mesos_scheduler, resource_offers},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
     Options = ?config(options, Config),
-    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions, Options),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
+    {registered, SchedulerPid, _, _} = recv_reply(),
     mesos_cluster_start_empty_slave(Config),
     timer:sleep(5000),
+    {resource_offers, SchedulerPid, _SchedulerInfo, OffersEvent} = recv_reply(),
+    ct:pal("~nOffersEvent ~p~n~n", [OffersEvent]),
     mesos_cluster_stop_empty_slave(Config),
     ok.
 
@@ -325,6 +329,8 @@ recv_reply() ->
             {disconnected, SchedulerPid, SchedulerInfo};
         {reregistered, SchedulerPid, SchedulerInfo} ->
             {reregistered, SchedulerPid, SchedulerInfo};
+        {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent} ->
+            {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent};
         {error, SchedulerPid, SchedulerInfo, ErrorEvent} ->
             {error, SchedulerPid, SchedulerInfo, ErrorEvent};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->

@@ -37,8 +37,9 @@ reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {reregistered, self(), SchedulerInfo}),
     {ok, State#state{callback = reregistered}}.
 
-resource_offers(SchedulerInfo, Offers, State) ->
-    erl_mesos_logger:info("~n~nOFFERS ~p~n~n", [Offers]),
+resource_offers(SchedulerInfo, OffersEvent,
+                #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {resource_offers, self(), SchedulerInfo, OffersEvent}),
     {ok, State}.
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
