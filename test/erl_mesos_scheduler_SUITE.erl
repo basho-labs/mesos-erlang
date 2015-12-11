@@ -122,8 +122,10 @@ registered(Config) ->
     Ref = {erl_mesos_scheduler, registered},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    Labels = [#label{key = <<"key">>, value = <<"value">>}],
-    SchedulerOptions1 = [{capabilities, <<"REVOCABLE_RESOURCES">>},
+    Capabilities = #framework_info_capabilitie{type =
+                                               <<"REVOCABLE_RESOURCES">>},
+    Labels = #labels{labels = [#label{key = <<"key">>, value = <<"value">>}]},
+    SchedulerOptions1 = [{capabilities, Capabilities},
                          {labels, Labels} |
                          set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
@@ -188,8 +190,10 @@ reregistered(Config) ->
     Ref = {erl_mesos_scheduler, reregistered},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    Labels = [#label{key = <<"key">>, value = <<"value">>}],
-    SchedulerOptions1 = [{capabilities, <<"REVOCABLE_RESOURCES">>},
+    Capabilities = #framework_info_capabilitie{type =
+                                               <<"REVOCABLE_RESOURCES">>},
+    Labels = #labels{labels = [#label{key = <<"key">>, value = <<"value">>}]},
+    SchedulerOptions1 = [{capabilities, Capabilities},
                          {labels, Labels},
                          {failover_timeout, 1000} |
                          set_test_pid(SchedulerOptions)],

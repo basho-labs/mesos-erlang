@@ -7,7 +7,7 @@
 -export([parse_obj/1]).
 
 -type event() :: {subscribed, {subscribed_event(), pos_integer}} |
-                 {offers, [offer()]} |
+                 {offers, offers_event()} |
                  {error, error_event()} |
                  heartbeat |
                  term().
@@ -39,9 +39,9 @@ parse_obj(<<"SUBSCRIBED">>, Obj) ->
                                             HeartbeatIntervalSeconds1},
     {subscribed, {SubscribedEvent, HeartbeatIntervalSeconds1 * 1000}};
 parse_obj(<<"OFFERS">>, Obj) ->
-    %% TO DO offers_event
     _OfferObjs = erl_mesos_obj:get_value(<<"offers">>, Obj),
-    {offers, [#offer{}]};
+    OffersEvent = #offers_event{offers = [#offer{}]},
+    {offers, OffersEvent};
 parse_obj(<<"ERROR">>, Obj) ->
     ErrorEvent = ?ERL_MESOS_OBJ_TO_RECORD(error_event, Obj),
     {error, ErrorEvent};

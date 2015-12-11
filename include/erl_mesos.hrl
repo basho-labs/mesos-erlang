@@ -17,6 +17,9 @@
 -record(label, {key :: erl_mesos_obj:data_string(),
                 value :: undefined | erl_mesos_obj:data_string()}).
 
+%% Labels.
+-record(labels, {labels :: [label()] | erl_mesos_obj:data_obj()}).
+
 %% Framework info.
 -record(framework_info, {%% Used to determine the Unix user that an executor or
                          %% task shouldbe launched as. If the user field is set
@@ -79,17 +82,17 @@
                          %% of capabilities (e.g., ability to receive offers for
                          %% revocable resources).
                          capabilities :: undefined |
-                                         erl_mesos_obj:data_string() |
+                                         framework_info_capabilitie() |
                                          erl_mesos_obj:data_obj(),
 
                          %% Labels are free-form key value pairs supplied by the
                          %% framework scheduler (e.g., to describe additional
                          %% functionality offered by the framework). These
                          %% labels are not interpreted by Mesos itself.
-                         labels :: undefined | [label()] |
+                         labels :: undefined | labels() |
                                    erl_mesos_obj:data_obj()}).
 
-%-record(framework_info_capabilitie, {type }
+-record(framework_info_capabilitie, {type :: erl_mesos_obj:data_string()}).
 
 %% Offer.
 -record(offer, {id :: offer_id(),
@@ -102,6 +105,9 @@
                            heartbeat_interval_seconds :: undefined |
                                                          pos_integer()}).
 
+%% Offers event.
+-record(offers_event, {offers :: [offer()]}).
+
 %% Error event.
 -record(error_event, {message :: erl_mesos_obj:data_string()}).
 
@@ -113,12 +119,18 @@
 
 -type label() :: #label{}.
 
+-type labels() :: #labels{}.
+
 -type scheduler_info() :: #scheduler_info{}.
 
 -type framework_info() :: #framework_info{}.
 
+-type framework_info_capabilitie() :: #framework_info_capabilitie{}.
+
 -type offer() :: #offer{}.
 
 -type subscribed_event() :: #subscribed_event{}.
+
+-type offers_event() :: #offers_event{}.
 
 -type error_event() :: #error_event{}.

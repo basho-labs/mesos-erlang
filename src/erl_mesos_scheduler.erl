@@ -64,7 +64,7 @@
 -callback reregistered(scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback resource_offers(scheduler_info(), [offer()], term()) ->
+-callback resource_offers(scheduler_info(), offers_event(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback error(scheduler_info(), error_event(), term()) ->
@@ -697,8 +697,8 @@ apply_event(Obj, #state{master_host = MasterHost,
             State1 = State#state{heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(set_subscribed(State1)),
             call(reregistered, State2);
-%%         {offers, Offers} ->
-%%             call(resource_offers, Offers, State);
+        {offers, OffersEvent} ->
+            call(resource_offers, OffersEvent, State);
         {error, ErrorEvent} ->
             call(error, ErrorEvent, State);
         heartbeat ->
