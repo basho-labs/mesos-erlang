@@ -123,7 +123,8 @@ registered(Config) ->
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     Labels = [#label{key = <<"key">>, value = <<"value">>}],
-    SchedulerOptions1 = [{labels, Labels} |
+    SchedulerOptions1 = [{capabilities, <<"REVOCABLE_RESOURCES">>},
+                         {labels, Labels} |
                          set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
@@ -188,7 +189,8 @@ reregistered(Config) ->
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     Labels = [#label{key = <<"key">>, value = <<"value">>}],
-    SchedulerOptions1 = [{labels, Labels},
+    SchedulerOptions1 = [{capabilities, <<"REVOCABLE_RESOURCES">>},
+                         {labels, Labels},
                          {failover_timeout, 1000} |
                          set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
@@ -325,7 +327,7 @@ recv_reply() ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->
             {error, {bad_reply, Reply}}
-    after 20000 ->
+    after 10000 ->
         {error, timeout}
     end.
 

@@ -78,7 +78,9 @@
                          %% This field allows a framework to advertise its set
                          %% of capabilities (e.g., ability to receive offers for
                          %% revocable resources).
-                         capabilities :: undefined,
+                         capabilities :: undefined |
+                                         erl_mesos_obj:data_string() |
+                                         erl_mesos_obj:data_obj(),
 
                          %% Labels are free-form key value pairs supplied by the
                          %% framework scheduler (e.g., to describe additional
