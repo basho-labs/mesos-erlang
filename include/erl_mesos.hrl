@@ -65,6 +65,22 @@
 %% Value text.
 -record(value_text, {value :: erl_mesos_obj:data_string()}).
 
+%% Address.
+-record(address, {hostname :: undefined | erl_mesos_obj:data_string(),
+                  ip :: undefined | erl_mesos_obj:data_string(),
+                  port :: pos_integer()}).
+
+%% Parameter.
+-record(parameter, {key :: erl_mesos_obj:data_string(),
+                    value :: erl_mesos_obj:data_string()}).
+
+%% Url.
+-record(url, {scheme :: erl_mesos_obj:data_string(),
+              address :: address() | erl_mesos_obj:data_obj(),
+              path :: undefined | erl_mesos_obj:data_string(),
+              query :: undefined | [parameter() | erl_mesos_obj:data_obj()],
+              fragment :: undefined | erl_mesos_obj:data_string()}).
+
 %% Resource.
 -record(resource, {name :: erl_mesos_obj:data_string(),
                    type :: erl_mesos_obj:data_string(),
@@ -80,7 +96,7 @@
                 framework_id :: framework_id() | erl_mesos_obj:data_obj(),
                 agent_id :: agent_id() | erl_mesos_obj:data_obj(),
                 hostname :: erl_mesos_obj:data_string(),
-                url :: undefined | erl_mesos_obj:data_obj(),
+                url :: undefined | url() | erl_mesos_obj:data_obj(),
                 resources :: [resource() | erl_mesos_obj:data_obj()]}).
 
 %% Subscribed event.
@@ -124,6 +140,12 @@
 -type value_set() :: #value_set{}.
 
 -type value_text() :: #value_text{}.
+
+-type address() :: #address{}.
+
+-type parameter() :: #parameter{}.
+
+-type url() :: #url{}.
 
 -type resource() :: #resource{}.
 

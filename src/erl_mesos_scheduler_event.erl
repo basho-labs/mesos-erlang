@@ -72,15 +72,38 @@ parse_offer_objs([OfferObj | OfferObjs], Offers) ->
     FrameworkId = ?ERL_MESOS_OBJ_TO_RECORD(framework_id,
                                            Offer#offer.framework_id),
     AgentId = ?ERL_MESOS_OBJ_TO_RECORD(agent_id, Offer#offer.agent_id),
+    Url = parse_url_obj(Offer#offer.url),
     Resources = parse_resource_objs(Offer#offer.resources, []),
     Offer1 = Offer#offer{id = Id,
                          framework_id = FrameworkId,
                          agent_id = AgentId,
+                         url = Url,
                          resources = Resources},
     io:format("Offer ~p~n", [Offer1]),
     parse_offer_objs(OfferObjs, [Offer1 | Offers]);
 parse_offer_objs([], Offers) ->
     lists:reverse(Offers).
+
+%% @doc Parses url objs.
+%% @private
+-spec parse_url_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | url().
+parse_url_obj(UrlObj) ->
+    Url = ?ERL_MESOS_OBJ_TO_RECORD(url, UrlObj),
+    Address = ?ERL_MESOS_OBJ_TO_RECORD(address, Url#url.address),
+    Query = parse_parameter_objs(Url#url.query),
+    Url#url{address = Address,
+            query = Query}.
+
+%% @doc Parses parameter objs.
+%% @private
+-spec parse_parameter_objs(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | [parameter()].
+parse_parameter_objs(undefined) ->
+    undefined;
+parse_parameter_objs(ParameterObjs) ->
+    [?ERL_MESOS_OBJ_TO_RECORD(parameter, ParameterObj) ||
+     ParameterObj <- ParameterObjs].
 
 %% @doc Parses resource objs.
 %% @private
@@ -115,10 +138,9 @@ parse_value_ranges_obj(undefined) ->
     undefined;
 parse_value_ranges_obj(ValueRangesObj) ->
     ValueRanges = ?ERL_MESOS_OBJ_TO_RECORD(value_ranges, ValueRangesObj),
-    #value_ranges{range = ValueRangeObjs} = ValueRanges,
     ValueRanges#value_ranges{range =
         [?ERL_MESOS_OBJ_TO_RECORD(value_range, ValueRangeObj) ||
-         ValueRangeObj <- ValueRangeObjs]}.
+         ValueRangeObj <- ValueRanges#value_ranges.range]}.
 
 %% @doc Parses value set obj.
 %% @private
