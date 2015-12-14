@@ -102,6 +102,17 @@
               query :: undefined | [parameter() | erl_mesos_obj:data_obj()],
               fragment :: undefined | erl_mesos_obj:data_string()}).
 
+%% Unavailability.
+-record(unavailability, {start :: time_info() | erl_mesos_obj:data_obj(),
+                         duration :: undefined | duration_info() |
+                                     erl_mesos_obj:data_obj()}).
+
+%% Time info.
+-record(time_info, {nanoseconds :: non_neg_integer()}).
+
+%% Duration info.
+-record(duration_info, {nanoseconds :: non_neg_integer}).
+
 %% Resource.
 -record(resource, {name :: erl_mesos_obj:data_string(),
                    type :: erl_mesos_obj:data_string(),
@@ -159,7 +170,9 @@
                 attributes :: undefined | [attribute() |
                                            erl_mesos_obj:data_obj()],
                 executor_ids :: undefined | [executor_id() |
-                                             erl_mesos_obj:data_obj()]}).
+                                             erl_mesos_obj:data_obj()],
+                unavailability :: undefined | unavailability() |
+                                  erl_mesos_obj:data_obj()}).
 
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
@@ -216,6 +229,12 @@
 -type parameter() :: #parameter{}.
 
 -type url() :: #url{}.
+
+-type unavailability() :: #unavailability{}.
+
+-type time_info() :: #time_info{}.
+
+-type duration_info() :: #duration_info{}.
 
 -type resource() :: #resource{}.
 

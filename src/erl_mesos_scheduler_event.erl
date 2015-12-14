@@ -79,13 +79,15 @@ parse_offer_obj(OfferObj) ->
     Resources = parse_resource_objs(Offer#offer.resources),
     Attributes = parse_attribute_objs(Offer#offer.attributes),
     ExecutorIds = parse_executor_id_objs(Offer#offer.executor_ids),
+    Unavailability = parse_unavailability_obj(Offer#offer.unavailability),
     Offer#offer{id = Id,
                 framework_id = FrameworkId,
                 agent_id = AgentId,
                 url = Url,
                 resources = Resources,
                 attributes = Attributes,
-                executor_ids = ExecutorIds}.
+                executor_ids = ExecutorIds,
+                unavailability = Unavailability}.
 
 %% @doc Parses url obj.
 %% @private
@@ -310,3 +312,34 @@ parse_executor_id_objs(undefined) ->
 parse_executor_id_objs(ExecutorIdObjs) ->
     [?ERL_MESOS_OBJ_TO_RECORD(executor_id, ExecutorIdObj) ||
      ExecutorIdObj <- ExecutorIdObjs].
+
+%% @doc Parses unavailability obj.
+%% @private
+-spec parse_unavailability_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | unavailability().
+parse_unavailability_obj(undefined) ->
+    undefined;
+parse_unavailability_obj(UnavailabilityObj) ->
+    Unavailability = ?ERL_MESOS_OBJ_TO_RECORD(unavailability,
+                                              UnavailabilityObj),
+    Start = parse_time_info_obj(Unavailability#unavailability.start),
+    Duration = parse_duration_info_obj(Unavailability#unavailability.duration),
+    Unavailability#unavailability{start = Start, duration = Duration}.
+
+%% @doc Parses time info obj.
+%% @private
+-spec parse_time_info_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | time_info().
+parse_time_info_obj(undefined) ->
+    undefined;
+parse_time_info_obj(TimeInfoObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(time_info, TimeInfoObj).
+
+%% @doc Parses duration info obj.
+%% @private
+-spec parse_duration_info_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | duration_info().
+parse_duration_info_obj(undefined) ->
+    undefined;
+parse_duration_info_obj(DurationInfoObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(duration_info, DurationInfoObj).
