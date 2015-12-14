@@ -18,7 +18,7 @@
                 value :: undefined | erl_mesos_obj:data_string()}).
 
 %% Labels.
--record(labels, {labels :: [label()] | erl_mesos_obj:data_obj()}).
+-record(labels, {labels :: [label() | erl_mesos_obj:data_obj()]}).
 
 %% Framework info.
 -record(framework_info, {user = <<>> :: erl_mesos_obj:data_string(),
@@ -65,6 +65,27 @@
 %% Value text.
 -record(value_text, {value :: erl_mesos_obj:data_string()}).
 
+%% Image.
+-record(image, {type :: erl_mesos_obj:data_string(),
+                appc :: undefined | image_appc() | erl_mesos_obj:data_obj(),
+                docker :: undefined | image_docker() |
+                          erl_mesos_obj:data_obj()}).
+
+%% Image appc.
+-record(image_appc, {name :: erl_mesos_obj:data_string(),
+                     id :: undefined | erl_mesos_obj:data_string(),
+                     labels :: undefined | labels() |
+                               erl_mesos_obj:data_obj()}).
+
+%% Image docker.
+-record(image_docker, {name :: erl_mesos_obj:data_string()}).
+
+%% Volume.
+-record(volume, {mode :: erl_mesos_obj:data_string(),
+                 container_path :: erl_mesos_obj:data_string(),
+                 host_path :: undefined | erl_mesos_obj:data_string(),
+                 image :: undefined | image() | erl_mesos_obj:data_obj()}).
+
 %% Address.
 -record(address, {hostname :: undefined | erl_mesos_obj:data_string(),
                   ip :: undefined | erl_mesos_obj:data_string(),
@@ -89,7 +110,29 @@
                    ranges :: undefined | value_ranges() |
                              erl_mesos_obj:data_obj(),
                    set :: undefined | value_set() | erl_mesos_obj:data_obj(),
-                   role :: undefined | erl_mesos_obj:data_string()}).
+                   role :: undefined | erl_mesos_obj:data_string(),
+                   reservation :: undefined | resource_reservation_info() |
+                                  erl_mesos_obj:data_obj(),
+                   disk :: undefined | resource_disk_info() |
+                           erl_mesos_obj:data_obj(),
+                   revocable :: undefined | resource_revocable_info() |
+                                erl_mesos_obj:data_obj()}).
+
+%% Resource reservation info.
+-record(resource_reservation_info, {principal :: erl_mesos_obj:data_string()}).
+
+%% Resource disk info.
+-record(resource_disk_info, {persistence :: undefined |
+                                            resource_disk_info_persistence() |
+                                            erl_mesos_obj:data_obj(),
+                             volume :: undefined | volume() |
+                                       erl_mesos_obj:data_obj()}).
+
+%% Resource disk info persistence.
+-record(resource_disk_info_persistence, {id :: erl_mesos_obj:data_string()}).
+
+%% Resource revocable info.
+-record(resource_revocable_info, {}).
 
 %% Offer.
 -record(offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
@@ -142,6 +185,14 @@
 
 -type value_text() :: #value_text{}.
 
+-type image() :: #image{}.
+
+-type image_appc() :: #image_appc{}.
+
+-type image_docker() :: #image_docker{}.
+
+-type volume() :: #volume{}.
+
 -type address() :: #address{}.
 
 -type parameter() :: #parameter{}.
@@ -149,6 +200,14 @@
 -type url() :: #url{}.
 
 -type resource() :: #resource{}.
+
+-type resource_reservation_info() :: #resource_reservation_info{}.
+
+-type resource_disk_info() :: #resource_disk_info{}.
+
+-type resource_disk_info_persistence() :: #resource_disk_info_persistence{}.
+
+-type resource_revocable_info() :: #resource_revocable_info{}.
 
 -type offer() :: #offer{}.
 

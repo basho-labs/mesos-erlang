@@ -119,9 +119,16 @@ parse_resource_objs([ResourceObj | ResourceObjs], Resources) ->
     Scalar = parse_value_scalar_obj(Resource#resource.scalar),
     Ranges = parse_value_ranges_obj(Resource#resource.ranges),
     Set = parse_value_set_obj(Resource#resource.set),
+    Reservation =
+        parse_resource_reservation_info_obj(Resource#resource.reservation),
+    Disk = parse_resource_disk_info_obj(Resource#resource.disk),
+    Revocable = parse_resource_revocable_info_obj(Resource#resource.revocable),
     Resource1 = Resource#resource{scalar = Scalar,
                                   ranges = Ranges,
-                                  set = Set},
+                                  set = Set,
+                                  reservation = Reservation,
+                                  disk = Disk,
+                                  revocable = Revocable},
     parse_resource_objs(ResourceObjs, [Resource1 | Resources]);
 parse_resource_objs([], Resources) ->
     lists:reverse(Resources).
@@ -155,3 +162,105 @@ parse_value_set_obj(undefined) ->
     undefined;
 parse_value_set_obj(ValueSetObj) ->
     ?ERL_MESOS_OBJ_TO_RECORD(value_set, ValueSetObj).
+
+%% @doc Parses resource reservation info obj.
+%% @private
+-spec parse_resource_reservation_info_obj(undefined |
+                                          erl_mesos_obj:data_obj()) ->
+    undefined | resource_reservation_info().
+parse_resource_reservation_info_obj(undefined) ->
+    undefined;
+parse_resource_reservation_info_obj(ResourceReservationInfoObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(resource_reservation_info,
+                             ResourceReservationInfoObj).
+
+%% @doc Parses resource reservation info obj.
+%% @private
+-spec parse_resource_disk_info_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | resource_disk_info().
+parse_resource_disk_info_obj(undefined) ->
+    undefined;
+parse_resource_disk_info_obj(ResourceDiskInfoObj) ->
+    ResourceDiskInfo = ?ERL_MESOS_OBJ_TO_RECORD(resource_disk_info,
+                                                ResourceDiskInfoObj),
+    PersistenceObj = ResourceDiskInfo#resource_disk_info.persistence,
+    Persistence = parse_resource_disk_info_persistence_obj(PersistenceObj),
+    Volume = parse_volume_obj(ResourceDiskInfo#resource_disk_info.volume),
+    ResourceDiskInfo#resource_disk_info{persistence = Persistence,
+                                        volume = Volume}.
+
+%% @doc Parses resource disk info persistence obj.
+%% @private
+-spec parse_resource_disk_info_persistence_obj(undefined |
+                                               erl_mesos_obj:data_obj()) ->
+    undefined | resource_disk_info_persistence().
+parse_resource_disk_info_persistence_obj(undefined) ->
+    undefined;
+parse_resource_disk_info_persistence_obj(ResourceDiskInfoPersistenceObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(resource_disk_info_persistence,
+                             ResourceDiskInfoPersistenceObj).
+
+%% @doc Parses volume obj.
+%% @private
+-spec parse_volume_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | volume().
+parse_volume_obj(undefined) ->
+    undefined;
+parse_volume_obj(VolumeObj) ->
+    Volume = ?ERL_MESOS_OBJ_TO_RECORD(volume, VolumeObj),
+    Image = parse_image_obj(Volume#volume.image),
+    Volume#volume{image = Image}.
+
+%% @doc Parses image obj.
+%% @private
+-spec parse_image_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | image().
+parse_image_obj(undefined) ->
+    undefined;
+parse_image_obj(ImageObj) ->
+    Image = ?ERL_MESOS_OBJ_TO_RECORD(image, ImageObj),
+    Appc = parse_image_appc_obj(Image#image.appc),
+    Docker = parse_image_docker_obj(Image#image.docker),
+    Image#image{appc = Appc, docker = Docker}.
+
+%% @doc Parses image appc obj.
+%% @private
+-spec parse_image_appc_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | image_appc().
+parse_image_appc_obj(undefined) ->
+    undefined;
+parse_image_appc_obj(ImageAppcObj) ->
+    ImageAppc = ?ERL_MESOS_OBJ_TO_RECORD(image_appc, ImageAppcObj),
+    Labels = parse_labels_obj(ImageAppc#image_appc.labels),
+    ImageAppc#image_appc{labels = Labels}.
+
+%% @doc Parses labels obj.
+%% @private
+-spec parse_labels_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | labels().
+parse_labels_obj(undefined) ->
+    undefined;
+parse_labels_obj(LabelsObj) ->
+    Labels = ?ERL_MESOS_OBJ_TO_RECORD(labels, LabelsObj),
+    Labels#labels{labels =
+        [?ERL_MESOS_OBJ_TO_RECORD(label, LabelObj) ||
+         LabelObj <- Labels#labels.labels]}.
+
+%% @doc Parses image docker obj.
+%% @private
+-spec parse_image_docker_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | image_docker().
+parse_image_docker_obj(undefined) ->
+    undefined;
+parse_image_docker_obj(ImageDockerObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(image_docker, ImageDockerObj).
+
+%% @doc Parses resource revocable info obj.
+%% @private
+-spec parse_resource_revocable_info_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | resource_revocable_info().
+parse_resource_revocable_info_obj(undefined) ->
+    undefined;
+parse_resource_revocable_info_obj(ResourceRevocableInfoObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(resource_revocable_info,
+                             ResourceRevocableInfoObj).
