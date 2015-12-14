@@ -145,6 +145,9 @@
                     text :: undefined | value_text() |
                             erl_mesos_obj:data_obj()}).
 
+%% Executor id.
+-record(executor_id, {value :: erl_mesos_obj:data_string()}).
+
 %% Offer.
 -record(offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
                 framework_id :: framework_id() | erl_mesos_obj:data_obj(),
@@ -154,7 +157,9 @@
                 resources :: undefined | [resource() |
                                           erl_mesos_obj:data_obj()],
                 attributes :: undefined | [attribute() |
-                                           erl_mesos_obj:data_obj()]}).
+                                           erl_mesos_obj:data_obj()],
+                executor_ids :: undefined | [executor_id() |
+                                             erl_mesos_obj:data_obj()]}).
 
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
@@ -223,6 +228,8 @@
 -type resource_revocable_info() :: #resource_revocable_info{}.
 
 -type attribute() :: #attribute{}.
+
+-type executor_id() :: #executor_id{}.
 
 -type offer() :: #offer{}.
 

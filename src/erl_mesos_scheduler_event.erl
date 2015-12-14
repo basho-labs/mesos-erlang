@@ -41,7 +41,7 @@ parse_obj(<<"SUBSCRIBED">>, Obj) ->
 parse_obj(<<"OFFERS">>, Obj) ->
     Obj1 = erl_mesos_obj:get_value(<<"offers">>, Obj),
     OfferObjs = erl_mesos_obj:get_value(<<"offers">>, Obj1),
-    Offers = parse_offer_objs(OfferObjs, []),
+    Offers = parse_offer_objs(OfferObjs),
     OffersEvent = #offers_event{offers = Offers},
     {offers, OffersEvent};
 parse_obj(<<"ERROR">>, Obj) ->
@@ -62,8 +62,14 @@ heartbeat_interval_seconds(HeartbeatIntervalSeconds) ->
 
 %% @doc Parses offer objs.
 %% @private
--spec parse_offer_objs([erl_mesos_obj:data_obj()], [offer()]) -> [offer()].
-parse_offer_objs([OfferObj | OfferObjs], Offers) ->
+-spec parse_offer_objs([erl_mesos_obj:data_obj()]) -> [offer()].
+parse_offer_objs(OfferObjs) ->
+    [parse_offer_obj(OfferObj) || OfferObj <- OfferObjs].
+
+%% @doc Parses offer obj.
+%% @private
+-spec parse_offer_obj(erl_mesos_obj:data_obj()) -> offer().
+parse_offer_obj(OfferObj) ->
     Offer = ?ERL_MESOS_OBJ_TO_RECORD(offer, OfferObj),
     Id = ?ERL_MESOS_OBJ_TO_RECORD(offer_id, Offer#offer.id),
     FrameworkId = ?ERL_MESOS_OBJ_TO_RECORD(framework_id,
@@ -72,17 +78,16 @@ parse_offer_objs([OfferObj | OfferObjs], Offers) ->
     Url = parse_url_obj(Offer#offer.url),
     Resources = parse_resource_objs(Offer#offer.resources),
     Attributes = parse_attribute_objs(Offer#offer.attributes),
-    Offer1 = Offer#offer{id = Id,
-                         framework_id = FrameworkId,
-                         agent_id = AgentId,
-                         url = Url,
-                         resources = Resources,
-                         attributes = Attributes},
-    parse_offer_objs(OfferObjs, [Offer1 | Offers]);
-parse_offer_objs([], Offers) ->
-    lists:reverse(Offers).
+    ExecutorIds = parse_executor_id_objs(Offer#offer.executor_ids),
+    Offer#offer{id = Id,
+                framework_id = FrameworkId,
+                agent_id = AgentId,
+                url = Url,
+                resources = Resources,
+                attributes = Attributes,
+                executor_ids = ExecutorIds}.
 
-%% @doc Parses url objs.
+%% @doc Parses url obj.
 %% @private
 -spec parse_url_obj(undefined | erl_mesos_obj:data_obj()) ->
     undefined | url().
@@ -110,13 +115,12 @@ parse_parameter_objs(ParameterObjs) ->
 parse_resource_objs(undefined) ->
     undefined;
 parse_resource_objs(ResourceObjs) ->
-    parse_resource_objs(ResourceObjs, []).
+    [parse_resource_obj(ResourceObj) || ResourceObj <- ResourceObjs].
 
-%% @doc Parses resource objs.
+%% @doc Parses resource obj.
 %% @private
--spec parse_resource_objs([erl_mesos_obj:data_obj()], [resource()]) ->
-    undefined | [resource()].
-parse_resource_objs([ResourceObj | ResourceObjs], Resources) ->
+-spec parse_resource_obj(erl_mesos_obj:data_obj()) -> resource().
+parse_resource_obj(ResourceObj) ->
     Resource = ?ERL_MESOS_OBJ_TO_RECORD(resource, ResourceObj),
     Scalar = parse_value_scalar_obj(Resource#resource.scalar),
     Ranges = parse_value_ranges_obj(Resource#resource.ranges),
@@ -125,15 +129,12 @@ parse_resource_objs([ResourceObj | ResourceObjs], Resources) ->
         parse_resource_reservation_info_obj(Resource#resource.reservation),
     Disk = parse_resource_disk_info_obj(Resource#resource.disk),
     Revocable = parse_resource_revocable_info_obj(Resource#resource.revocable),
-    Resource1 = Resource#resource{scalar = Scalar,
-                                  ranges = Ranges,
-                                  set = Set,
-                                  reservation = Reservation,
-                                  disk = Disk,
-                                  revocable = Revocable},
-    parse_resource_objs(ResourceObjs, [Resource1 | Resources]);
-parse_resource_objs([], Resources) ->
-    lists:reverse(Resources).
+    Resource#resource{scalar = Scalar,
+                      ranges = Ranges,
+                      set = Set,
+                      reservation = Reservation,
+                      disk = Disk,
+                      revocable = Revocable}.
 
 %% @doc Parses value scalar obj.
 %% @private
@@ -283,18 +284,29 @@ parse_resource_revocable_info_obj(ResourceRevocableInfoObj) ->
 parse_attribute_objs(undefined) ->
     undefined;
 parse_attribute_objs(AttributeObjs) ->
-    parse_attribute_objs(AttributeObjs, []).
+    [parse_attribute_obj(AttributeObj) || AttributeObj <- AttributeObjs].
 
-parse_attribute_objs([AttributeObj | AttributeObjs], Attributes) ->
+
+%% @doc Parses attribute obj.
+%% @private
+-spec parse_attribute_obj(erl_mesos_obj:data_obj()) -> attribute().
+parse_attribute_obj(AttributeObj) ->
     Attribute = ?ERL_MESOS_OBJ_TO_RECORD(attribute, AttributeObj),
     Scalar = parse_value_scalar_obj(Attribute#attribute.scalar),
     Ranges = parse_value_ranges_obj(Attribute#attribute.ranges),
     Set = parse_value_set_obj(Attribute#attribute.set),
     Text = parse_value_text_obj(Attribute#attribute.text),
-    Attribute1 = Attribute#attribute{scalar = Scalar,
-                                    ranges = Ranges,
-                                    set = Set,
-                                    text = Text},
-    parse_resource_objs(AttributeObjs, [Attribute1 | Attributes]);
-parse_attribute_objs([], Attributes) ->
-    lists:reverse(Attributes).
+    Attribute#attribute{scalar = Scalar,
+                        ranges = Ranges,
+                        set = Set,
+                        text = Text}.
+
+%% @doc Parses executor id objs.
+%% @private
+-spec parse_executor_id_objs(undefined | [erl_mesos_obj:data_obj()]) ->
+    undefined | [executor_id()].
+parse_executor_id_objs(undefined) ->
+    undefined;
+parse_executor_id_objs(ExecutorIdObjs) ->
+    [?ERL_MESOS_OBJ_TO_RECORD(executor_id, ExecutorIdObj) ||
+     ExecutorIdObj <- ExecutorIdObjs].
