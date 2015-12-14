@@ -181,7 +181,10 @@
                                                          pos_integer()}).
 
 %% Offers event.
--record(offers_event, {offers :: [offer()]}).
+-record(offers_event, {offers :: [offer() | erl_mesos_obj:data_obj()]}).
+
+%% Rescind event.
+-record(rescind_event, {offer_id :: offer_id() | erl_mesos_obj:data_obj()}).
 
 %% Error event.
 -record(error_event, {message :: erl_mesos_obj:data_string()}).
@@ -255,5 +258,7 @@
 -type subscribed_event() :: #subscribed_event{}.
 
 -type offers_event() :: #offers_event{}.
+
+-type rescind_event() :: #rescind_event{}.
 
 -type error_event() :: #error_event{}.

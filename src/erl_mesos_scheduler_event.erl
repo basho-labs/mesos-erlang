@@ -8,6 +8,7 @@
 
 -type event() :: {subscribed, {subscribed_event(), pos_integer}} |
                  {offers, offers_event()} |
+                 {rescind, rescind_event()} |
                  {error, error_event()} |
                  heartbeat |
                  term().
@@ -24,26 +25,35 @@ parse_obj(Obj) ->
 
 %% Internal functions.
 
+%% @doc Parses obj.
+%% @private
 -spec parse_obj(erl_mesos_obj:data_string(), erl_mesos_obj:data_obj()) ->
     event().
 parse_obj(<<"SUBSCRIBED">>, Obj) ->
     SubscribedObj = erl_mesos_obj:get_value(<<"subscribed">>, Obj),
-    #subscribed_event{framework_id = FrameworkIdObj,
-                      heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
-        ?ERL_MESOS_OBJ_TO_RECORD(subscribed_event, SubscribedObj),
-    FrameworkId = ?ERL_MESOS_OBJ_TO_RECORD(framework_id, FrameworkIdObj),
-    HeartbeatIntervalSeconds1 =
-        heartbeat_interval_seconds(HeartbeatIntervalSeconds),
-    SubscribedEvent = #subscribed_event{framework_id = FrameworkId,
-                                        heartbeat_interval_seconds =
-                                            HeartbeatIntervalSeconds1},
-    {subscribed, {SubscribedEvent, HeartbeatIntervalSeconds1 * 1000}};
+    SubscribedEvent = ?ERL_MESOS_OBJ_TO_RECORD(subscribed_event, SubscribedObj),
+    FrameworkId =
+        ?ERL_MESOS_OBJ_TO_RECORD(framework_id,
+                                 SubscribedEvent#subscribed_event.framework_id),
+    HeartbeatIntervalSeconds =
+        heartbeat_interval_seconds(
+            SubscribedEvent#subscribed_event.heartbeat_interval_seconds),
+    {subscribed,
+        {SubscribedEvent#subscribed_event{framework_id = FrameworkId,
+                                          heartbeat_interval_seconds =
+                                              HeartbeatIntervalSeconds},
+         HeartbeatIntervalSeconds * 1000}};
 parse_obj(<<"OFFERS">>, Obj) ->
-    Obj1 = erl_mesos_obj:get_value(<<"offers">>, Obj),
-    OfferObjs = erl_mesos_obj:get_value(<<"offers">>, Obj1),
-    Offers = parse_offer_objs(OfferObjs),
-    OffersEvent = #offers_event{offers = Offers},
-    {offers, OffersEvent};
+    OffersObj = erl_mesos_obj:get_value(<<"offers">>, Obj),
+    OffersEvent = ?ERL_MESOS_OBJ_TO_RECORD(offers_event, OffersObj),
+    Offers = parse_offer_objs(OffersEvent#offers_event.offers),
+    {offers, OffersEvent#offers_event{offers = Offers}};
+parse_obj(<<"RESCIND">>, Obj) ->
+    RescindObj = erl_mesos_obj:get_value(<<"rescind">>, Obj),
+    RescindEvent = ?ERL_MESOS_OBJ_TO_RECORD(rescind_event, RescindObj),
+    OfferId = ?ERL_MESOS_OBJ_TO_RECORD(offer_id,
+                                       RescindEvent#rescind_event.offer_id),
+    {rescind, RescindEvent#rescind_event{offer_id = OfferId}};
 parse_obj(<<"ERROR">>, Obj) ->
     ErrorEvent = ?ERL_MESOS_OBJ_TO_RECORD(error_event, Obj),
     {error, ErrorEvent};

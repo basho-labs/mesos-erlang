@@ -67,6 +67,9 @@
 -callback resource_offers(scheduler_info(), offers_event(), term()) ->
     {ok, term()} | {stop, term()}.
 
+-callback offer_rescinded(scheduler_info(), rescind_event(), term()) ->
+    {ok, term()} | {stop, term()}.
+
 -callback error(scheduler_info(), error_event(), term()) ->
     {ok, term()} | {stop, term()}.
 
@@ -699,6 +702,8 @@ apply_event(Obj, #state{master_host = MasterHost,
             call(reregistered, State2);
         {offers, OffersEvent} ->
             call(resource_offers, OffersEvent, State);
+        {rescind, RescindEvent} ->
+            call(offer_rescinded, RescindEvent, State);
         {error, ErrorEvent} ->
             call(error, ErrorEvent, State);
         heartbeat ->

@@ -27,11 +27,11 @@ all() ->
     [bad_options, {group, cluster}].
 
 groups() ->
-    [{cluster, [%registered,
-                %disconnected,
-                %reregistered,
-                resource_offers]}].
-                %error]}].
+    [{cluster, [registered,
+                disconnected,
+                reregistered,
+                resource_offers,
+                error]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -250,7 +250,7 @@ resource_offers(Config) ->
     mesos_cluster_start_empty_slave(Config),
     timer:sleep(5000),
     {resource_offers, SchedulerPid, _SchedulerInfo, OffersEvent} = recv_reply(),
-    ct:pal("~nOffersEvent ~p~n~n", [OffersEvent]),
+    ct:pal("~nOffersEvent!! ~p~n~n", [OffersEvent]),
     mesos_cluster_stop_empty_slave(Config),
     ok.
 

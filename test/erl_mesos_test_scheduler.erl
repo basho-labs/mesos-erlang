@@ -9,6 +9,7 @@
          reregistered/2,
          disconnected/2,
          resource_offers/3,
+         offer_rescinded/3,
          error/3,
          handle_info/3,
          terminate/3]).
@@ -40,6 +41,11 @@ reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
 resource_offers(SchedulerInfo, OffersEvent,
                 #state{test_pid = TestPid} = State) ->
     reply(TestPid, {resource_offers, self(), SchedulerInfo, OffersEvent}),
+    {ok, State}.
+
+offer_rescinded(SchedulerInfo, RescindEvent,
+                #state{test_pid = TestPid} = State) ->
+    io:format("RescindEvent ~p~n", [RescindEvent]),
     {ok, State}.
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
