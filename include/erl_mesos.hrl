@@ -134,6 +134,17 @@
 %% Resource revocable info.
 -record(resource_revocable_info, {}).
 
+%% Attribute.
+-record(attribute, {name :: erl_mesos_obj:data_string(),
+                    type :: erl_mesos_obj:data_string(),
+                    scalar :: undefined | value_scalar() |
+                              erl_mesos_obj:data_obj(),
+                    ranges :: undefined | value_ranges() |
+                              erl_mesos_obj:data_obj(),
+                    set :: undefined | value_set() | erl_mesos_obj:data_obj(),
+                    text :: undefined | value_text() |
+                            erl_mesos_obj:data_obj()}).
+
 %% Offer.
 -record(offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
                 framework_id :: framework_id() | erl_mesos_obj:data_obj(),
@@ -141,7 +152,9 @@
                 hostname :: erl_mesos_obj:data_string(),
                 url :: undefined | url() | erl_mesos_obj:data_obj(),
                 resources :: undefined | [resource() |
-                             erl_mesos_obj:data_obj()]}).
+                                          erl_mesos_obj:data_obj()],
+                attributes :: undefined | [attribute() |
+                                           erl_mesos_obj:data_obj()]}).
 
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
@@ -208,6 +221,8 @@
 -type resource_disk_info_persistence() :: #resource_disk_info_persistence{}.
 
 -type resource_revocable_info() :: #resource_revocable_info{}.
+
+-type attribute() :: #attribute{}.
 
 -type offer() :: #offer{}.
 

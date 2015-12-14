@@ -71,11 +71,13 @@ parse_offer_objs([OfferObj | OfferObjs], Offers) ->
     AgentId = ?ERL_MESOS_OBJ_TO_RECORD(agent_id, Offer#offer.agent_id),
     Url = parse_url_obj(Offer#offer.url),
     Resources = parse_resource_objs(Offer#offer.resources),
+    Attributes = parse_attribute_objs(Offer#offer.attributes),
     Offer1 = Offer#offer{id = Id,
                          framework_id = FrameworkId,
                          agent_id = AgentId,
                          url = Url,
-                         resources = Resources},
+                         resources = Resources,
+                         attributes = Attributes},
     parse_offer_objs(OfferObjs, [Offer1 | Offers]);
 parse_offer_objs([], Offers) ->
     lists:reverse(Offers).
@@ -162,6 +164,15 @@ parse_value_set_obj(undefined) ->
     undefined;
 parse_value_set_obj(ValueSetObj) ->
     ?ERL_MESOS_OBJ_TO_RECORD(value_set, ValueSetObj).
+
+%% @doc Parses value text obj.
+%% @private
+-spec parse_value_text_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | value_text().
+parse_value_text_obj(undefined) ->
+    undefined;
+parse_value_text_obj(ValueTextObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(value_text, ValueTextObj).
 
 %% @doc Parses resource reservation info obj.
 %% @private
@@ -264,3 +275,26 @@ parse_resource_revocable_info_obj(undefined) ->
 parse_resource_revocable_info_obj(ResourceRevocableInfoObj) ->
     ?ERL_MESOS_OBJ_TO_RECORD(resource_revocable_info,
                              ResourceRevocableInfoObj).
+
+%% @doc Parses attribute objs.
+%% @private
+-spec parse_attribute_objs(undefined | [erl_mesos_obj:data_obj()]) ->
+    undefined | [attribute()].
+parse_attribute_objs(undefined) ->
+    undefined;
+parse_attribute_objs(AttributeObjs) ->
+    parse_attribute_objs(AttributeObjs, []).
+
+parse_attribute_objs([AttributeObj | AttributeObjs], Attributes) ->
+    Attribute = ?ERL_MESOS_OBJ_TO_RECORD(attribute, AttributeObj),
+    Scalar = parse_value_scalar_obj(Attribute#attribute.scalar),
+    Ranges = parse_value_ranges_obj(Attribute#attribute.ranges),
+    Set = parse_value_set_obj(Attribute#attribute.set),
+    Text = parse_value_text_obj(Attribute#attribute.text),
+    Attribute1 = Attribute#attribute{scalar = Scalar,
+                                    ranges = Ranges,
+                                    set = Set,
+                                    text = Text},
+    parse_resource_objs(AttributeObjs, [Attribute1 | Attributes]);
+parse_attribute_objs([], Attributes) ->
+    lists:reverse(Attributes).
