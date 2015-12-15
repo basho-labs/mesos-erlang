@@ -295,6 +295,7 @@ resource_offers(Config) ->
                         end
                   end,
     lists:map(ResourceFun, Resources),
+    %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = resource_offers} = scheduler_state(FormatState),
     mesos_cluster_stop_empty_slave(Config).
