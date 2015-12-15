@@ -30,7 +30,7 @@ groups() ->
     [{cluster, [registered,
                 disconnected,
                 reregistered,
-                %resource_offers]}].
+                resource_offers,
                 error]}].
 
 init_per_suite(Config) ->
@@ -249,10 +249,55 @@ resource_offers(Config) ->
     {registered, SchedulerPid, _, _} = recv_reply(),
     mesos_cluster_start_empty_slave(Config),
     timer:sleep(5000),
-    {resource_offers, SchedulerPid, _SchedulerInfo, OffersEvent} = recv_reply(),
-    ct:pal("~nOffersEvent!! ~p~n~n", [OffersEvent]),
-    mesos_cluster_stop_empty_slave(Config),
-    ok.
+    {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent} = recv_reply(),
+    %% Test scheduler info.
+    #scheduler_info{subscribed = true} = SchedulerInfo,
+    %% Test offer event.
+    #offers_event{offers = Offers} = OffersEvent,
+    [Offer | _] = Offers,
+    #offer{id = Id,
+           framework_id = FrameworkId,
+           agent_id = AgentId,
+           hostname = Hostname,
+           url = Url,
+           resources = Resources,
+           attributes = undefined,
+           executor_ids = undefined,
+           unavailability = undefined} = Offer,
+    #offer_id{value = OfferIdValue} = Id,
+    true = is_binary(OfferIdValue),
+    #framework_id{value = FrameworkIdValue} = FrameworkId,
+    true = is_binary(FrameworkIdValue),
+    #agent_id{value = AgentIdValue} = AgentId,
+    true = is_binary(AgentIdValue),
+    true = is_binary(Hostname),
+    true = is_record(Url, url),
+    ResourceFun = fun(#resource{name = Name,
+                                type = Type,
+                                scalar = Scalar,
+                                ranges = Ranges}) ->
+                        true = is_binary(Name),
+                        true = is_binary(Type),
+                        case Type of
+                            <<"SCALAR">> ->
+                                #value_scalar{value = ScalarValue} = Scalar,
+                                true = is_float(ScalarValue),
+                                undefined = Ranges;
+                            <<"RANGES">> ->
+                                undefined = Scalar,
+                                #value_ranges{range = ValueRanges} = Ranges,
+                                [ValueRange | _] = ValueRanges,
+                                #value_range{'begin' = ValueRangeBegin,
+                                             'end' = ValueRangeEnd} =
+                                    ValueRange,
+                                true = is_integer(ValueRangeBegin),
+                                true = is_integer(ValueRangeEnd)
+                        end
+                  end,
+    lists:map(ResourceFun, Resources),
+    FormatState = format_state(SchedulerPid),
+    #state{callback = resource_offers} = scheduler_state(FormatState),
+    mesos_cluster_stop_empty_slave(Config).
 
 error(Config) ->
     ct:pal("** Error test cases"),
@@ -332,6 +377,8 @@ recv_reply() ->
             {reregistered, SchedulerPid, SchedulerInfo};
         {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent} ->
             {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent};
+        {offer_rescinded, SchedulerPid, SchedulerInfo, RescindEvent} ->
+            {offer_rescinded, SchedulerPid, SchedulerInfo, RescindEvent};
         {error, SchedulerPid, SchedulerInfo, ErrorEvent} ->
             {error, SchedulerPid, SchedulerInfo, ErrorEvent};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->

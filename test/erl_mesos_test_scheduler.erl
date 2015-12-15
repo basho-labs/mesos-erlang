@@ -41,12 +41,12 @@ reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
 resource_offers(SchedulerInfo, OffersEvent,
                 #state{test_pid = TestPid} = State) ->
     reply(TestPid, {resource_offers, self(), SchedulerInfo, OffersEvent}),
-    {ok, State}.
+    {ok, State#state{callback = resource_offers}}.
 
 offer_rescinded(SchedulerInfo, RescindEvent,
                 #state{test_pid = TestPid} = State) ->
-    io:format("RescindEvent ~p~n", [RescindEvent]),
-    {ok, State}.
+    reply(TestPid, {offer_rescinded, self(), SchedulerInfo, RescindEvent}),
+    {ok, State#state{callback = offer_rescinded}}.
 
 error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, ErrorEvent}),
