@@ -30,8 +30,8 @@ request(Method, Url, Headers, Body, Options) ->
 
 %% @doc Receives http request body.
 -spec body(client_ref()) -> {ok, binary()} | {error, term()}.
-body(ResponseRef) ->
-    hackney:body(ResponseRef).
+body(ClientRef) ->
+    hackney:body(ClientRef).
 
 %% @doc Returns async response.
 -spec async_response({hackney_response, client_ref(), async_response()} |
