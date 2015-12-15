@@ -55,7 +55,8 @@ parse_obj(<<"RESCIND">>, Obj) ->
                                        RescindEvent#rescind_event.offer_id),
     {rescind, RescindEvent#rescind_event{offer_id = OfferId}};
 parse_obj(<<"ERROR">>, Obj) ->
-    ErrorEvent = ?ERL_MESOS_OBJ_TO_RECORD(error_event, Obj),
+    ErrorObj = erl_mesos_obj:get_value(<<"error">>, Obj),
+    ErrorEvent = ?ERL_MESOS_OBJ_TO_RECORD(error_event, ErrorObj),
     {error, ErrorEvent};
 parse_obj(<<"HEARTBEAT">>, _Obj) ->
     heartbeat;

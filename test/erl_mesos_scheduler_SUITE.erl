@@ -30,7 +30,7 @@ groups() ->
     [{cluster, [registered,
                 disconnected,
                 reregistered,
-                resource_offers,
+                %resource_offers]}].
                 error]}].
 
 init_per_suite(Config) ->
@@ -274,7 +274,8 @@ error(Config) ->
     {disconnected, SchedulerPid, _} = recv_reply(),
     {error, SchedulerPid, _SchedulerInfo, ErrorEvent} = recv_reply(),
     %% Test error event.
-    #error_event{message = undefined} = ErrorEvent,
+    #error_event{message = Message} = ErrorEvent,
+    true = is_binary(Message),
     %% Test scheduler state.
     {terminate, SchedulerPid, _, _, State} = recv_reply(),
     #state{callback = error} = State.
