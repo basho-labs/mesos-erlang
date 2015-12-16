@@ -18,6 +18,7 @@
          disconnected/1,
          reregistered/1,
          resource_offers/1,
+         offer_rescinded/1,
          error/1]).
 
 -record(state, {callback,
@@ -31,7 +32,7 @@ groups() ->
                 disconnected,
                 reregistered,
                 resource_offers,
-                error]}].
+                offer_rescinded]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -239,7 +240,7 @@ reregistered(Config) ->
     #state{callback = reregistered} = scheduler_state(FormatState2).
 
 resource_offers(Config) ->
-    ct:pal("** Resource offers"),
+    ct:pal("** Resource offers test cases"),
     Ref = {erl_mesos_scheduler, resource_offers},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
@@ -300,8 +301,33 @@ resource_offers(Config) ->
     #state{callback = resource_offers} = scheduler_state(FormatState),
     mesos_cluster_stop_empty_slave(Config).
 
+offer_rescinded(Config) ->
+    ct:pal("** Offer rescinded test cases"),
+    Ref = {erl_mesos_scheduler, offer_rescinded},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    mesos_cluster_start_empty_slave(Config),
+    timer:sleep(5000),
+    {resource_offers, SchedulerPid, _SchedulerInfo, _OffersEvent} =
+        recv_reply(),
+    %% Test scheduler info.
+    mesos_cluster_stop_empty_slave(Config),
+    {offer_rescinded, SchedulerPid, SchedulerInfo, RescindEvent} = recv_reply(),
+    #scheduler_info{subscribed = true} = SchedulerInfo,
+    %% Test rescind event.
+    #rescind_event{offer_id = OfferId} = RescindEvent,
+    #offer_id{value = Value} = OfferId,
+    true = is_binary(Value),
+    %% Test scheduler state.
+    FormatState = format_state(SchedulerPid),
+    #state{callback = offer_rescinded} = scheduler_state(FormatState).
+
 error(Config) ->
-    ct:pal("** Error test cases"),
+    ct:pal("** Error test cases test cases"),
     Ref = {erl_mesos_scheduler, error},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
