@@ -190,75 +190,112 @@
 -record(error_event, {message :: erl_mesos_obj:data_string()}).
 
 -type offer_id() :: #offer_id{}.
+-export_type([offer_id/0]).
 
 -type framework_id() :: #framework_id{}.
+-export_type([framework_id/0]).
 
 -type agent_id() :: #agent_id{}.
+-export_type([agent_id/0]).
 
 -type label() :: #label{}.
+-export_type([label/0]).
 
 -type labels() :: #labels{}.
+-export_type([labels/0]).
 
 -type scheduler_info() :: #scheduler_info{}.
+-export_type([scheduler_info/0]).
 
 -type framework_info() :: #framework_info{}.
+-export_type([framework_info/0]).
 
 -type framework_info_capabilitie() :: #framework_info_capabilitie{}.
+-export_type([framework_info_capabilitie/0]).
 
 -type value() :: #value{}.
+-export_type([value/0]).
 
 -type value_type() :: #value_type{}.
+-export_type([value_type/0]).
 
 -type value_scalar() :: #value_scalar{}.
+-export_type([value_scalar/0]).
 
 -type value_range() :: #value_range{}.
+-export_type([value_range/0]).
 
 -type value_ranges() :: #value_ranges{}.
+-export_type([value_ranges/0]).
 
 -type value_set() :: #value_set{}.
+-export_type([value_set/0]).
 
 -type value_text() :: #value_text{}.
+-export_type([value_text/0]).
 
 -type image() :: #image{}.
+-export_type([image/0]).
 
 -type image_appc() :: #image_appc{}.
+-export_type([image_appc/0]).
 
 -type image_docker() :: #image_docker{}.
+-export_type([image_docker/0]).
 
 -type volume() :: #volume{}.
+-export_type([volume/0]).
 
 -type address() :: #address{}.
+-export_type([address/0]).
 
 -type parameter() :: #parameter{}.
+-export_type([parameter/0]).
 
 -type url() :: #url{}.
+-export_type([url/0]).
 
 -type unavailability() :: #unavailability{}.
+-export_type([unavailability/0]).
 
 -type time_info() :: #time_info{}.
+-export_type([time_info/0]).
 
 -type duration_info() :: #duration_info{}.
+-export_type([duration_info/0]).
 
 -type resource() :: #resource{}.
+-export_type([resource/0]).
 
 -type resource_reservation_info() :: #resource_reservation_info{}.
+-export_type([resource_reservation_info/0]).
 
 -type resource_disk_info() :: #resource_disk_info{}.
+-export_type([resource_disk_info/0]).
 
 -type resource_disk_info_persistence() :: #resource_disk_info_persistence{}.
+-export_type([resource_disk_info_persistence/0]).
 
 -type resource_revocable_info() :: #resource_revocable_info{}.
+-export_type([resource_revocable_info/0]).
 
 -type attribute() :: #attribute{}.
+-export_type([attribute/0]).
 
 -type executor_id() :: #executor_id{}.
+-export_type([executor_id/0]).
 
 -type offer() :: #offer{}.
+-export_type([offer/0]).
 
 -type subscribed_event() :: #subscribed_event{}.
+-export_type([subscribed_event/0]).
 
 -type offers_event() :: #offers_event{}.
+-export_type([offers_event/0]).
 
 -type rescind_event() :: #rescind_event{}.
+-export_type([rescind_event/0]).
 
 -type error_event() :: #error_event{}.
+-export_type([error_event/0]).
