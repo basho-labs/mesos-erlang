@@ -17,7 +17,7 @@ RUN apt-get install -y wget
 RUN apt-get install -y openjdk-7-jdk
 
 ### Install zookeeper.
-RUN mkdir -p "$DIR" && cd "$DIR" && wget http://www.eu.apache.org/dist/zookeeper/zookeeper-"$VSN"/zookeeper-"$VSN".tar.gz
+RUN mkdir -p "$DIR" && cd "$DIR" && wget http://archive.apache.org/dist/zookeeper/zookeeper-"$VSN"/zookeeper-"$VSN".tar.gz
 RUN cd "$DIR" && tar -zxf zookeeper-"$VSN".tar.gz && mv zookeeper-"$VSN"/* ./ && rm -rf zookeeper-"$VSN".tar.gz zookeeper-"$VSN"/
 
 RUN mkdir -p "$DIR"/"$DATA_DIR" "$DIR"/"$LOG_DIR"
