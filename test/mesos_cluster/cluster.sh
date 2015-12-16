@@ -10,6 +10,34 @@ function script_dir {
 #
 # Public functions.
 #
+function build {
+    script_dir=$(script_dir)
+
+    # Build zookeeper.
+    echo ""
+    echo "*************************"
+    echo "* Build zookeeper image *"
+    echo "*************************"
+    echo ""
+    docker build -t zk "$script_dir"/zookeeper
+
+    # Build mesos master.
+    echo ""
+    echo "****************************"
+    echo "* Build mesos master image *"
+    echo "****************************"
+    echo ""
+    docker build -t mesos_master "$script_dir"/mesos_master
+
+    # Build mesos slave.
+    echo ""
+    echo "****************************"
+    echo "* Build mesos slave image *"
+    echo "****************************"
+    echo ""
+    docker build -t mesos_slave "$script_dir"/mesos_slave
+}
+
 function start {
     docker_compose_path=$(script_dir)"/cluster.yml"
     docker-compose -f "$docker_compose_path" up -d
@@ -47,6 +75,9 @@ function stop_empty_slave {
 }
 
 case "$1" in
+    build)
+        build
+        ;;
     start)
         start
         ;;
@@ -66,6 +97,6 @@ case "$1" in
         stop_empty_slave
         ;;
     *)
-        echo $"Usage: $0 {start|stop|restart|stop_master ID|start_empty_slave|stop_empty_slave}"
+        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|start_empty_slave|stop_empty_slave}"
         exit 1
 esac
