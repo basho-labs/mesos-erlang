@@ -13,7 +13,7 @@ function script_dir {
 function build {
     script_dir=$(script_dir)
 
-    # Build zookeeper.
+    # Build zookeeper image.
     echo ""
     echo "*************************"
     echo "* Build zookeeper image *"
@@ -21,7 +21,7 @@ function build {
     echo ""
     docker build -t zk "$script_dir"/zookeeper
 
-    # Build mesos master.
+    # Build mesos master image.
     echo ""
     echo "****************************"
     echo "* Build mesos master image *"
@@ -29,7 +29,7 @@ function build {
     echo ""
     docker build -t mesos_master "$script_dir"/mesos_master
 
-    # Build mesos slave.
+    # Build mesos slave image.
     echo ""
     echo "****************************"
     echo "* Build mesos slave image *"
