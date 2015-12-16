@@ -412,7 +412,7 @@ recv_reply() ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->
             {error, {bad_reply, Reply}}
-    after 10000 ->
+    after 5000 ->
         {error, timeout}
     end.
 
