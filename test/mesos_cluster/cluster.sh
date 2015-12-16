@@ -59,9 +59,9 @@ function stop_master {
     docker stop "$1"
 }
 
-function start_empty_slave {
+function start_slave {
     docker run --privileged\
-               --name=mesos_empty_slave \
+               --name=mesos_slave \
                --link=zk:zk\
                -d\
                -e\
@@ -69,9 +69,9 @@ function start_empty_slave {
                mesos_slave
 }
 
-function stop_empty_slave {
-    docker kill mesos_empty_slave
-    docker rm mesos_empty_slave
+function stop_slave {
+    docker kill mesos_slave
+    docker rm mesos_slave
 }
 
 case "$1" in
@@ -90,13 +90,13 @@ case "$1" in
     stop_master)
         stop_master "$2"
         ;;
-    start_empty_slave)
-        start_empty_slave
+    start_slave)
+        start_slave
         ;;
-    stop_empty_slave)
-        stop_empty_slave
+    stop_slave)
+        stop_slave
         ;;
     *)
-        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|start_empty_slave|stop_empty_slave}"
+        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|stop_slave|stop_slave}"
         exit 1
 esac
