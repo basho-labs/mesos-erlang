@@ -113,7 +113,7 @@ framework_info_obj_from_record(#framework_info{capabilities = Capabilities,
                                                labels = Labels} =
                                FrameworkInfo) ->
     CapabilitiesObj = capabilities_obj(Capabilities),
-    LabelsObj = lebels_obj_from_record(Labels),
+    LabelsObj = labels_obj_from_record(Labels),
     FrameworkInfo1 = FrameworkInfo#framework_info{capabilities =
                                                       CapabilitiesObj,
                                                   labels = LabelsObj},
@@ -131,9 +131,9 @@ capabilities_obj(FrameworkInfoCapabilitie) ->
 
 %% @doc Converts labels to obj.
 %% @private
--spec lebels_obj_from_record(undefined | labels()) -> erl_mesos_obj:data_obj().
-lebels_obj_from_record(undefined) ->
+-spec labels_obj_from_record(undefined | labels()) -> erl_mesos_obj:data_obj().
+labels_obj_from_record(undefined) ->
     undefined;
-lebels_obj_from_record(#labels{labels = Labels}) ->
-    LebelObjs = [?ERL_MESOS_OBJ_FROM_RECORD(label, Label) || Label <- Labels],
-    ?ERL_MESOS_OBJ_FROM_RECORD(labels, #labels{labels = LebelObjs}).
+labels_obj_from_record(#labels{labels = Labels}) ->
+    LabelObjs = [?ERL_MESOS_OBJ_FROM_RECORD(label, Label) || Label <- Labels],
+    ?ERL_MESOS_OBJ_FROM_RECORD(labels, #labels{labels = LabelObjs}).
