@@ -4,32 +4,36 @@
 
 -include("erl_mesos_obj.hrl").
 
--export([subscribe/5,
-         resubscribe/5,
-         teardown/4]).
+-export([subscribe/6,
+         resubscribe/6,
+         teardown/5]).
 
--define(API_PATH, "/api/v1/scheduler").
+-type version() :: v1.
+-export_type([version/0]).
+
+-define(V1_API_PATH, "/api/v1/scheduler").
 
 %% External functions.
 
 %% @doc Sends subscribe request.
--spec subscribe(erl_mesos_data_format:data_format(), binary(),
+-spec subscribe(erl_mesos_data_format:data_format(), version(), binary(),
                 erl_mesos_http:options(), framework_info(), boolean()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
-subscribe(DataFormat, MasterHost, Options, FrameworkInfo, Force) ->
+subscribe(DataFormat, Version, MasterHost, Options, FrameworkInfo, Force) ->
     FrameworkInfoObj = framework_info_obj_from_record(FrameworkInfo),
     SubscribeObj = erl_mesos_obj:new([{<<"framework_info">>,
                                        FrameworkInfoObj},
                                       {<<"force">>, Force}]),
     ReqObj = erl_mesos_obj:new([{<<"type">>, <<"SUBSCRIBE">>},
                                 {<<"subscribe">>, SubscribeObj}]),
-    request(DataFormat, MasterHost, Options, ReqObj).
+    request(DataFormat, Version, MasterHost, Options, ReqObj).
 
 %% @doc Sends resubscribe request.
--spec resubscribe(erl_mesos_data_format:data_format(), binary(),
+-spec resubscribe(erl_mesos_data_format:data_format(), version(), binary(),
                   erl_mesos_http:options(), framework_info(), framework_id()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
-resubscribe(DataFormat, MasterHost, Options, FrameworkInfo, FrameworkId) ->
+resubscribe(DataFormat, Version, MasterHost, Options, FrameworkInfo,
+            FrameworkId) ->
     FrameworkIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_id, FrameworkId),
     FrameworkInfo1 = FrameworkInfo#framework_info{id = FrameworkIdObj},
     FrameworkInfoObj = framework_info_obj_from_record(FrameworkInfo1),
@@ -38,39 +42,39 @@ resubscribe(DataFormat, MasterHost, Options, FrameworkInfo, FrameworkId) ->
     ReqObj = erl_mesos_obj:new([{<<"type">>, <<"SUBSCRIBE">>},
                                 {<<"framework_id">>, FrameworkIdObj},
                                 {<<"subscribe">>, SubscribeObj}]),
-    request(DataFormat, MasterHost, Options, ReqObj).
+    request(DataFormat, Version, MasterHost, Options, ReqObj).
 
 %% @doc Sends teardown request.
--spec teardown(erl_mesos_data_format:data_format(), binary(),
+-spec teardown(erl_mesos_data_format:data_format(), version(), binary(),
                erl_mesos_http:options(), framework_id()) ->
     ok | {error, term()}.
-teardown(DataFormat, MasterHost, Options, FrameworkId) ->
+teardown(DataFormat, Version, MasterHost, Options, FrameworkId) ->
     FrameworkIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_id, FrameworkId),
     ReqObj = erl_mesos_obj:new([{<<"type">>, <<"TEARDOWN">>},
                                 {<<"framework_id">>, FrameworkIdObj}]),
-    convert_response(request(DataFormat, MasterHost, Options, ReqObj)).
+    convert_response(request(DataFormat, Version, MasterHost, Options, ReqObj)).
 
 %% Internal functions.
 
 %% @doc Sends http request to the mesos master.
 %% @private
--spec request(erl_mesos_data_format:data_format(), binary(),
+-spec request(erl_mesos_data_format:data_format(), version(), binary(),
               erl_mesos_http:options(), erl_mesos_obj:data_obj()) ->
     {ok, erl_mesos_http:client_ref()} |
     {ok, non_neg_integer(), erl_mesos_http:headers(),
      erl_mesos_http:client_ref()} |
     {error, term()}.
-request(DataFormat, MasterHost, Options, ReqObj) ->
-    Url = request_url(MasterHost),
+request(DataFormat, Version, MasterHost, Options, ReqObj) ->
+    Url = request_url(Version, MasterHost),
     ReqHeaders = request_headers(DataFormat),
     ReqBody = erl_mesos_data_format:encode(DataFormat, ReqObj),
     erl_mesos_http:request(post, Url, ReqHeaders, ReqBody, Options).
 
 %% @doc Returns request url.
 %% @private
--spec request_url(binary()) -> binary().
-request_url(MasterHost) ->
-    <<"http://", MasterHost/binary, ?API_PATH>>.
+-spec request_url(version(), binary()) -> binary().
+request_url(v1, MasterHost) ->
+    <<"http://", MasterHost/binary, ?V1_API_PATH>>.
 
 %% @doc Returns request headers.
 %% @private

@@ -19,6 +19,7 @@
 -record(state, {ref :: term(),
                 scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
+                api_version :: erl_mesos_scheduler_api:version(),
                 master_hosts :: [binary()],
                 subscribe_req_options :: [{atom(), term()}],
                 heartbeat_timeout_window :: pos_integer(),
@@ -92,6 +93,8 @@
 
 -define(DATA_FORMAT, json).
 
+-define(API_VERSION, v1).
+
 %% External functions.
 
 %% @doc Starts the `erl_mesos_scheduler' process.
@@ -110,10 +113,11 @@ teardown(Scheduler) ->
 -spec teardown(scheduler_info(), erl_mesos_http:options()) ->
     ok | {error, term()}.
 teardown(#scheduler_info{data_format = DataFormat,
+                         api_version = ApiVersion,
                          master_host = MasterHost,
                          framework_id = FrameworkId}, Options) ->
-    erl_mesos_scheduler_api:teardown(DataFormat, MasterHost, Options,
-                                     FrameworkId).
+    erl_mesos_scheduler_api:teardown(DataFormat, ApiVersion, MasterHost,
+                                     Options, FrameworkId).
 
 %% gen_server callback functions.
 
@@ -368,6 +372,7 @@ state(Ref, Scheduler, Options) ->
     #state{ref = Ref,
            scheduler = Scheduler,
            data_format = ?DATA_FORMAT,
+           api_version = ?API_VERSION,
            master_hosts = MasterHosts,
            subscribe_req_options = SubscribeReqOptions,
            heartbeat_timeout_window = HeartbeatTimeoutWindow,
@@ -394,6 +399,7 @@ init(SchedulerOptions, #state{master_hosts = MasterHosts,
 %% @private
 -spec subscribe(state()) -> {ok, state()} | {error, bad_hosts}.
 subscribe(#state{data_format = DataFormat,
+                 api_version = ApiVersion,
                  subscribe_req_options = SubscribeReqOptions,
                  framework_info = FrameworkInfo,
                  force = Force,
@@ -403,7 +409,7 @@ subscribe(#state{data_format = DataFormat,
              "** Host == ~s~n",
              [MasterHost],
              State),
-    case erl_mesos_scheduler_api:subscribe(DataFormat, MasterHost,
+    case erl_mesos_scheduler_api:subscribe(DataFormat, ApiVersion, MasterHost,
                                            SubscribeReqOptions, FrameworkInfo,
                                            Force) of
         {ok, ClientRef} ->
@@ -620,6 +626,7 @@ set_resubscribe_timer(#state{resubscribe_interval = ResubscribeInterval} =
 %% @private
 -spec resubscribe(state()) -> {noreply, state()} | {stop, term(), state()}.
 resubscribe(#state{data_format = DataFormat,
+                   api_version = ApiVersion,
                    master_host = MasterHost,
                    subscribe_req_options = SubscribeReqOptions,
                    framework_info = FrameworkInfo,
@@ -628,7 +635,7 @@ resubscribe(#state{data_format = DataFormat,
              "** Host == ~s~n",
              [MasterHost],
              State),
-    case erl_mesos_scheduler_api:resubscribe(DataFormat, MasterHost,
+    case erl_mesos_scheduler_api:resubscribe(DataFormat, ApiVersion, MasterHost,
                                              SubscribeReqOptions, FrameworkInfo,
                                              FrameworkId) of
         {ok, ClientRef} ->
@@ -755,11 +762,13 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 %% @private
 -spec scheduler_info(state()) -> scheduler_info().
 scheduler_info(#state{data_format = DataFormat,
+                      api_version = ApiVersion,
                       master_host = MasterHost,
                       subscribe_state = SubscribeState,
                       framework_id = FrameworkId}) ->
     Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
+                    api_version = ApiVersion,
                     master_host = MasterHost,
                     subscribed = Subscribed,
                     framework_id = FrameworkId}.
@@ -844,6 +853,7 @@ log_error(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
 format_state(#state{ref = Ref,
                     scheduler = Scheduler,
                     data_format = DataFormat,
+                    api_version = ApiVersion,
                     master_hosts = MasterHosts,
                     subscribe_req_options = SubscribeReqOptions,
                     heartbeat_timeout_window = HeartbeatTimeoutWindow,
@@ -863,6 +873,7 @@ format_state(#state{ref = Ref,
                     heartbeat_timer_ref = HeartbeatTimerRef,
                     resubscribe_timer_ref = ResubscribeTimerRef}) ->
     State = [{data_format, DataFormat},
+             {api_version, ApiVersion},
              {master_hosts, MasterHosts},
              {subscribe_req_options, SubscribeReqOptions},
              {heartbeat_timeout_window, HeartbeatTimeoutWindow},

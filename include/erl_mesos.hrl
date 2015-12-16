@@ -1,5 +1,6 @@
 %% Scheduler info.
 -record(scheduler_info, {data_format :: erl_mesos_data_format:data_format(),
+                         api_version :: erl_mesos_scheduler_api:version(),
                          master_host :: binary(),
                          subscribed :: boolean(),
                          framework_id :: framework_id()}).
