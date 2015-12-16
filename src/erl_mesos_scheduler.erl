@@ -21,7 +21,7 @@
                 data_format :: erl_mesos_data_format:data_format(),
                 api_version :: erl_mesos_scheduler_api:version(),
                 master_hosts :: [binary()],
-                subscribe_req_options :: [{atom(), term()}],
+                req_options :: erl_mesos_http:options(),
                 heartbeat_timeout_window :: pos_integer(),
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
@@ -81,7 +81,7 @@
 
 -define(DEFAULT_MASTER_HOSTS, [<<"localhost:5050">>]).
 
--define(DEFAULT_SUBSCRIBE_REQ_OPTIONS, []).
+-define(DEFAULT_REQ_OPTIONS, []).
 
 -define(DEFAULT_MAX_REDIRECT, 5).
 
@@ -242,26 +242,20 @@ master_hosts([MasterHost | _MasterHosts], _ValidMasterHosts) ->
 master_hosts([], ValidMasterHosts) ->
     {ok, lists:reverse(ValidMasterHosts)}.
 
-%% @doc Returns subscribe request options.
+%% @doc Returns request options.
 %% @private
--spec subscribe_req_options(options()) ->
-    {ok, {subscribe_req_options, [{atom(), term()}]}} |
-    {error, {bad_subscribe_req_options, term()}}.
-subscribe_req_options(Options) ->
-    case proplists:get_value(subscribe_req_options, Options,
-                             ?DEFAULT_SUBSCRIBE_REQ_OPTIONS) of
-        SubscribeReqOptions when is_list(SubscribeReqOptions) ->
+-spec req_options(options()) ->
+    {ok, {req_options, [{atom(), term()}]}} |
+    {error, {bad_req_options, term()}}.
+req_options(Options) ->
+    case proplists:get_value(req_options, Options, ?DEFAULT_REQ_OPTIONS) of
+        ReqOptions when is_list(ReqOptions) ->
             DeleteKeys = [async, recv_timeout, following_redirect],
-            SubscribeReqOptions1 =
-                [Option || {Key, _Value} = Option <- SubscribeReqOptions,
-                 not lists:member(Key, DeleteKeys)],
-            SubscribeReqOptions2 = [{async, once},
-                                    {recv_timeout, infinity},
-                                    {following_redirect, false} |
-                                    SubscribeReqOptions1],
-            {ok, {subscribe_req_options, SubscribeReqOptions2}};
-        SubscribeReqOptions ->
-            {error, {bad_subscribe_req_options, SubscribeReqOptions}}
+            ReqOptions1 = [Option || {Key, _Value} = Option <- ReqOptions,
+                           not lists:member(Key, DeleteKeys)],
+            {ok, {req_options, ReqOptions1}};
+      ReqOptions ->
+            {error, {bad_req_options, ReqOptions}}
     end.
 
 %% @doc Returns heartbeat timeout window.
@@ -342,7 +336,7 @@ options([], _Options, ValidOptions) ->
     {ok, state()} | {error, term()}.
 init(Ref, Scheduler, SchedulerOptions, Options) ->
     Funs = [fun master_hosts/1,
-            fun subscribe_req_options/1,
+            fun req_options/1,
             fun heartbeat_timeout_window/1,
             fun max_num_resubscribe/1,
             fun resubscribe_interval/1],
@@ -364,7 +358,7 @@ init(Ref, Scheduler, SchedulerOptions, Options) ->
 -spec state(term(), module(), options()) -> state().
 state(Ref, Scheduler, Options) ->
     MasterHosts = proplists:get_value(master_hosts, Options),
-    SubscribeReqOptions = proplists:get_value(subscribe_req_options, Options),
+    ReqOptions = proplists:get_value(req_options, Options),
     HeartbeatTimeoutWindow = proplists:get_value(heartbeat_timeout_window,
                                                  Options),
     MaxNumResubscribe = proplists:get_value(max_num_resubscribe, Options),
@@ -374,7 +368,7 @@ state(Ref, Scheduler, Options) ->
            data_format = ?DATA_FORMAT,
            api_version = ?API_VERSION,
            master_hosts = MasterHosts,
-           subscribe_req_options = SubscribeReqOptions,
+           req_options = ReqOptions,
            heartbeat_timeout_window = HeartbeatTimeoutWindow,
            max_num_resubscribe = MaxNumResubscribe,
            resubscribe_interval = ResubscribeInterval}.
@@ -400,7 +394,7 @@ init(SchedulerOptions, #state{master_hosts = MasterHosts,
 -spec subscribe(state()) -> {ok, state()} | {error, bad_hosts}.
 subscribe(#state{data_format = DataFormat,
                  api_version = ApiVersion,
-                 subscribe_req_options = SubscribeReqOptions,
+                 req_options = ReqOptions,
                  framework_info = FrameworkInfo,
                  force = Force,
                  master_hosts_queue = [MasterHost | MasterHostsQueue]} =
@@ -409,6 +403,7 @@ subscribe(#state{data_format = DataFormat,
              "** Host == ~s~n",
              [MasterHost],
              State),
+    SubscribeReqOptions = subscribe_req_options(ReqOptions),
     case erl_mesos_scheduler_api:subscribe(DataFormat, ApiVersion, MasterHost,
                                            SubscribeReqOptions, FrameworkInfo,
                                            Force) of
@@ -426,6 +421,14 @@ subscribe(#state{data_format = DataFormat,
     end;
 subscribe(#state{master_hosts_queue = []}) ->
     {error, bad_hosts}.
+
+%% @doc Returns subscribe request options.
+%% @private
+-spec subscribe_req_options(erl_mesos_http:options()) ->
+    erl_mesos_http:options().
+subscribe_req_options(ReqOptions) ->
+    [{async, once}, {recv_timeout, infinity}, {following_redirect, false} |
+      ReqOptions].
 
 %% @doc Handles async response.
 %% @private
@@ -499,7 +502,7 @@ handle_async_response({error, Reason}, State) ->
 -spec handle_redirect(state()) ->
     {noreply, state()} | {stop, term(), state()}.
 handle_redirect(#state{master_hosts = MasterHosts,
-                       subscribe_req_options = SubscribeReqOptions,
+                       req_options = ReqOptions,
                        master_hosts_queue = MasterHostsQueue,
                        master_host = MasterHost,
                        client_ref = ClientRef,
@@ -507,8 +510,7 @@ handle_redirect(#state{master_hosts = MasterHosts,
                        #subscribe_response{headers = Headers},
                        framework_id = FrameworkId,
                        num_redirect = NumRedirect} = State) ->
-    case proplists:get_value(max_redirect, SubscribeReqOptions,
-                             ?DEFAULT_MAX_REDIRECT) of
+    case proplists:get_value(max_redirect, ReqOptions, ?DEFAULT_MAX_REDIRECT) of
         NumRedirect when FrameworkId =:= undefined ->
             {stop, {shutdown, {subscribe, {error, max_redirect}}}, State};
         NumRedirect ->
@@ -628,13 +630,14 @@ set_resubscribe_timer(#state{resubscribe_interval = ResubscribeInterval} =
 resubscribe(#state{data_format = DataFormat,
                    api_version = ApiVersion,
                    master_host = MasterHost,
-                   subscribe_req_options = SubscribeReqOptions,
+                   req_options = ReqOptions,
                    framework_info = FrameworkInfo,
                    framework_id = FrameworkId} = State) ->
     log_info("** Try to resubscribe~n",
              "** Host == ~s~n",
              [MasterHost],
              State),
+    SubscribeReqOptions = subscribe_req_options(ReqOptions),
     case erl_mesos_scheduler_api:resubscribe(DataFormat, ApiVersion, MasterHost,
                                              SubscribeReqOptions, FrameworkInfo,
                                              FrameworkId) of
@@ -855,7 +858,7 @@ format_state(#state{ref = Ref,
                     data_format = DataFormat,
                     api_version = ApiVersion,
                     master_hosts = MasterHosts,
-                    subscribe_req_options = SubscribeReqOptions,
+                    req_options = ReqOptions,
                     heartbeat_timeout_window = HeartbeatTimeoutWindow,
                     max_num_resubscribe = MaxNumResubscribe,
                     resubscribe_interval = ResubscribeInterval,
@@ -875,7 +878,7 @@ format_state(#state{ref = Ref,
     State = [{data_format, DataFormat},
              {api_version, ApiVersion},
              {master_hosts, MasterHosts},
-             {subscribe_req_options, SubscribeReqOptions},
+             {req_options, ReqOptions},
              {heartbeat_timeout_window, HeartbeatTimeoutWindow},
              {max_num_resubscribe, MaxNumResubscribe},
              {resubscribe_interval, ResubscribeInterval},
