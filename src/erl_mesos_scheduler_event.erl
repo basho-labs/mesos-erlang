@@ -283,8 +283,7 @@ parse_image_obj(undefined) ->
 parse_image_obj(ImageObj) ->
     Image = ?ERL_MESOS_OBJ_TO_RECORD(image, ImageObj),
     Appc = parse_image_appc_obj(Image#image.appc),
-    Docker = parse_image_docker_obj(Image#image.docker),
-    Image#image{appc = Appc, docker = Docker}.
+    Image#image{appc = Appc}.
 
 %% @doc Parses image appc obj.
 %% @private
@@ -308,15 +307,6 @@ parse_labels_obj(LabelsObj) ->
     Labels#labels{labels =
         [?ERL_MESOS_OBJ_TO_RECORD(label, LabelObj) ||
          LabelObj <- Labels#labels.labels]}.
-
-%% @doc Parses image docker obj.
-%% @private
--spec parse_image_docker_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | image_docker().
-parse_image_docker_obj(undefined) ->
-    undefined;
-parse_image_docker_obj(ImageDockerObj) ->
-    ?ERL_MESOS_OBJ_TO_RECORD(image_docker, ImageDockerObj).
 
 %% @doc Parses resource revocable info obj.
 %% @private

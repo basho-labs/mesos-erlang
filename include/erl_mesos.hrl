@@ -69,18 +69,13 @@
 
 %% Image.
 -record(image, {type :: erl_mesos_obj:data_string(),
-                appc :: undefined | image_appc() | erl_mesos_obj:data_obj(),
-                docker :: undefined | image_docker() |
-                          erl_mesos_obj:data_obj()}).
+                appc :: undefined | image_appc() | erl_mesos_obj:data_obj()}).
 
 %% Image appc.
 -record(image_appc, {name :: erl_mesos_obj:data_string(),
                      id :: undefined | erl_mesos_obj:data_string(),
                      labels :: undefined | labels() |
                                erl_mesos_obj:data_obj()}).
-
-%% Image docker.
--record(image_docker, {name :: erl_mesos_obj:data_string()}).
 
 %% Volume.
 -record(volume, {mode :: erl_mesos_obj:data_string(),
@@ -257,9 +252,6 @@
 
 -type image_appc() :: #image_appc{}.
 -export_type([image_appc/0]).
-
--type image_docker() :: #image_docker{}.
--export_type([image_docker/0]).
 
 -type volume() :: #volume{}.
 -export_type([volume/0]).
