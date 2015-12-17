@@ -4,8 +4,8 @@
 
 -include("erl_mesos_obj.hrl").
 
--export([subscribe/6,
-         resubscribe/6,
+-export([subscribe/5,
+         resubscribe/7,
          teardown/5]).
 
 -type version() :: v1.
@@ -17,28 +17,29 @@
 
 %% @doc Sends subscribe request.
 -spec subscribe(erl_mesos_data_format:data_format(), version(), binary(),
-                erl_mesos_http:options(), framework_info(), boolean()) ->
+                erl_mesos_http:options(), framework_info()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
-subscribe(DataFormat, Version, MasterHost, Options, FrameworkInfo, Force) ->
+subscribe(DataFormat, Version, MasterHost, Options, FrameworkInfo) ->
     FrameworkInfoObj = framework_info_obj_from_record(FrameworkInfo),
     SubscribeObj = erl_mesos_obj:new([{<<"framework_info">>,
-                                       FrameworkInfoObj},
-                                      {<<"force">>, Force}]),
+                                       FrameworkInfoObj}]),
     ReqObj = erl_mesos_obj:new([{<<"type">>, <<"SUBSCRIBE">>},
                                 {<<"subscribe">>, SubscribeObj}]),
     request(DataFormat, Version, MasterHost, Options, ReqObj).
 
 %% @doc Sends resubscribe request.
 -spec resubscribe(erl_mesos_data_format:data_format(), version(), binary(),
-                  erl_mesos_http:options(), framework_info(), framework_id()) ->
+                  erl_mesos_http:options(), framework_info(), boolean(),
+                  framework_id()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 resubscribe(DataFormat, Version, MasterHost, Options, FrameworkInfo,
-            FrameworkId) ->
+            Force, FrameworkId) ->
     FrameworkIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(framework_id, FrameworkId),
     FrameworkInfo1 = FrameworkInfo#framework_info{id = FrameworkIdObj},
     FrameworkInfoObj = framework_info_obj_from_record(FrameworkInfo1),
     SubscribeObj = erl_mesos_obj:new([{<<"framework_info">>,
-                                       FrameworkInfoObj}]),
+                                       FrameworkInfoObj},
+                                      {<<"force">>, Force}]),
     ReqObj = erl_mesos_obj:new([{<<"type">>, <<"SUBSCRIBE">>},
                                 {<<"framework_id">>, FrameworkIdObj},
                                 {<<"subscribe">>, SubscribeObj}]),

@@ -391,7 +391,6 @@ subscribe(#state{data_format = DataFormat,
                  api_version = ApiVersion,
                  req_options = ReqOptions,
                  framework_info = FrameworkInfo,
-                 force = Force,
                  master_hosts_queue = [MasterHost | MasterHostsQueue]} =
           State) ->
     log_info("** Try to subscribe~n",
@@ -400,8 +399,8 @@ subscribe(#state{data_format = DataFormat,
              State),
     SubscribeReqOptions = subscribe_req_options(ReqOptions),
     case erl_mesos_scheduler_api:subscribe(DataFormat, ApiVersion, MasterHost,
-                                           SubscribeReqOptions, FrameworkInfo,
-                                           Force) of
+                                           SubscribeReqOptions,
+                                           FrameworkInfo) of
         {ok, ClientRef} ->
             {ok, State#state{master_hosts_queue = MasterHostsQueue,
                              master_host = MasterHost,
@@ -627,6 +626,7 @@ resubscribe(#state{data_format = DataFormat,
                    master_host = MasterHost,
                    req_options = ReqOptions,
                    framework_info = FrameworkInfo,
+                   force = Force,
                    framework_id = FrameworkId} = State) ->
     log_info("** Try to resubscribe~n",
              "** Host == ~s~n",
@@ -635,7 +635,7 @@ resubscribe(#state{data_format = DataFormat,
     SubscribeReqOptions = subscribe_req_options(ReqOptions),
     case erl_mesos_scheduler_api:resubscribe(DataFormat, ApiVersion, MasterHost,
                                              SubscribeReqOptions, FrameworkInfo,
-                                             FrameworkId) of
+                                             Force, FrameworkId) of
         {ok, ClientRef} ->
             {noreply, State#state{client_ref = ClientRef}};
         {error, Reason} ->

@@ -31,8 +31,8 @@ groups() ->
     [{mesos_cluster, [registered,
                       disconnected,
                       reregistered,
-                      resource_offers,
-                      offer_rescinded,
+                      %resource_offers,
+                      %offer_rescinded,
                       error]}].
 
 init_per_suite(Config) ->
