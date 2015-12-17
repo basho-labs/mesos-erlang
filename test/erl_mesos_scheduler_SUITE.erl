@@ -25,15 +25,15 @@
                 test_pid}).
 
 all() ->
-    [bad_options, {group, cluster}].
+    [bad_options, {group, mesos_cluster}].
 
 groups() ->
-    [{cluster, [registered,
-                disconnected,
-                reregistered,
-                resource_offers,
-                offer_rescinded,
-                error]}].
+    [{mesos_cluster, [registered,
+                      disconnected,
+                      reregistered,
+                      resource_offers,
+                      offer_rescinded,
+                      error]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -52,14 +52,14 @@ end_per_suite(_Config) ->
     application:stop(erl_mesos),
     ok.
 
-init_per_group(cluster, Config) ->
+init_per_group(mesos_cluster, Config) ->
     Config.
 
-end_per_group(cluster, _Config) ->
+end_per_group(mesos_cluster, _Config) ->
     ok.
 
 init_per_testcase(TestCase, Config) ->
-    case lists:member(TestCase, proplists:get_value(cluster, groups())) of
+    case lists:member(TestCase, proplists:get_value(mesos_cluster, groups())) of
         true ->
             stop_mesos_cluster(Config),
             start_mesos_cluster(Config),
@@ -70,7 +70,7 @@ init_per_testcase(TestCase, Config) ->
     end.
 
 end_per_testcase(TestCase, Config) ->
-    case lists:member(TestCase, proplists:get_value(cluster, groups())) of
+    case lists:member(TestCase, proplists:get_value(mesos_cluster, groups())) of
         true ->
             stop_mesos_cluster(Config),
             Config;
@@ -98,10 +98,10 @@ bad_options(Config) ->
     Options2 = [{master_hosts, MasterHosts1}],
     {error, {bad_master_hosts, MasterHosts1}} =
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options2),
-    %% Bad subscribe requset options.
-    SubscribeReqOptions = undefined,
-    Options3 = [{subscribe_req_options, SubscribeReqOptions}],
-    {error, {bad_subscribe_req_options, SubscribeReqOptions}} =
+    %% Bad requset options.
+    ReqOptions = undefined,
+    Options3 = [{req_options, ReqOptions}],
+    {error, {bad_req_options, ReqOptions}} =
         start_scheduler(Ref, Scheduler, SchedulerOptions, Options3),
     %% Bad heartbeat timeout window.
     HeartbeatTimeoutWindow = undefined,
@@ -238,7 +238,8 @@ reregistered(Config) ->
     true = lists:member(binary_to_list(MasterHost2), MasterHosts),
     %% Test scheduler state.
     FormatState2 = format_state(SchedulerPid1),
-    #state{callback = reregistered} = scheduler_state(FormatState2).
+    #state{callback = reregistered} = scheduler_state(FormatState2),
+    ok = stop_scheduler(Ref1).
 
 resource_offers(Config) ->
     ct:pal("** Resource offers test cases"),
@@ -300,7 +301,8 @@ resource_offers(Config) ->
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = resource_offers} = scheduler_state(FormatState),
-    mesos_cluster_stop_slave(Config).
+    mesos_cluster_stop_slave(Config),
+    ok = stop_scheduler(Ref).
 
 offer_rescinded(Config) ->
     ct:pal("** Offer rescinded test cases"),
@@ -325,7 +327,8 @@ offer_rescinded(Config) ->
     true = is_binary(Value),
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
-    #state{callback = offer_rescinded} = scheduler_state(FormatState).
+    #state{callback = offer_rescinded} = scheduler_state(FormatState),
+    ok = stop_scheduler(Ref).
 
 error(Config) ->
     ct:pal("** Error test cases test cases"),
