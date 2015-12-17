@@ -176,6 +176,18 @@
                 unavailability :: undefined | unavailability() |
                                   erl_mesos_obj:data_obj()}).
 
+%% Inverse offer.
+-record(inverse_offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
+                        url :: undefined | url() | erl_mesos_obj:data_obj(),
+                        framework_id :: framework_id() |
+                                        erl_mesos_obj:data_obj(),
+                        agent_id :: undefined | agent_id() |
+                                    erl_mesos_obj:data_obj(),
+                        unavailability :: unavailability() |
+                                          erl_mesos_obj:data_obj(),
+                        resources :: undefined | [resource() |
+                                                  erl_mesos_obj:data_obj()]}).
+
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
                                            erl_mesos_obj:data_obj(),
@@ -183,7 +195,11 @@
                                                          pos_integer()}).
 
 %% Offers event.
--record(offers_event, {offers :: [offer() | erl_mesos_obj:data_obj()]}).
+-record(offers_event, {offers :: undefined | [offer() |
+                                              erl_mesos_obj:data_obj()],
+                       inverse_offers :: undefined |
+                                         [inverse_offer() |
+                                          erl_mesos_obj:data_obj()]}).
 
 %% Rescind event.
 -record(rescind_event, {offer_id :: offer_id() | erl_mesos_obj:data_obj()}).
@@ -289,6 +305,9 @@
 
 -type offer() :: #offer{}.
 -export_type([offer/0]).
+
+-type inverse_offer() :: #inverse_offer{}.
+-export_type([inverse_offer/0]).
 
 -type subscribed_event() :: #subscribed_event{}.
 -export_type([subscribed_event/0]).

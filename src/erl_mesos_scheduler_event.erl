@@ -47,7 +47,10 @@ parse_obj(<<"OFFERS">>, Obj) ->
     OffersObj = erl_mesos_obj:get_value(<<"offers">>, Obj),
     OffersEvent = ?ERL_MESOS_OBJ_TO_RECORD(offers_event, OffersObj),
     Offers = parse_offer_objs(OffersEvent#offers_event.offers),
-    {offers, OffersEvent#offers_event{offers = Offers}};
+    InverseOffers =
+        parse_inverse_offer_objs(OffersEvent#offers_event.inverse_offers),
+    {offers, OffersEvent#offers_event{offers = Offers,
+                                      inverse_offers = InverseOffers}};
 parse_obj(<<"RESCIND">>, Obj) ->
     RescindObj = erl_mesos_obj:get_value(<<"rescind">>, Obj),
     RescindEvent = ?ERL_MESOS_OBJ_TO_RECORD(rescind_event, RescindObj),
@@ -73,7 +76,10 @@ heartbeat_interval_seconds(HeartbeatIntervalSeconds) ->
 
 %% @doc Parses offer objs.
 %% @private
--spec parse_offer_objs([erl_mesos_obj:data_obj()]) -> [offer()].
+-spec parse_offer_objs(undefined | [erl_mesos_obj:data_obj()]) ->
+    undefined | [offer()].
+parse_offer_objs(undefined) ->
+    undefined;
 parse_offer_objs(OfferObjs) ->
     [parse_offer_obj(OfferObj) || OfferObj <- OfferObjs].
 
@@ -99,6 +105,38 @@ parse_offer_obj(OfferObj) ->
                 attributes = Attributes,
                 executor_ids = ExecutorIds,
                 unavailability = Unavailability}.
+
+%% @doc Parses inverse offer objs.
+%% @private
+-spec parse_inverse_offer_objs(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | [inverse_offer()].
+parse_inverse_offer_objs(undefined) ->
+    undefined;
+parse_inverse_offer_objs(InverseOfferObjs) ->
+    [parse_inverse_offer_obj(InverseOfferObj) ||
+     InverseOfferObj <- InverseOfferObjs].
+
+%% @doc Parses inverse offer obj.
+%% @private
+-spec parse_inverse_offer_obj(erl_mesos_obj:data_obj()) -> inverse_offer().
+parse_inverse_offer_obj(InverseOfferObj) ->
+    InverseOffer = ?ERL_MESOS_OBJ_TO_RECORD(inverse_offer, InverseOfferObj),
+    Id = ?ERL_MESOS_OBJ_TO_RECORD(offer_id, InverseOffer#inverse_offer.id),
+    Url = parse_url_obj(InverseOffer#inverse_offer.url),
+    FrameworkId =
+        ?ERL_MESOS_OBJ_TO_RECORD(framework_id,
+                                 InverseOffer#inverse_offer.framework_id),
+    AgentId = ?ERL_MESOS_OBJ_TO_RECORD(agent_id,
+                                       InverseOffer#inverse_offer.agent_id),
+    Unavailability =
+        parse_unavailability_obj(InverseOffer#inverse_offer.unavailability),
+    Resources = parse_resource_objs(InverseOffer#inverse_offer.resources),
+    InverseOffer#inverse_offer{id = Id,
+                               url = Url,
+                               framework_id = FrameworkId,
+                               agent_id = AgentId,
+                               unavailability = Unavailability,
+                               resources = Resources}.
 
 %% @doc Parses url obj.
 %% @private
