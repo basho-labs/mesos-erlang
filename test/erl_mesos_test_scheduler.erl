@@ -25,9 +25,9 @@ init(Options) ->
     {ok, FrameworkInfo, true, #state{callback = init,
                                      test_pid = TestPid}}.
 
-registered(SchedulerInfo, SubscribedEvent,
+registered(SchedulerInfo, EventSubscribed,
            #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {registered, self(), SchedulerInfo, SubscribedEvent}),
+    reply(TestPid, {registered, self(), SchedulerInfo, EventSubscribed}),
     {ok, State#state{callback = registered}}.
 
 disconnected(SchedulerInfo, #state{test_pid = TestPid} = State) ->
@@ -38,18 +38,18 @@ reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {reregistered, self(), SchedulerInfo}),
     {ok, State#state{callback = reregistered}}.
 
-resource_offers(SchedulerInfo, OffersEvent,
+resource_offers(SchedulerInfo, EventOffers,
                 #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {resource_offers, self(), SchedulerInfo, OffersEvent}),
+    reply(TestPid, {resource_offers, self(), SchedulerInfo, EventOffers}),
     {ok, State#state{callback = resource_offers}}.
 
-offer_rescinded(SchedulerInfo, RescindEvent,
+offer_rescinded(SchedulerInfo, EventRescind,
                 #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {offer_rescinded, self(), SchedulerInfo, RescindEvent}),
+    reply(TestPid, {offer_rescinded, self(), SchedulerInfo, EventRescind}),
     {ok, State#state{callback = offer_rescinded}}.
 
-error(SchedulerInfo, ErrorEvent, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {error, self(), SchedulerInfo, ErrorEvent}),
+error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {error, self(), SchedulerInfo, EventError}),
     {stop, State#state{callback = error}}.
 
 handle_info(_SchedulerInfo, stop, State) ->

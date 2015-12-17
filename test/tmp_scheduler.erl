@@ -20,12 +20,12 @@ init(Options) ->
              "== Options: ~p~n~n", [Options]),
     {ok, FrameworkInfo, true, init_state}.
 
-registered(SchedulerInfo, #subscribed_event{} = SubscribedEvent, State) ->
+registered(SchedulerInfo, #event_subscribed{} = EventSubscribed, State) ->
     call_log("== Registered callback~n"
              "== Scheduler info: ~p~n"
-             "== Subscribed event: ~p~n"
+             "== Event subscribed: ~p~n"
              "== State: ~p~n~n",
-             [SchedulerInfo, SubscribedEvent, State]),
+             [SchedulerInfo, EventSubscribed, State]),
     {ok, registered_state}.
 
 reregistered(SchedulerInfo, State) ->
@@ -42,19 +42,19 @@ disconnected(SchedulerInfo, State) ->
              [SchedulerInfo, State]),
     {ok, disconnected_state}.
 
-error(SchedulerInfo, #error_event{} = ErrorEvent, State) ->
+error(SchedulerInfo, #event_error{} = EventError, State) ->
     call_log("== Error callback~n"
              "== Scheduler info: ~p~n"
-             "== Error event: ~p~n"
+             "== Event error : ~p~n"
              "== State: ~p~n~n",
-             [SchedulerInfo, ErrorEvent, State]),
+             [SchedulerInfo, EventError, State]),
     {ok, error_state}.
 
 handle_info(_SchedulerInfo, stop, State) ->
-    {stop, shutdown, State};
-handle_info(SchedulerInfo, teardown, _State) ->
-    ok = erl_mesos_scheduler:teardown(SchedulerInfo),
-    {ok, handle_info_state};
+    {stop, State};
+%% handle_info(SchedulerInfo, teardown, _State) ->
+%%     ok = erl_mesos_scheduler:teardown(SchedulerInfo),
+%%     {ok, handle_info_state};
 handle_info(SchedulerInfo, Info, State) ->
     call_log("== Info callback~n"
              "== Scheduler info: ~p~n"

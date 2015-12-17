@@ -37,9 +37,9 @@ subscribe_request_options(RequestOptions) ->
     RequestOptions1 = [RequestOption ||
                        {Key, _Value} = RequestOption <- RequestOptions,
                        not lists:member(Key, Keys)],
-    [{async, true},
-     {recv_timeout, infinity},
-     {following_redirect, false} | RequestOptions1].
+    RequestOptions2 = lists:delete(async, RequestOptions1),
+    [async, {recv_timeout, infinity}, {following_redirect, false} |
+     RequestOptions2].
 
 %% @doc Returns call obj.
 %% @private

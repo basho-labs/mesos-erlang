@@ -183,6 +183,35 @@
                         resources :: undefined | [resource() |
                                                   erl_mesos_obj:data_obj()]}).
 
+%% Event.
+-record(event, {type :: subscribed | offers | rescind | error | heartbeat |
+                        erl_mesos_obj:data_string(),
+                subscribed :: undefined | event_subscribed() |
+                              erl_mesos_obj:data_obj(),
+                offers :: undefined | event_offers() | erl_mesos_obj:data_obj(),
+                rescind :: undefined | event_rescind() |
+                           erl_mesos_obj:data_obj(),
+                error :: undefined | event_error() | erl_mesos_obj:data_obj()}).
+
+%% Event subscribed.
+-record(event_subscribed, {framework_id :: framework_id() |
+                                           erl_mesos_obj:data_obj(),
+                           heartbeat_interval_seconds :: undefined | float()}).
+
+%% Event offers.
+-record(event_offers, {offers :: undefined | [offer() |
+                                              erl_mesos_obj:data_obj()],
+                       inverse_offers :: undefined |
+                                         [inverse_offer() |
+                                          erl_mesos_obj:data_obj()]}).
+
+%% Event rescind.
+-record(event_rescind, {offer_id :: offer_id() | erl_mesos_obj:data_obj()}).
+
+%% Error event.
+-record(event_error, {message :: erl_mesos_obj:data_string()}).
+
+%% Call.
 -record(call, {framework_id :: undefined | framework_id() |
                                erl_mesos_obj:data_obj(),
                type :: erl_mesos_obj:data_string(),
@@ -193,25 +222,6 @@
 -record(call_subscribe, {framework_info :: framework_info() |
                                            erl_mesos_obj:data_obj(),
                          force :: undefined | boolean()}).
-
-%% Subscribed event.
--record(subscribed_event, {framework_id :: framework_id() |
-                                           erl_mesos_obj:data_obj(),
-                           heartbeat_interval_seconds :: undefined |
-                                                         pos_integer()}).
-
-%% Offers event.
--record(offers_event, {offers :: undefined | [offer() |
-                                              erl_mesos_obj:data_obj()],
-                       inverse_offers :: undefined |
-                                         [inverse_offer() |
-                                          erl_mesos_obj:data_obj()]}).
-
-%% Rescind event.
--record(rescind_event, {offer_id :: offer_id() | erl_mesos_obj:data_obj()}).
-
-%% Error event.
--record(error_event, {message :: erl_mesos_obj:data_string()}).
 
 -type offer_id() :: #offer_id{}.
 -export_type([offer_id/0]).
@@ -318,14 +328,17 @@
 -type call_subscribe() :: #call_subscribe{}.
 -export_type([call_subscribe/0]).
 
--type subscribed_event() :: #subscribed_event{}.
--export_type([subscribed_event/0]).
+-type event() :: #event{}.
+-export_type([event/0]).
 
--type offers_event() :: #offers_event{}.
--export_type([offers_event/0]).
+-type event_subscribed() :: #event_subscribed{}.
+-export_type([event_subscribed/0]).
 
--type rescind_event() :: #rescind_event{}.
--export_type([rescind_event/0]).
+-type event_offers() :: #event_offers{}.
+-export_type([event_offers/0]).
 
--type error_event() :: #error_event{}.
--export_type([error_event/0]).
+-type event_rescind() :: #event_rescind{}.
+-export_type([event_rescind/0]).
+
+-type event_error() :: #event_error{}.
+-export_type([event_error/0]).

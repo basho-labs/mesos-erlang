@@ -25,16 +25,16 @@
                 test_pid}).
 
 all() ->
-    [bad_options, {group, mesos_cluster}].
+    [bad_options, {group, mesos_cluster, [sequence]}].
 
 groups() ->
-    [{mesos_cluster, [%registered,
-                      %disconnected,
-                      reregistered%,
+    [{mesos_cluster, [registered,
+                      disconnected,
+                      reregistered
                       %resource_offers,
-                      %offer_rescinded,
+                      %offer_rescinded%,
                       %error
-                      ]}].
+                     ]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -134,18 +134,18 @@ registered(Config) ->
                          set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
-    {registered, SchedulerPid, SchedulerInfo, SubscribedEvent} = recv_reply(),
+    {registered, SchedulerPid, SchedulerInfo, EventSubscribed} = recv_reply(),
     %% Test scheduler info.
     #scheduler_info{master_host = MasterHost,
                     subscribed = true,
                     framework_id = FrameworkId} = SchedulerInfo,
     MasterHosts = proplists:get_value(master_hosts, Options),
     true = lists:member(binary_to_list(MasterHost), MasterHosts),
-    %% Test subscribed event.
-    #subscribed_event{framework_id = FrameworkId,
+    %% Test event subscribed.
+    #event_subscribed{framework_id = FrameworkId,
                       heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
-        SubscribedEvent,
-    true = is_integer(HeartbeatIntervalSeconds),
+        EventSubscribed,
+    true = is_float(HeartbeatIntervalSeconds),
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = registered} = scheduler_state(FormatState),
@@ -254,11 +254,11 @@ resource_offers(Config) ->
     {registered, SchedulerPid, _, _} = recv_reply(),
     mesos_cluster_start_slave(Config),
     timer:sleep(5000),
-    {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent} = recv_reply(),
+    {resource_offers, SchedulerPid, SchedulerInfo, EventOffers} = recv_reply(),
     %% Test scheduler info.
     #scheduler_info{subscribed = true} = SchedulerInfo,
-    %% Test offer event.
-    #offers_event{offers = Offers} = OffersEvent,
+    %% Test event offer.
+    #event_offers{offers = Offers} = EventOffers,
     [Offer | _] = Offers,
     #offer{id = Id,
            framework_id = FrameworkId,
@@ -321,10 +321,10 @@ offer_rescinded(Config) ->
         recv_reply(),
     %% Test scheduler info.
     mesos_cluster_stop_slave(Config),
-    {offer_rescinded, SchedulerPid, SchedulerInfo, RescindEvent} = recv_reply(),
+    {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind} = recv_reply(),
     #scheduler_info{subscribed = true} = SchedulerInfo,
-    %% Test rescind event.
-    #rescind_event{offer_id = OfferId} = RescindEvent,
+    %% Test event rescind.
+    #event_rescind{offer_id = OfferId} = EventRescind,
     #offer_id{value = Value} = OfferId,
     true = is_binary(Value),
     %% Test scheduler state.
@@ -350,9 +350,9 @@ error(Config) ->
     Pid = response_pid(ClientRef),
     exit(Pid, kill),
     {disconnected, SchedulerPid, _} = recv_reply(),
-    {error, SchedulerPid, _SchedulerInfo, ErrorEvent} = recv_reply(),
+    {error, SchedulerPid, _SchedulerInfo, EventError} = recv_reply(),
     %% Test error event.
-    #error_event{message = Message} = ErrorEvent,
+    #event_error{message = Message} = EventError,
     true = is_binary(Message),
     %% Test scheduler state.
     {terminate, SchedulerPid, _, _, State} = recv_reply(),
@@ -402,16 +402,16 @@ set_test_pid(SchedulerOptions) ->
 
 recv_reply() ->
     receive
-        {registered, SchedulerPid, SchedulerInfo, SubscribedEvent} ->
-            {registered, SchedulerPid, SchedulerInfo, SubscribedEvent};
+        {registered, SchedulerPid, SchedulerInfo, EventSubscribed} ->
+            {registered, SchedulerPid, SchedulerInfo, EventSubscribed};
         {disconnected, SchedulerPid, SchedulerInfo} ->
             {disconnected, SchedulerPid, SchedulerInfo};
         {reregistered, SchedulerPid, SchedulerInfo} ->
             {reregistered, SchedulerPid, SchedulerInfo};
-        {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent} ->
-            {resource_offers, SchedulerPid, SchedulerInfo, OffersEvent};
-        {offer_rescinded, SchedulerPid, SchedulerInfo, RescindEvent} ->
-            {offer_rescinded, SchedulerPid, SchedulerInfo, RescindEvent};
+        {resource_offers, SchedulerPid, SchedulerInfo, EventOffers} ->
+            {resource_offers, SchedulerPid, SchedulerInfo, EventOffers};
+        {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind} ->
+            {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind};
         {error, SchedulerPid, SchedulerInfo, ErrorEvent} ->
             {error, SchedulerPid, SchedulerInfo, ErrorEvent};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
