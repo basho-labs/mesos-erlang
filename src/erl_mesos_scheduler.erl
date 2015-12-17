@@ -6,7 +6,7 @@
 
 -export([start_link/4]).
 
--export([teardown/1, teardown/2]).
+-export([teardown/1]).
 
 -export([init/1,
          handle_call/3,
@@ -104,20 +104,15 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
 
-%% @equiv teardown(scheduler_info(), [])
--spec teardown(scheduler_info()) -> ok | {error, term()}.
-teardown(Scheduler) ->
-    teardown(Scheduler, []).
-
 %% @doc Sends teardown request.
--spec teardown(scheduler_info(), erl_mesos_http:options()) ->
-    ok | {error, term()}.
+-spec teardown(scheduler_info()) -> ok | {error, term()}.
 teardown(#scheduler_info{data_format = DataFormat,
                          api_version = ApiVersion,
                          master_host = MasterHost,
-                         framework_id = FrameworkId}, Options) ->
+                         req_options = ReqOptions,
+                         framework_id = FrameworkId}) ->
     erl_mesos_scheduler_api:teardown(DataFormat, ApiVersion, MasterHost,
-                                     Options, FrameworkId).
+                                     ReqOptions, FrameworkId).
 
 %% gen_server callback functions.
 
@@ -767,12 +762,14 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 scheduler_info(#state{data_format = DataFormat,
                       api_version = ApiVersion,
                       master_host = MasterHost,
+                      req_options = ReqOptions,
                       subscribe_state = SubscribeState,
                       framework_id = FrameworkId}) ->
     Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
                     api_version = ApiVersion,
                     master_host = MasterHost,
+                    req_options = ReqOptions,
                     subscribed = Subscribed,
                     framework_id = FrameworkId}.
 
