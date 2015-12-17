@@ -6,7 +6,7 @@
 
 -export([start_link/4]).
 
--export([teardown/1]).
+%% -export([teardown/1]).
 
 -export([init/1,
          handle_call/3,
@@ -19,20 +19,19 @@
 -record(state, {ref :: term(),
                 scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
-                api_version :: erl_mesos_scheduler_api:version(),
+                api_version :: erl_mesos_scheduler_call:version(),
                 master_hosts :: [binary()],
-                req_options :: erl_mesos_http:options(),
+                request_options :: erl_mesos_http:options(),
                 heartbeat_timeout_window :: pos_integer(),
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
-                framework_info :: undefined | framework_info(),
-                force :: undefined | boolean(),
+                call_subscribe :: undefined | call_subscribe(),
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
                 client_ref :: undefined | erl_mesos_http:client_ref(),
                 subscribe_state :: undefined | subscribe_state(),
-                framework_id :: undefined | framework_id(),
+                %framework_id :: undefined | framework_id(),
                 num_redirect = 0 :: non_neg_integer(),
                 num_resubscribe = 0 :: non_neg_integer(),
                 heartbeat_timeout :: pos_integer(),
@@ -81,7 +80,7 @@
 
 -define(DEFAULT_MASTER_HOSTS, [<<"localhost:5050">>]).
 
--define(DEFAULT_REQ_OPTIONS, []).
+-define(DEFAULT_REQUEST_OPTIONS, []).
 
 -define(DEFAULT_MAX_REDIRECT, 5).
 
@@ -104,15 +103,15 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
 
-%% @doc Sends teardown request.
--spec teardown(scheduler_info()) -> ok | {error, term()}.
-teardown(#scheduler_info{data_format = DataFormat,
-                         api_version = ApiVersion,
-                         master_host = MasterHost,
-                         req_options = ReqOptions,
-                         framework_id = FrameworkId}) ->
-    erl_mesos_scheduler_api:teardown(DataFormat, ApiVersion, MasterHost,
-                                     ReqOptions, FrameworkId).
+%% %% @doc Sends teardown request.
+%% -spec teardown(scheduler_info()) -> ok | {error, term()}.
+%% teardown(#scheduler_info{data_format = DataFormat,
+%%                          api_version = ApiVersion,
+%%                          master_host = MasterHost,
+%%                          req_options = ReqOptions,
+%%                          framework_id = FrameworkId}) ->
+%%     erl_mesos_scheduler_api:teardown(DataFormat, ApiVersion, MasterHost,
+%%                                      ReqOptions, FrameworkId).
 
 %% gen_server callback functions.
 
@@ -239,18 +238,16 @@ master_hosts([], ValidMasterHosts) ->
 
 %% @doc Returns request options.
 %% @private
--spec req_options(options()) ->
-    {ok, {req_options, [{atom(), term()}]}} |
-    {error, {bad_req_options, term()}}.
-req_options(Options) ->
-    case proplists:get_value(req_options, Options, ?DEFAULT_REQ_OPTIONS) of
-        ReqOptions when is_list(ReqOptions) ->
-            DeleteKeys = [async, recv_timeout, following_redirect],
-            ReqOptions1 = [Option || {Key, _Value} = Option <- ReqOptions,
-                           not lists:member(Key, DeleteKeys)],
-            {ok, {req_options, ReqOptions1}};
-      ReqOptions ->
-            {error, {bad_req_options, ReqOptions}}
+-spec request_options(options()) ->
+    {ok, {request_options, [{atom(), term()}]}} |
+    {error, {bad_request_options, term()}}.
+request_options(Options) ->
+    case proplists:get_value(request_options, Options,
+                             ?DEFAULT_REQUEST_OPTIONS) of
+        RequestOptions when is_list(RequestOptions) ->
+            {ok, {request_options, RequestOptions}};
+        RequestOptions ->
+            {error, {bad_request_options, RequestOptions}}
     end.
 
 %% @doc Returns heartbeat timeout window.
@@ -331,7 +328,7 @@ options([], _Options, ValidOptions) ->
     {ok, state()} | {error, term()}.
 init(Ref, Scheduler, SchedulerOptions, Options) ->
     Funs = [fun master_hosts/1,
-            fun req_options/1,
+            fun request_options/1,
             fun heartbeat_timeout_window/1,
             fun max_num_resubscribe/1,
             fun resubscribe_interval/1],
@@ -353,7 +350,7 @@ init(Ref, Scheduler, SchedulerOptions, Options) ->
 -spec state(term(), module(), options()) -> state().
 state(Ref, Scheduler, Options) ->
     MasterHosts = proplists:get_value(master_hosts, Options),
-    ReqOptions = proplists:get_value(req_options, Options),
+    RequestOptions = proplists:get_value(request_options, Options),
     HeartbeatTimeoutWindow = proplists:get_value(heartbeat_timeout_window,
                                                  Options),
     MaxNumResubscribe = proplists:get_value(max_num_resubscribe, Options),
@@ -363,7 +360,7 @@ state(Ref, Scheduler, Options) ->
            data_format = ?DATA_FORMAT,
            api_version = ?API_VERSION,
            master_hosts = MasterHosts,
-           req_options = ReqOptions,
+           request_options = RequestOptions,
            heartbeat_timeout_window = HeartbeatTimeoutWindow,
            max_num_resubscribe = MaxNumResubscribe,
            resubscribe_interval = ResubscribeInterval}.
@@ -376,8 +373,9 @@ init(SchedulerOptions, #state{master_hosts = MasterHosts,
     case Scheduler:init(SchedulerOptions) of
         {ok, FrameworkInfo, Force, SchedulerState}
           when is_record(FrameworkInfo, framework_info), is_boolean(Force) ->
-            {ok, State#state{framework_info = FrameworkInfo,
-                             force = Force,
+            CallSubscribe = #call_subscribe{framework_info = FrameworkInfo,
+                                            force = Force},
+            {ok, State#state{call_subscribe = CallSubscribe,
                              scheduler_state = SchedulerState,
                              master_hosts_queue = MasterHosts}};
         {stop, Reason} ->
@@ -387,20 +385,16 @@ init(SchedulerOptions, #state{master_hosts = MasterHosts,
 %% @doc Sends subscribe requests.
 %% @private
 -spec subscribe(state()) -> {ok, state()} | {error, bad_hosts}.
-subscribe(#state{data_format = DataFormat,
-                 api_version = ApiVersion,
-                 req_options = ReqOptions,
-                 framework_info = FrameworkInfo,
+subscribe(#state{call_subscribe = CallSubscribe,
                  master_hosts_queue = [MasterHost | MasterHostsQueue]} =
           State) ->
     log_info("** Try to subscribe~n",
              "** Host == ~s~n",
              [MasterHost],
              State),
-    SubscribeReqOptions = subscribe_req_options(ReqOptions),
-    case erl_mesos_scheduler_api:subscribe(DataFormat, ApiVersion, MasterHost,
-                                           SubscribeReqOptions,
-                                           FrameworkInfo) of
+    SchedulerInfo = scheduler_info(State),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{master_host = MasterHost},
+    case erl_mesos_scheduler_call:subscribe(SchedulerInfo1, CallSubscribe) of
         {ok, ClientRef} ->
             {ok, State#state{master_hosts_queue = MasterHostsQueue,
                              master_host = MasterHost,
@@ -416,14 +410,6 @@ subscribe(#state{data_format = DataFormat,
 subscribe(#state{master_hosts_queue = []}) ->
     {error, bad_hosts}.
 
-%% @doc Returns subscribe request options.
-%% @private
--spec subscribe_req_options(erl_mesos_http:options()) ->
-    erl_mesos_http:options().
-subscribe_req_options(ReqOptions) ->
-    [{async, once}, {recv_timeout, infinity}, {following_redirect, false} |
-      ReqOptions].
-
 %% @doc Handles async response.
 %% @private
 -spec handle_async_response(term(), state()) ->
@@ -432,7 +418,7 @@ handle_async_response({status, Status, _Message},
                       #state{client_ref = ClientRef,
                              subscribe_state = undefined} = State) ->
     SubscribeResponse = #subscribe_response{status = Status},
-    stream_next_chunk(ClientRef),
+    stream_next(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse}};
 handle_async_response({headers, Headers},
                        #state{client_ref = ClientRef,
@@ -441,7 +427,7 @@ handle_async_response({headers, Headers},
                               SubscribeResponse} = State) ->
     SubscribeResponse1 = SubscribeResponse#subscribe_response{headers =
                                                               Headers},
-    stream_next_chunk(ClientRef),
+    stream_next(ClientRef),
     {noreply, State#state{subscribe_state = SubscribeResponse1}};
 handle_async_response(Body,
                       #state{data_format = DataFormat,
@@ -496,16 +482,19 @@ handle_async_response({error, Reason}, State) ->
 -spec handle_redirect(state()) ->
     {noreply, state()} | {stop, term(), state()}.
 handle_redirect(#state{master_hosts = MasterHosts,
-                       req_options = ReqOptions,
+                       request_options = RequestOptions,
                        master_hosts_queue = MasterHostsQueue,
                        master_host = MasterHost,
+                       call_subscribe =
+                       #call_subscribe{framework_info =
+                                       #framework_info{id = Id}},
                        client_ref = ClientRef,
                        subscribe_state =
                        #subscribe_response{headers = Headers},
-                       framework_id = FrameworkId,
                        num_redirect = NumRedirect} = State) ->
-    case proplists:get_value(max_redirect, ReqOptions, ?DEFAULT_MAX_REDIRECT) of
-        NumRedirect when FrameworkId =:= undefined ->
+    case proplists:get_value(max_redirect, RequestOptions,
+                             ?DEFAULT_MAX_REDIRECT) of
+        NumRedirect when Id =:= undefined ->
             {stop, {shutdown, {subscribe, {error, max_redirect}}}, State};
         NumRedirect ->
             {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
@@ -528,10 +517,12 @@ handle_redirect(#state{master_hosts = MasterHosts,
             redirect(State1)
     end.
 
-%% @doc Calls subscribe/1 or resubscribe/2.
+%% @doc Calls subscribe/1 or resubscribe/1.
 %% @private
 -spec redirect(state()) -> {noreply, state()} | {stop, term(), state()}.
-redirect(#state{framework_id = undefined} = State) ->
+redirect(#state{call_subscribe =
+                #call_subscribe{framework_info =
+                                #framework_info{id = undefined}}} = State) ->
     case subscribe(State) of
         {ok, State1} ->
             {noreply, State1};
@@ -549,8 +540,10 @@ redirect(#state{master_hosts_queue = [MasterHost | MasterHostsQueue]} =
 %% @private
 -spec handle_unsubscribe(state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_unsubscribe(#state{client_ref = ClientRef,
-                          framework_id = undefined} = State) ->
+handle_unsubscribe(#state{call_subscribe =
+                          #call_subscribe{framework_info =
+                                          #framework_info{id = undefined}},
+                          client_ref = ClientRef} = State) ->
     close(ClientRef),
     case subscribe(State) of
         {ok, State1} ->
@@ -583,9 +576,11 @@ handle_unsubscribe(#state{client_ref = ClientRef} = State) ->
 %% @private
 -spec start_resubscribe_timer(state()) ->
     {noreply, state()} | {stop, term(), state()}.
-start_resubscribe_timer(#state{framework_info =
-                               #framework_info{failover_timeout =
-                                               FailoverTimeout}} = State)
+start_resubscribe_timer(#state{call_subscribe =
+                               #call_subscribe{framework_info =
+                                   #framework_info{failover_timeout =
+                                                   FailoverTimeout}}} =
+                        State)
   when FailoverTimeout =:= undefined; FailoverTimeout == 0 ->
     {stop, {shutdown, {resubscribe,
      {error, {failover_timeout, FailoverTimeout}}}}, State};
@@ -621,21 +616,14 @@ set_resubscribe_timer(#state{resubscribe_interval = ResubscribeInterval} =
 %% @doc Sends resubscribe requests.
 %% @private
 -spec resubscribe(state()) -> {noreply, state()} | {stop, term(), state()}.
-resubscribe(#state{data_format = DataFormat,
-                   api_version = ApiVersion,
-                   master_host = MasterHost,
-                   req_options = ReqOptions,
-                   framework_info = FrameworkInfo,
-                   force = Force,
-                   framework_id = FrameworkId} = State) ->
+resubscribe(#state{master_host = MasterHost,
+                   call_subscribe = CallSubscribe} = State) ->
     log_info("** Try to resubscribe~n",
              "** Host == ~s~n",
              [MasterHost],
              State),
-    SubscribeReqOptions = subscribe_req_options(ReqOptions),
-    case erl_mesos_scheduler_api:resubscribe(DataFormat, ApiVersion, MasterHost,
-                                             SubscribeReqOptions, FrameworkInfo,
-                                             Force, FrameworkId) of
+    SchedulerInfo = scheduler_info(State),
+    case erl_mesos_scheduler_call:subscribe(SchedulerInfo, CallSubscribe) of
         {ok, ClientRef} ->
             {noreply, State#state{client_ref = ClientRef}};
         {error, Reason} ->
@@ -656,7 +644,7 @@ handle_events(Events, #state{data_format = DataFormat,
     Objs = erl_mesos_data_format:decode_events(DataFormat, Events),
     case apply_events(Objs, State) of
         {ok, State1} ->
-            stream_next_chunk(ClientRef),
+            stream_next(ClientRef),
             {noreply, State1};
         {stop, State1} ->
             {stop, shutdown, State1}
@@ -681,18 +669,25 @@ apply_events([], State) ->
 -spec apply_event(erl_mesos_obj:data_obj(), state()) ->
     {ok, state()} | {stop, state()}.
 apply_event(Obj, #state{master_host = MasterHost,
-                        subscribe_state = SubscribeState,
-                        framework_id = FrameworkId} = State) ->
+                        call_subscribe =
+                        #call_subscribe{framework_info =
+                                        #framework_info{id = Id} =
+                                        FrameworkInfo} =
+                        CallSubscribe,
+                        subscribe_state = SubscribeState} = State) ->
     case erl_mesos_scheduler_event:parse_obj(Obj) of
-        {subscribed, {#subscribed_event{framework_id = SubscribeFrameworkId} =
+        {subscribed, {#subscribed_event{framework_id = FrameworkId} =
                       SubscribedEvent, HeartbeatTimeout}}
           when is_record(SubscribeState, subscribe_response),
-               FrameworkId =:= undefined ->
+               Id =:= undefined ->
             log_info("** Successfuly subscribed~n",
                      "** Host == ~s~n",
                      [MasterHost],
                      State),
-            State1 = State#state{framework_id = SubscribeFrameworkId,
+            FrameworkInfo1 = FrameworkInfo#framework_info{id = FrameworkId},
+            CallSubscribe1 = CallSubscribe#call_subscribe{framework_info =
+                                                          FrameworkInfo1},
+            State1 = State#state{call_subscribe = CallSubscribe1,
                                  heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(set_subscribed(State1)),
             call(registered, SubscribedEvent, State2);
@@ -762,16 +757,18 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 scheduler_info(#state{data_format = DataFormat,
                       api_version = ApiVersion,
                       master_host = MasterHost,
-                      req_options = ReqOptions,
-                      subscribe_state = SubscribeState,
-                      framework_id = FrameworkId}) ->
+                      request_options = RequestOptions,
+                      call_subscribe =
+                      #call_subscribe{framework_info =
+                                      #framework_info{id = Id}},
+                      subscribe_state = SubscribeState}) ->
     Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
                     api_version = ApiVersion,
                     master_host = MasterHost,
-                    req_options = ReqOptions,
+                    request_options = RequestOptions,
                     subscribed = Subscribed,
-                    framework_id = FrameworkId}.
+                    framework_id = Id}.
 
 %% @doc Sets subscribe state.
 %% @private
@@ -803,11 +800,11 @@ cancel_heartbeat_timer(undefined) ->
 cancel_heartbeat_timer(HeartbeatTimerRef) ->
     erlang:cancel_timer(HeartbeatTimerRef).
 
-%% @doc Stream next chunk.
+%% @doc Streams next.
 %% @private
--spec stream_next_chunk(erl_mesos_http:client_ref()) -> ok | {error, term()}.
-stream_next_chunk(ClientRef) ->
-    erl_mesos_http:stream_next_chunk(ClientRef).
+-spec stream_next(erl_mesos_http:client_ref()) -> ok | {error, term()}.
+stream_next(ClientRef) ->
+    erl_mesos_http:stream_next(ClientRef).
 
 %% @doc Closes the connection.
 %% @private
@@ -855,18 +852,16 @@ format_state(#state{ref = Ref,
                     data_format = DataFormat,
                     api_version = ApiVersion,
                     master_hosts = MasterHosts,
-                    req_options = ReqOptions,
+                    request_options = RequestOptions,
                     heartbeat_timeout_window = HeartbeatTimeoutWindow,
                     max_num_resubscribe = MaxNumResubscribe,
                     resubscribe_interval = ResubscribeInterval,
-                    framework_info = FrameworkInfo,
-                    force = Force,
+                    call_subscribe = CallSubscribe,
                     scheduler_state = SchedulerState,
                     master_hosts_queue = MasterHostsQueue,
                     master_host = MasterHost,
                     client_ref = ClientRef,
                     subscribe_state = SubscribeState,
-                    framework_id = FrameworkId,
                     num_redirect = NumRedirect,
                     num_resubscribe = NumResubscribe,
                     heartbeat_timeout = HeartbeatTimeout,
@@ -875,17 +870,15 @@ format_state(#state{ref = Ref,
     State = [{data_format, DataFormat},
              {api_version, ApiVersion},
              {master_hosts, MasterHosts},
-             {req_options, ReqOptions},
+             {request_options, RequestOptions},
              {heartbeat_timeout_window, HeartbeatTimeoutWindow},
              {max_num_resubscribe, MaxNumResubscribe},
              {resubscribe_interval, ResubscribeInterval},
-             {framework_info, FrameworkInfo},
-             {force, Force},
+             {call_subscribe, CallSubscribe},
              {master_hosts_queue, MasterHostsQueue},
              {master_host, MasterHost},
              {client_ref, ClientRef},
              {subscribe_state, SubscribeState},
-             {framework_id, FrameworkId},
              {num_redirect, NumRedirect},
              {num_resubscribe, NumResubscribe},
              {heartbeat_timeout, HeartbeatTimeout},

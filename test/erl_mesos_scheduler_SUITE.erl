@@ -28,12 +28,13 @@ all() ->
     [bad_options, {group, mesos_cluster}].
 
 groups() ->
-    [{mesos_cluster, [registered,
-                      disconnected,
-                      reregistered,
-                      resource_offers,
-                      offer_rescinded,
-                      error]}].
+    [{mesos_cluster, [%registered,
+                      %disconnected,
+                      reregistered%,
+                      %resource_offers,
+                      %offer_rescinded,
+                      %error
+                      ]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -100,9 +101,9 @@ bad_options(Config) ->
     {error, {bad_master_hosts, MasterHosts1}} =
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options2),
     %% Bad requset options.
-    ReqOptions = undefined,
-    Options3 = [{req_options, ReqOptions}],
-    {error, {bad_req_options, ReqOptions}} =
+    RequestOptions = undefined,
+    Options3 = [{request_options, RequestOptions}],
+    {error, {bad_request_options, RequestOptions}} =
         start_scheduler(Ref, Scheduler, SchedulerOptions, Options3),
     %% Bad heartbeat timeout window.
     HeartbeatTimeoutWindow = undefined,

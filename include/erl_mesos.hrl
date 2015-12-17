@@ -1,8 +1,8 @@
 %% Scheduler info.
 -record(scheduler_info, {data_format :: erl_mesos_data_format:data_format(),
-                         api_version :: erl_mesos_scheduler_api:version(),
+                         api_version :: erl_mesos_scheduler_call:version(),
                          master_host :: binary(),
-                         req_options :: erl_mesos_http:options(),
+                         request_options :: erl_mesos_http:options(),
                          subscribed :: boolean(),
                          framework_id :: framework_id()}).
 
@@ -183,6 +183,17 @@
                         resources :: undefined | [resource() |
                                                   erl_mesos_obj:data_obj()]}).
 
+-record(call, {framework_id :: undefined | framework_id() |
+                               erl_mesos_obj:data_obj(),
+               type :: erl_mesos_obj:data_string(),
+               subscribe :: undefined | call_subscribe() |
+                            erl_mesos_obj:data_obj()}).
+
+%% Call subscribe.
+-record(call_subscribe, {framework_info :: framework_info() |
+                                           erl_mesos_obj:data_obj(),
+                         force :: undefined | boolean()}).
+
 %% Subscribed event.
 -record(subscribed_event, {framework_id :: framework_id() |
                                            erl_mesos_obj:data_obj(),
@@ -300,6 +311,12 @@
 
 -type inverse_offer() :: #inverse_offer{}.
 -export_type([inverse_offer/0]).
+
+-type call() :: #call{}.
+-export_type([call/0]).
+
+-type call_subscribe() :: #call_subscribe{}.
+-export_type([call_subscribe/0]).
 
 -type subscribed_event() :: #subscribed_event{}.
 -export_type([subscribed_event/0]).

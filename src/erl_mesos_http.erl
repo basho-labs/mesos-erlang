@@ -2,7 +2,7 @@
 
 -export([request/5, body/1]).
 
--export([async_response/2, stream_next_chunk/1, close_async_response/1]).
+-export([async_response/2, stream_next/1, close_async_response/1]).
 
 -type headers() :: [{binary(), binary()}].
 -export_type([headers/0]).
@@ -35,16 +35,16 @@ body(ClientRef) ->
 
 %% @doc Returns async response.
 -spec async_response({hackney_response, client_ref(), async_response()} |
-                      term(), client_ref()) ->
+                     term(), client_ref()) ->
     async_response() | undefined.
 async_response({hackney_response, ClientRef, Response}, ClientRef) ->
     Response;
 async_response(_Info, _ClientRef) ->
     undefined.
 
-%% @doc Stream next chunk.
--spec stream_next_chunk(client_ref()) -> ok | {error, term()}.
-stream_next_chunk(ClientRef) ->
+%% @doc Streams next.
+-spec stream_next(client_ref()) -> ok | {error, term()}.
+stream_next(ClientRef) ->
     hackney:stream_next(ClientRef).
 
 %% @doc Closes async response.
