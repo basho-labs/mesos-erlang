@@ -31,8 +31,8 @@ groups() ->
     [{mesos_cluster, [registered,
                       disconnected,
                       reregistered,
-                      %resource_offers,
-                      %offer_rescinded,
+                      resource_offers,
+                      offer_rescinded,
                       error]}].
 
 init_per_suite(Config) ->
@@ -62,6 +62,7 @@ init_per_testcase(TestCase, Config) ->
     case lists:member(TestCase, proplists:get_value(mesos_cluster, groups())) of
         true ->
             stop_mesos_cluster(Config),
+            mesos_cluster_stop_slave(Config),
             start_mesos_cluster(Config),
             mesos_cluster_start_timeout_sleep(Config),
             Config;
