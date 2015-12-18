@@ -6,6 +6,8 @@
 
 -export([start_link/4]).
 
+-export([accept/2]).
+
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -99,6 +101,11 @@
 start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
+
+%% @equiv erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept)
+-spec accept(scheduler_info(), call_subscribe()) -> ok | {error, term()}.
+accept(SchedulerInfo, CallAccept) ->
+    erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
 
 %% gen_server callback functions.
 
