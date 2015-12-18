@@ -4,7 +4,7 @@
 
 -include("erl_mesos_obj.hrl").
 
--export([subscribe/2]).
+-export([subscribe/2, accept/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -25,6 +25,12 @@ subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     Call = #call{type = <<"SUBSCRIBE">>, subscribe = CallSubscribeObj},
     CallObj = call_obj(SchedulerInfo, Call),
     request(SchedulerInfo1, CallObj).
+
+accept(#scheduler_info{subscribed = false}, _CallAccept) ->
+    {error, not_subscribed};
+accept(_SchedulerInfo, _CallAccept) ->
+    ok.
+
 
 %% Internal functions.
 
