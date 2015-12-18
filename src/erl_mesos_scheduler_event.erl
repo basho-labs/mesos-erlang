@@ -29,6 +29,13 @@ parse_event(#event{type = <<"OFFERS">>,
                    offers = EventOffersObj} = Event) ->
     EventOffers = parse_event_offers_obj(EventOffersObj),
     Event#event{type = offers, offers = EventOffers};
+parse_event(#event{type = <<"RESCIND">>,
+                   rescind = EventRescindObj} = Event) ->
+    EventRescind = ?ERL_MESOS_OBJ_TO_RECORD(event_rescind, EventRescindObj),
+    OfferId = ?ERL_MESOS_OBJ_TO_RECORD(offer_id,
+                                       EventRescind#event_rescind.offer_id),
+    EventRescind1 = EventRescind#event_rescind{offer_id = OfferId},
+    Event#event{type = rescind, rescind = EventRescind1};
 parse_event(#event{type = <<"HEARTBEAT">>} = Event) ->
     Event#event{type = heartbeat}.
 

@@ -17,7 +17,7 @@
          registered/1,
          disconnected/1,
          reregistered/1,
-%%          resource_offers/1,
+         resource_offers/1,
 %%          offer_rescinded/1,
          error/1]).
 
@@ -32,8 +32,8 @@ all() ->
 groups() ->
     [{mesos_cluster, [registered,
                       disconnected,
-                      reregistered
-                      %resource_offers,
+                      reregistered,
+                      resource_offers
                       %offer_rescinded%,
                       %error
                      ]}].
@@ -248,68 +248,70 @@ reregistered(Config) ->
     #state{callback = reregistered} = scheduler_state(FormatState2),
     ok = stop_scheduler(Ref1, Config).
 
-%% resource_offers(Config) ->
-%%     ct:pal("Resource offers test cases"),
-%%     Ref = {erl_mesos_scheduler, resource_offers},
-%%     Scheduler = ?config(scheduler, Config),
-%%     SchedulerOptions = ?config(scheduler_options, Config),
-%%     SchedulerOptions1 = set_test_pid(SchedulerOptions),
-%%     Options = ?config(options, Config),
-%%     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
-%%     {registered, SchedulerPid, _, _} = recv_reply(),
-%%     mesos_cluster_start_slave(Config),
-%%     timer:sleep(5000),
-%%     {resource_offers, SchedulerPid, SchedulerInfo, EventOffers} = recv_reply(),
-%%     %% Test scheduler info.
-%%     #scheduler_info{subscribed = true} = SchedulerInfo,
-%%     %% Test event offer.
-%%     #event_offers{offers = Offers} = EventOffers,
-%%     [Offer | _] = Offers,
-%%     #offer{id = Id,
-%%            framework_id = FrameworkId,
-%%            agent_id = AgentId,
-%%            hostname = Hostname,
-%%            url = Url,
-%%            resources = Resources,
-%%            attributes = undefined,
-%%            executor_ids = undefined,
-%%            unavailability = undefined} = Offer,
-%%     #offer_id{value = OfferIdValue} = Id,
-%%     true = is_binary(OfferIdValue),
-%%     #framework_id{value = FrameworkIdValue} = FrameworkId,
-%%     true = is_binary(FrameworkIdValue),
-%%     #agent_id{value = AgentIdValue} = AgentId,
-%%     true = is_binary(AgentIdValue),
-%%     true = is_binary(Hostname),
-%%     true = is_record(Url, url),
-%%     ResourceFun = fun(#resource{name = Name,
-%%                                 type = Type,
-%%                                 scalar = Scalar,
-%%                                 ranges = Ranges}) ->
-%%                         true = is_binary(Name),
-%%                         true = is_binary(Type),
-%%                         case Type of
-%%                             <<"SCALAR">> ->
-%%                                 #value_scalar{value = ScalarValue} = Scalar,
-%%                                 true = is_float(ScalarValue),
-%%                                 undefined = Ranges;
-%%                             <<"RANGES">> ->
-%%                                 undefined = Scalar,
-%%                                 #value_ranges{range = ValueRanges} = Ranges,
-%%                                 [ValueRange | _] = ValueRanges,
-%%                                 #value_range{'begin' = ValueRangeBegin,
-%%                                              'end' = ValueRangeEnd} =
-%%                                     ValueRange,
-%%                                 true = is_integer(ValueRangeBegin),
-%%                                 true = is_integer(ValueRangeEnd)
-%%                         end
-%%                   end,
-%%     lists:map(ResourceFun, Resources),
-%%     %% Test scheduler state.
-%%     FormatState = format_state(SchedulerPid),
-%%     #state{callback = resource_offers} = scheduler_state(FormatState),
-%%     mesos_cluster_stop_slave(Config),
-%%     ok = stop_scheduler(Ref).
+resource_offers(Config) ->
+    log("Resource offers test cases", Config),
+    Ref = {erl_mesos_scheduler, resource_offers},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    stop_mesos_slave(Config),
+    start_mesos_slave(Config),
+    timer:sleep(5000),
+    {resource_offers, SchedulerPid, SchedulerInfo, EventOffers} = recv_reply(),
+    %% Test scheduler info.
+    #scheduler_info{subscribed = true} = SchedulerInfo,
+    %% Test event offer.
+    #event_offers{offers = Offers} = EventOffers,
+    [Offer | _] = Offers,
+    #offer{id = Id,
+           framework_id = FrameworkId,
+           agent_id = AgentId,
+           hostname = Hostname,
+           url = Url,
+           resources = Resources,
+           attributes = undefined,
+           executor_ids = undefined,
+           unavailability = undefined} = Offer,
+    #offer_id{value = OfferIdValue} = Id,
+    true = is_binary(OfferIdValue),
+    #framework_id{value = FrameworkIdValue} = FrameworkId,
+    true = is_binary(FrameworkIdValue),
+    #agent_id{value = AgentIdValue} = AgentId,
+    true = is_binary(AgentIdValue),
+    true = is_binary(Hostname),
+    true = is_record(Url, url),
+    ResourceFun = fun(#resource{name = Name,
+                                type = Type,
+                                scalar = Scalar,
+                                ranges = Ranges}) ->
+                        true = is_binary(Name),
+                        true = is_binary(Type),
+                        case Type of
+                            <<"SCALAR">> ->
+                                #value_scalar{value = ScalarValue} = Scalar,
+                                true = is_float(ScalarValue),
+                                undefined = Ranges;
+                            <<"RANGES">> ->
+                                undefined = Scalar,
+                                #value_ranges{range = ValueRanges} = Ranges,
+                                [ValueRange | _] = ValueRanges,
+                                #value_range{'begin' = ValueRangeBegin,
+                                             'end' = ValueRangeEnd} =
+                                    ValueRange,
+                                true = is_integer(ValueRangeBegin),
+                                true = is_integer(ValueRangeEnd)
+                        end
+                  end,
+    lists:map(ResourceFun, Resources),
+    %% Test scheduler state.
+    FormatState = format_state(SchedulerPid),
+    #state{callback = resource_offers} = scheduler_state(FormatState),
+    stop_mesos_slave(Config),
+    ok = stop_scheduler(Ref, Config).
 %%
 %% offer_rescinded(Config) ->
 %%     ct:pal("Offer rescinded test cases"),
@@ -380,8 +382,7 @@ stop_mesos_cluster(Config) ->
     log("Stop test mesos cluster.~n"
         "Output: ~s~n",
         [StopRes],
-        Config),
-    ok.
+        Config).
 
 stop_mesos_master(MasterContainer, Config) ->
     StopRes = erl_mesos_cluster:stop_master(MasterContainer, Config),
@@ -397,6 +398,24 @@ stop_mesos_master(MasterContainer, Config) ->
 master_container(MasterHost, Config) ->
     {ok, Masters} = erl_mesos_cluster:config(masters, Config),
     proplists:get_value(binary_to_list(MasterHost), Masters).
+
+start_mesos_slave(Config) ->
+    StartRes = erl_mesos_cluster:start_slave(Config),
+    log("Start test mesos slave.~n"
+        "Output: ~s~n",
+        [StartRes],
+        Config),
+    {ok, SlaveStartTimeout} = erl_mesos_cluster:config(slave_start_timeout,
+                                                       Config),
+    timer:sleep(SlaveStartTimeout).
+
+stop_mesos_slave(Config) ->
+    StopRes = erl_mesos_cluster:stop_slave(Config),
+    log("Stop test mesos slave.~n"
+        "Output: ~s~n",
+        [StopRes],
+        Config).
+
 
 start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Config) ->
     log("Start scheduler~n"

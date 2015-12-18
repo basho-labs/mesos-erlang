@@ -550,17 +550,14 @@ apply_event(Obj, #state{master_host = MasterHost,
             State1 = State#state{heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(set_subscribed(State1)),
             call(reregistered, State2);
-%%         {offers, OffersEvent} ->
-%%             call(resource_offers, OffersEvent, State);
-%%         {rescind, RescindEvent} ->
-%%             call(offer_rescinded, RescindEvent, State);
+        #event{type = offers, offers = EventOffers} ->
+            call(resource_offers, EventOffers, State);
+        #event{type = rescind, rescind = EventRescind} ->
+            call(offer_rescinded, EventRescind, State);
 %%         {error, ErrorEvent} ->
 %%             call(error, ErrorEvent, State);
         #event{type = heartbeat} ->
-            {ok, set_heartbeat_timer(State)};
-        Event ->
-            io:format("New unhandled event arrived: ~p~n", [Event]),
-            {ok, State}
+            {ok, set_heartbeat_timer(State)}
     end.
 
 %% @doc Returns heartbeat timeout.
