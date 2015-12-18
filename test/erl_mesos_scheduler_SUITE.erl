@@ -18,7 +18,7 @@
          disconnected/1,
          reregistered/1,
          resource_offers/1,
-%%          offer_rescinded/1,
+         offer_rescinded/1,
          error/1]).
 
 -record(state, {callback,
@@ -33,10 +33,9 @@ groups() ->
     [{mesos_cluster, [registered,
                       disconnected,
                       reregistered,
-                      resource_offers
-                      %offer_rescinded%,
-                      %error
-                     ]}].
+                      resource_offers,
+                      offer_rescinded,
+                      error]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -312,32 +311,34 @@ resource_offers(Config) ->
     #state{callback = resource_offers} = scheduler_state(FormatState),
     stop_mesos_slave(Config),
     ok = stop_scheduler(Ref, Config).
-%%
-%% offer_rescinded(Config) ->
-%%     ct:pal("Offer rescinded test cases"),
-%%     Ref = {erl_mesos_scheduler, offer_rescinded},
-%%     Scheduler = ?config(scheduler, Config),
-%%     SchedulerOptions = ?config(scheduler_options, Config),
-%%     SchedulerOptions1 = set_test_pid(SchedulerOptions),
-%%     Options = ?config(options, Config),
-%%     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options),
-%%     {registered, SchedulerPid, _, _} = recv_reply(),
-%%     mesos_cluster_start_slave(Config),
-%%     timer:sleep(5000),
-%%     {resource_offers, SchedulerPid, _SchedulerInfo, _OffersEvent} =
-%%         recv_reply(),
-%%     %% Test scheduler info.
-%%     mesos_cluster_stop_slave(Config),
-%%     {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind} = recv_reply(),
-%%     #scheduler_info{subscribed = true} = SchedulerInfo,
-%%     %% Test event rescind.
-%%     #event_rescind{offer_id = OfferId} = EventRescind,
-%%     #offer_id{value = Value} = OfferId,
-%%     true = is_binary(Value),
-%%     %% Test scheduler state.
-%%     FormatState = format_state(SchedulerPid),
-%%     #state{callback = offer_rescinded} = scheduler_state(FormatState),
-%%     ok = stop_scheduler(Ref).
+
+offer_rescinded(Config) ->
+    log("Offer rescinded test cases", Config),
+    Ref = {erl_mesos_scheduler, offer_rescinded},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    stop_mesos_slave(Config),
+    start_mesos_slave(Config),
+    timer:sleep(5000),
+    {resource_offers, SchedulerPid, _SchedulerInfo, _OffersEvent} =
+        recv_reply(),
+    %% Test scheduler info.
+    stop_mesos_slave(Config),
+    {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind} = recv_reply(),
+    #scheduler_info{subscribed = true} = SchedulerInfo,
+    %% Test event rescind.
+    #event_rescind{offer_id = OfferId} = EventRescind,
+    #offer_id{value = Value} = OfferId,
+    true = is_binary(Value),
+    %% Test scheduler state.
+    FormatState = format_state(SchedulerPid),
+    #state{callback = offer_rescinded} = scheduler_state(FormatState),
+    ok = stop_scheduler(Ref, Config).
 
 error(Config) ->
     log("Error test cases test cases", Config),
@@ -433,29 +434,6 @@ stop_scheduler(Ref, Config) ->
         [Ref],
         Config),
     erl_mesos:stop_scheduler(Ref).
-
-%% stop_mesos_master(Config, MasterContainer) ->
-%%     StopRes = erl_mesos_cluster:stop_master(Config, MasterContainer),
-%%     ct:pal("Stop test mesos master.~n"
-%%            "Master container: ~s~n"
-%%            "Output: ~s~n",
-%%            [MasterContainer, StopRes]),
-%%     ok.
-%%
-%% start_mesos_slave(Config) ->
-%%     erl_mesos_cluster:start_slave(Config).
-%%
-%% stop_mesos_slave(Config) ->
-%%     erl_mesos_cluster:stop_slave(Config).
-%%
-%% mesos_cluster_start_timeout_sleep(Config) ->
-%%     {ok, StartTimeout} = erl_mesos_cluster:config(start_timeout, Config),
-%%     timer:sleep(StartTimeout).
-%%
-%% mesos_cluster_leader_choose_timeout_sleep(Config) ->
-%%     {ok, LeaderChooseTimeout} = erl_mesos_cluster:config(leader_choose_timeout,
-%%                                                          Config),
-%%     timer:sleep(LeaderChooseTimeout).
 
 set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].

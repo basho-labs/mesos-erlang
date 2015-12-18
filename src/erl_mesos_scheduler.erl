@@ -554,8 +554,8 @@ apply_event(Obj, #state{master_host = MasterHost,
             call(resource_offers, EventOffers, State);
         #event{type = rescind, rescind = EventRescind} ->
             call(offer_rescinded, EventRescind, State);
-%%         {error, ErrorEvent} ->
-%%             call(error, ErrorEvent, State);
+        #event{type = error, error = EventError} ->
+            call(error, EventError, State);
         #event{type = heartbeat} ->
             {ok, set_heartbeat_timer(State)}
     end.
