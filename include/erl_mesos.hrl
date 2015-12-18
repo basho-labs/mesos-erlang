@@ -1,11 +1,3 @@
-%% Scheduler info.
--record(scheduler_info, {data_format :: erl_mesos_data_format:data_format(),
-                         api_version :: erl_mesos_scheduler_call:version(),
-                         master_host :: binary(),
-                         request_options :: erl_mesos_http:options(),
-                         subscribed :: boolean(),
-                         framework_id :: framework_id()}).
-
 %% Offer id.
 -record(offer_id, {value :: erl_mesos_obj:data_string()}).
 
@@ -223,6 +215,14 @@
                                            erl_mesos_obj:data_obj(),
                          force :: undefined | boolean()}).
 
+%% Scheduler info.
+-record(scheduler_info, {data_format :: erl_mesos_data_format:data_format(),
+                         api_version :: erl_mesos_scheduler_call:version(),
+                         master_host :: binary(),
+                         request_options :: erl_mesos_http:options(),
+                         subscribed :: boolean(),
+                         framework_id :: framework_id()}).
+
 -type offer_id() :: #offer_id{}.
 -export_type([offer_id/0]).
 
@@ -237,9 +237,6 @@
 
 -type labels() :: #labels{}.
 -export_type([labels/0]).
-
--type scheduler_info() :: #scheduler_info{}.
--export_type([scheduler_info/0]).
 
 -type framework_info() :: #framework_info{}.
 -export_type([framework_info/0]).
@@ -342,3 +339,6 @@
 
 -type event_error() :: #event_error{}.
 -export_type([event_error/0]).
+
+-type scheduler_info() :: #scheduler_info{}.
+-export_type([scheduler_info/0]).

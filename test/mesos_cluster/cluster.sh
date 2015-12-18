@@ -45,7 +45,6 @@ function start {
 
 function stop {
     docker_compose_path=$(script_dir)"/cluster.yml"
-    # We should use kill here for immediately cluster stop.
     docker-compose -f "$docker_compose_path" kill
     docker-compose -f "$docker_compose_path" rm -f
 }
@@ -56,7 +55,7 @@ function restart {
 }
 
 function stop_master {
-    docker stop "$1"
+    docker kill "$1"
 }
 
 function start_slave {
