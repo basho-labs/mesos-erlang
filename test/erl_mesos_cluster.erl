@@ -37,7 +37,7 @@ stop(Config) ->
     ClusterPath = cluster_path(Config),
     os:cmd(ClusterPath ++ " stop").
 
-stop_master(Config, MasterContainer) ->
+stop_master(MasterContainer, Config) ->
     ClusterPath = cluster_path(Config),
     os:cmd(ClusterPath ++ " stop_master " ++ MasterContainer).
 
