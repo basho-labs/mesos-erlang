@@ -176,7 +176,8 @@
                                                   erl_mesos_obj:data_obj()]}).
 
 %% Event.
--record(event, {type :: subscribed | offers | rescind | error | heartbeat |
+-record(event, {type :: subscribed | offers | rescind | update | message |
+                        failure | error | heartbeat |
                         erl_mesos_obj:data_string(),
                 subscribed :: undefined | event_subscribed() |
                               erl_mesos_obj:data_obj(),
@@ -319,12 +320,6 @@
 -type inverse_offer() :: #inverse_offer{}.
 -export_type([inverse_offer/0]).
 
--type call() :: #call{}.
--export_type([call/0]).
-
--type call_subscribe() :: #call_subscribe{}.
--export_type([call_subscribe/0]).
-
 -type event() :: #event{}.
 -export_type([event/0]).
 
@@ -339,6 +334,12 @@
 
 -type event_error() :: #event_error{}.
 -export_type([event_error/0]).
+
+-type call() :: #call{}.
+-export_type([call/0]).
+
+-type call_subscribe() :: #call_subscribe{}.
+-export_type([call_subscribe/0]).
 
 -type scheduler_info() :: #scheduler_info{}.
 -export_type([scheduler_info/0]).
