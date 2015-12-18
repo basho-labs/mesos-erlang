@@ -8,6 +8,7 @@
          registered/3,
          reregistered/2,
          disconnected/2,
+         resource_offers/3,
          error/3,
          handle_info/3,
          terminate/3]).
@@ -42,6 +43,31 @@ disconnected(SchedulerInfo, State) ->
              [SchedulerInfo, State]),
     {ok, disconnected_state}.
 
+resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
+    [#offer{id = #offer_id{value = OfferIdValue},
+            agent_id = #agent_id{value = AgentIdValue}} | _] = Offers,
+
+    OfferIdObj = erl_mesos_obj:new([{<<"value">>, OfferIdValue}]),
+    AgentIdObj = erl_mesos_obj:new([{<<"value">>, AgentIdValue}]),
+    TaskIdObj = erl_mesos_obj:new([{<<"value">>, <<"1">>}]),
+
+    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"file:/test_executor">>}]),
+
+    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]}]),
+    TaskInfoObj = erl_mesos_obj:new([{<<"name">>, <<"TEST TASK">>},
+                                     {<<"task_id">>, TaskIdObj},
+                                     {<<"agent_id">>, AgentIdObj},
+                                     {<<"command">>, CommandInfoObj}]),
+    LaunchObj = erl_mesos_obj:new([{<<"task_infos">>, [TaskInfoObj]}]),
+    OfferOperationObj = erl_mesos_obj:new([{<<"type">>, <<"LAUNCH">>},
+                                           {<<"launch">>, LaunchObj}]),
+
+    CallAccept = #call_accept{offer_ids = [OfferIdObj], operations = [OfferOperationObj]},
+    Result = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
+    io:format("~n~nResult ~p~n~n", [Result]),
+    erlang:send_after(5000, self(), stop),
+    {ok, State}.
+
 error(SchedulerInfo, #event_error{} = EventError, State) ->
     call_log("== Error callback~n"
              "== Scheduler info: ~p~n"
@@ -52,9 +78,6 @@ error(SchedulerInfo, #event_error{} = EventError, State) ->
 
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
-%% handle_info(SchedulerInfo, teardown, _State) ->
-%%     ok = erl_mesos_scheduler:teardown(SchedulerInfo),
-%%     {ok, handle_info_state};
 handle_info(SchedulerInfo, Info, State) ->
     call_log("== Info callback~n"
              "== Scheduler info: ~p~n"
