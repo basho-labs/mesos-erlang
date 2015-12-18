@@ -22,12 +22,20 @@
                                erl_mesos_obj:data_obj(),
                type :: erl_mesos_obj:data_string(),
                subscribe :: undefined | call_subscribe() |
-                            erl_mesos_obj:data_obj()}).
+                            erl_mesos_obj:data_obj(),
+               accept :: undefined | call_accept() |
+                         erl_mesos_obj:data_obj()}).
 
 %% Call subscribe.
 -record(call_subscribe, {framework_info :: framework_info() |
                                            erl_mesos_obj:data_obj(),
                          force :: undefined | boolean()}).
+
+%% Call accept.
+-record(call_accept, {offer_ids :: undefined |
+                                   [offer_id() | erl_mesos_obj:data_obj()],
+                      operations :: undefined | [erl_mesos_obj:data_obj()],
+                      filters :: undefined | erl_mesos_obj:data_obj()}).
 
 %% Duration info.
 -record(duration_info, {nanoseconds :: non_neg_integer}).
@@ -238,6 +246,9 @@
 
 -type call_subscribe() :: #call_subscribe{}.
 -export_type([call_subscribe/0]).
+
+-type call_accept() :: #call_accept{}.
+-export_type([call_accept/0]).
 
 -type duration_info() :: #duration_info{}.
 -export_type([duration_info/0]).
