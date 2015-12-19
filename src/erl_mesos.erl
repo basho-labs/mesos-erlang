@@ -11,13 +11,13 @@
 %% @doc Starts app with deps.
 -spec start() -> ok.
 start() ->
-    ok = application:start(asn1),
-    ok = application:start(crypto),
-    ok = application:start(public_key),
-    ok = application:start(ssl),
-    ok = application:start(idna),
-    ok = application:start(hackney),
-    ok = application:start(erl_mesos).
+    ok = application:ensure_started(asn1),
+    ok = application:ensure_started(crypto),
+    ok = application:ensure_started(public_key),
+    ok = application:ensure_started(ssl),
+    ok = application:ensure_started(idna),
+    ok = application:ensure_started(hackney),
+    ok = application:ensure_started(erl_mesos).
 
 %% @equiv erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options,
 %%                                  infinity).
