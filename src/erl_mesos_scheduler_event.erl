@@ -331,7 +331,6 @@ parse_attribute_objs(undefined) ->
 parse_attribute_objs(AttributeObjs) ->
     [parse_attribute_obj(AttributeObj) || AttributeObj <- AttributeObjs].
 
-
 %% @doc Parses attribute obj.
 %% @private
 -spec parse_attribute_obj(erl_mesos_obj:data_obj()) -> attribute().
