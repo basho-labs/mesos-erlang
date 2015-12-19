@@ -13,11 +13,11 @@
 -type client_ref() :: hackney:client_ref().
 -export_type([client_ref/0]).
 
--type async_response() :: {status, non_neg_integer(), binary()} |
-                          {headers, headers()} |
-                          binary() |
-                          done |
-                          {error, term()}.
+-type response() :: {status, non_neg_integer(), binary()} |
+                    {headers, headers()} |
+                    binary() |
+                    done |
+                    {error, term()}.
 
 %% External functions.
 
@@ -34,12 +34,11 @@ body(ClientRef) ->
     hackney:body(ClientRef).
 
 %% @doc Returns async response.
--spec async_response({hackney_response, client_ref(), async_response()} |
-                     term()) ->
-    {response, client_ref(), async_response()} | undefined.
+-spec async_response({async_response, client_ref(), response()} | term()) ->
+    {async_response, client_ref(), response()} | undefined.
 async_response({hackney_response, ClientRef, Response})
   when is_reference(ClientRef) ->
-    {response, ClientRef, Response};
+    {async_response, ClientRef, Response};
 async_response(_Info) ->
     undefined.
 

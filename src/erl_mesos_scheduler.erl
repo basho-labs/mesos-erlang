@@ -145,7 +145,7 @@ handle_info(Info, #state{client_ref = ClientRef,
                          resubscribe_timer_ref = ResubscribeTimerRef} =
                   State) ->
     case erl_mesos_http:async_response(Info) of
-        {response, ClientRef, Response} ->
+        {async_response, ClientRef, Response} ->
             handle_async_response(Response, State);
         undefined ->
             case Info of
