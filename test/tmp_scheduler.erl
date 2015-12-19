@@ -9,14 +9,14 @@
          reregistered/2,
          disconnected/2,
          resource_offers/3,
+         offer_rescinded/3,
          error/3,
          handle_info/3,
          terminate/3]).
 
 init(Options) ->
-    FrameworkInfo = #framework_info{user = <<"dima 123">>,
-                                    name = <<"test framework 123">>,
-                                    failover_timeout = 100000.0},
+    FrameworkInfo = #framework_info{user = <<"dima">>,
+                                    name = <<"Erlang test framework">>},
     call_log("== Init callback~n"
              "== Options: ~p~n~n", [Options]),
     {ok, FrameworkInfo, true, init_state}.
@@ -44,37 +44,62 @@ disconnected(SchedulerInfo, State) ->
     {ok, disconnected_state}.
 
 resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
+    io:format("Offers ~p~n", [Offers]),
     [#offer{id = #offer_id{value = OfferIdValue},
             agent_id = #agent_id{value = AgentIdValue}} | _] = Offers,
 
     OfferIdObj = erl_mesos_obj:new([{<<"value">>, OfferIdValue}]),
+
     AgentIdObj = erl_mesos_obj:new([{<<"value">>, AgentIdValue}]),
+
     TaskIdObj = erl_mesos_obj:new([{<<"value">>, <<"1">>}]),
 
-    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"file:/test_executor">>}]),
+    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"test-executor">>}]),
+    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]},
+                                        {<<"shall">>, true}]),
 
-    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]}]),
+%%    CommandInfoObj = erl_mesos_obj:new([{<<"shall">>, true},
+%%                                        {<<"value">>, <<"echo 'HELLO WORLD'">>}]),
+
+    CpuScalarObj = erl_mesos_obj:new([{<<"value">>, 0.1}]),
+
+    ResourceCpuObj = erl_mesos_obj:new([{<<"name">>, <<"cpus">>},
+                                        {<<"type">>, <<"SCALAR">>},
+                                        {<<"scalar">>, CpuScalarObj}]),
+
     TaskInfoObj = erl_mesos_obj:new([{<<"name">>, <<"TEST TASK">>},
                                      {<<"task_id">>, TaskIdObj},
                                      {<<"agent_id">>, AgentIdObj},
-                                     {<<"command">>, CommandInfoObj}]),
+                                     {<<"command">>, CommandInfoObj},
+                                     {<<"resources">>, [ResourceCpuObj]}]),
+
     LaunchObj = erl_mesos_obj:new([{<<"task_infos">>, [TaskInfoObj]}]),
+
     OfferOperationObj = erl_mesos_obj:new([{<<"type">>, <<"LAUNCH">>},
                                            {<<"launch">>, LaunchObj}]),
 
-    CallAccept = #call_accept{offer_ids = [OfferIdObj], operations = [OfferOperationObj]},
+    CallAccept = #call_accept{offer_ids = [OfferIdObj],
+                              operations = [OfferOperationObj]},
     Result = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
     io:format("~n~nResult ~p~n~n", [Result]),
     erlang:send_after(5000, self(), stop),
     {ok, State}.
 
+offer_rescinded(SchedulerInfo, #event_rescind{} = EventRescind, State) ->
+    call_log("== Offer rescinded callback~n"
+             "== Scheduler info: ~p~n"
+             "== Event rescind: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, EventRescind, State]),
+    {ok, State}.
+
 error(SchedulerInfo, #event_error{} = EventError, State) ->
     call_log("== Error callback~n"
              "== Scheduler info: ~p~n"
-             "== Event error : ~p~n"
+             "== Event error: ~p~n"
              "== State: ~p~n~n",
              [SchedulerInfo, EventError, State]),
-    {ok, error_state}.
+    {stop, State}.
 
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
