@@ -54,12 +54,13 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
 
     TaskIdObj = erl_mesos_obj:new([{<<"value">>, <<"1">>}]),
 
-    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"test-executor">>}]),
-    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]},
-                                        {<<"shall">>, true}]),
+%%    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"test-executor">>}]),
+%%    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]},
+%%                                        {<<"shall">>, false}]),
 
-%%    CommandInfoObj = erl_mesos_obj:new([{<<"shall">>, true},
-%%                                        {<<"value">>, <<"echo 'HELLO WORLD'">>}]),
+    CommandValue = <<"while true; do echo 'Test task is running...'; sleep 1; done">>,
+    CommandInfoObj = erl_mesos_obj:new([{<<"shall">>, true},
+                                        {<<"value">>, CommandValue}]),
 
     CpuScalarObj = erl_mesos_obj:new([{<<"value">>, 0.1}]),
 
