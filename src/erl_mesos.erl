@@ -4,7 +4,7 @@
 
 -export([start/0]).
 
--export([start_scheduler/4, stop_scheduler/1]).
+-export([start_scheduler/4, start_scheduler/5, stop_scheduler/1]).
 
 -export([start/2, stop/1]).
 
@@ -19,15 +19,24 @@ start() ->
     ok = application:start(hackney),
     ok = application:start(erl_mesos).
 
-%% @equiv erl_mesos_scheduler_manager:start_scheduler(Ref, Scheduler,
-%%                                                    SchedulerOptions,
-%%                                                    Options).
+%% @equiv erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options,
+%%                                  infinity).
 -spec start_scheduler(term(), module(), term(),
                       erl_mesos_scheduler:options()) ->
     {ok, pid()} | {error, term()}.
 start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
+    start_scheduler(Ref, Scheduler, SchedulerOptions, Options, infinity).
+
+%% @equiv erl_mesos_scheduler_manager:start_scheduler(Ref, Scheduler,
+%%                                                    SchedulerOptions,
+%%                                                    Options, Timeout).
+-spec start_scheduler(term(), module(), term(),
+                      erl_mesos_scheduler:options(), timeout()) ->
+    {ok, pid()} | {error, term()}.
+start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Timeout) ->
     erl_mesos_scheduler_manager:start_scheduler(Ref, Scheduler,
-                                                SchedulerOptions, Options).
+                                                SchedulerOptions, Options,
+                                                Timeout).
 
 %% @equiv erl_mesos_scheduler_manager:stop_scheduler(Ref).
 -spec stop_scheduler(term())  -> ok | {error, term()}.

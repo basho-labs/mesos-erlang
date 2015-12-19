@@ -4,7 +4,7 @@
 
 -export([start_link/0]).
 
--export([start_scheduler/4, stop_scheduler/1]).
+-export([start_scheduler/5, stop_scheduler/1]).
 
 -export([init/1,
          handle_call/3,
@@ -28,11 +28,11 @@ start_link() ->
 
 %% @doc Starts the `erl_mesos_scheduler' process.
 -spec start_scheduler(term(), module(), term(),
-                      erl_mesos_scheduler:options()) ->
+                      erl_mesos_scheduler:options(), timeout()) ->
     {ok, pid()} | {error, term()}.
-start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
+start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Timeout) ->
     gen_server:call(?MODULE, {start_scheduler, Ref, Scheduler, SchedulerOptions,
-                              Options}).
+                              Options}, Timeout).
 
 %% @doc Stops the `erl_mesos_scheduler' process.
 -spec stop_scheduler(term()) -> ok | {error, term()}.
