@@ -185,6 +185,9 @@
                          subscribed :: boolean(),
                          framework_id :: framework_id()}).
 
+%% Task id.
+-record(task_id, {value :: erl_mesos_obj:data_string()}).
+
 %% Time info.
 -record(time_info, {nanoseconds :: non_neg_integer()}).
 
@@ -321,6 +324,9 @@
 
 -type scheduler_info() :: #scheduler_info{}.
 -export_type([scheduler_info/0]).
+
+-type task_id() :: #task_id{}.
+-export_type([task_id/0]).
 
 -type time_info() :: #time_info{}.
 -export_type([time_info/0]).
