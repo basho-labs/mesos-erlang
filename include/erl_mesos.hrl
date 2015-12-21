@@ -34,7 +34,8 @@
 %% Call accept.
 -record(call_accept, {offer_ids :: undefined |
                                    [offer_id() | erl_mesos_obj:data_obj()],
-                      operations :: undefined | [erl_mesos_obj:data_obj()],
+                      operations :: undefined | [offer_operation() |
+                                                 erl_mesos_obj:data_obj()],
                       filters :: undefined | erl_mesos_obj:data_obj()}).
 
 %% Container status.
@@ -169,6 +170,39 @@
                 unavailability :: undefined | unavailability() |
                                   erl_mesos_obj:data_obj()}).
 
+%% Offer operation.
+-record(offer_operation, {type :: erl_mesos_obj:data_string(),
+                          launch :: undefined | offer_operation_launch() |
+                                    erl_mesos_obj:data_obj(),
+                          reserve :: undefined | offer_operation_reserve() |
+                                     erl_mesos_obj:data_obj(),
+                          unreserve :: undefined | offer_operation_unreserve() |
+                                       erl_mesos_obj:data_obj(),
+                          create :: undefined | offer_operation_create() |
+                                    erl_mesos_obj:data_obj(),
+                          destroy :: undefined | offer_operation_destroy() |
+                                     erl_mesos_obj:data_obj()}).
+
+%% Offer operation launch.
+-record(offer_operation_launch, {task_infos :: [task_info() |
+                                                erl_mesos_obj:data_obj()]}).
+
+%% Offer operation reserve.
+-record(offer_operation_reserve, {resources :: [resource() |
+                                                erl_mesos_obj:data_obj()]}).
+
+%% Offer operation unreserve.
+-record(offer_operation_unreserve, {resources :: [resource() |
+                                                  erl_mesos_obj:data_obj()]}).
+
+%% Offer operation create.
+-record(offer_operation_create, {volumes :: [resource() |
+                                             erl_mesos_obj:data_obj()]}).
+
+%% Offer operation destroy.
+-record(offer_operation_destroy, {volumes :: [resource() |
+                                              erl_mesos_obj:data_obj()]}).
+
 %% Offer id.
 -record(offer_id, {value :: erl_mesos_obj:data_string()}).
 
@@ -218,6 +252,9 @@
 
 %% Task id.
 -record(task_id, {value :: erl_mesos_obj:data_string()}).
+
+%% Task info.
+-record(task_info, {}).
 
 %% Task status.
 -record(task_status, {task_id :: task_id() | erl_mesos_obj:data_obj(),
@@ -366,6 +403,24 @@
 -type offer() :: #offer{}.
 -export_type([offer/0]).
 
+-type offer_operation() :: #offer_operation{}.
+-export_type([offer_operation/0]).
+
+-type offer_operation_launch() :: #offer_operation_launch{}.
+-export_type([offer_operation_launch/0]).
+
+-type offer_operation_reserve() :: #offer_operation_reserve{}.
+-export_type([offer_operation_reserve/0]).
+
+-type offer_operation_unreserve() :: #offer_operation_unreserve{}.
+-export_type([offer_operation_unreserve/0]).
+
+-type offer_operation_create() :: #offer_operation_create{}.
+-export_type([offer_operation_create/0]).
+
+-type offer_operation_destroy() :: #offer_operation_destroy{}.
+-export_type([offer_operation_destroy/0]).
+
 -type offer_id() :: #offer_id{}.
 -export_type([offer_id/0]).
 
@@ -392,6 +447,9 @@
 
 -type task_id() :: #task_id{}.
 -export_type([task_id/0]).
+
+-type task_info() :: #task_info{}.
+-export_type([task_info/0]).
 
 -type task_status() :: #task_status{}.
 -export_type([task_status/0]).
