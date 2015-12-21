@@ -37,6 +37,10 @@
                       operations :: undefined | [erl_mesos_obj:data_obj()],
                       filters :: undefined | erl_mesos_obj:data_obj()}).
 
+%% Container status.
+-record(container_status, {network_infos :: [network_info() |
+                                             erl_mesos_obj:data_obj()]}).
+
 %% Duration info.
 -record(duration_info, {nanoseconds :: non_neg_integer}).
 
@@ -49,6 +53,7 @@
                 offers :: undefined | event_offers() | erl_mesos_obj:data_obj(),
                 rescind :: undefined | event_rescind() |
                            erl_mesos_obj:data_obj(),
+                update :: undefined | event_update() | erl_mesos_obj:data_obj(),
                 error :: undefined | event_error() | erl_mesos_obj:data_obj()}).
 
 %% Event subscribed.
@@ -65,6 +70,9 @@
 
 %% Event rescind.
 -record(event_rescind, {offer_id :: offer_id() | erl_mesos_obj:data_obj()}).
+
+%% Error update.
+-record(event_update, {status :: task_status() | erl_mesos_obj:data_obj()}).
 
 %% Error event.
 -record(event_error, {message :: erl_mesos_obj:data_string()}).
@@ -97,6 +105,7 @@
 %% Image.
 -record(image, {type :: erl_mesos_obj:data_string(),
                 appc :: undefined | image_appc() | erl_mesos_obj:data_obj(),
+                %% since 0.26.0
                 docker :: undefined | image_docker() |
                           erl_mesos_obj:data_obj()}).
 
@@ -127,6 +136,23 @@
 
 %% Labels.
 -record(labels, {labels :: [label() | erl_mesos_obj:data_obj()]}).
+
+%% Network info.
+-record(network_info, {ip_addresses :: undefined | [network_info_ip_address() |
+                                                    erl_mesos_obj:data_obj()],
+                       %% deprecated since 0.26.0
+                       protocol :: undefined | erl_mesos_obj:data_string(),
+                       %% deprecated since 0.26.0
+                       ip_address :: undefined | erl_mesos_obj:data_string(),
+                       groups :: undefined | [erl_mesos_obj:data_string()],
+                       labels :: undefined | labels() |
+                                 erl_mesos_obj:data_obj()}).
+
+%% Network info ip address.
+-record(network_info_ip_address, {protocol :: undefined |
+                                              erl_mesos_obj:data_string(),
+                                  ip_address :: undefined |
+                                                erl_mesos_obj:data_string()}).
 
 %% Offer.
 -record(offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
@@ -193,6 +219,25 @@
 %% Task id.
 -record(task_id, {value :: erl_mesos_obj:data_string()}).
 
+%% Task status.
+-record(task_status, {task_id :: task_id() | erl_mesos_obj:data_obj(),
+                      state :: erl_mesos_obj:data_string(),
+                      message :: undefined | erl_mesos_obj:data_string(),
+                      source :: undefined | erl_mesos_obj:data_string(),
+                      reason :: undefined | erl_mesos_obj:data_string(),
+                      data :: undefined | erl_mesos_obj:data_string(),
+                      agent_id :: undefined | agent_id() |
+                                  erl_mesos_obj:data_obj(),
+                      executor_id :: undefined | executor_id() |
+                                     erl_mesos_obj:data_obj(),
+                      timestamp :: undefined | float(),
+                      uuid :: undefined | erl_mesos_obj:data_string(),
+                      healthy :: undefined | boolean(),
+                      labels :: undefined | labels() | erl_mesos_obj:data_obj(),
+                      %% since 0.26.0
+                      container_status :: undefined | container_status() |
+                                          erl_mesos_obj:data_obj()}).
+
 %% Time info.
 -record(time_info, {nanoseconds :: non_neg_integer()}).
 
@@ -258,6 +303,9 @@
 -type call_accept() :: #call_accept{}.
 -export_type([call_accept/0]).
 
+-type container_status() :: #container_status{}.
+-export_type([container_status/0]).
+
 -type duration_info() :: #duration_info{}.
 -export_type([duration_info/0]).
 
@@ -272,6 +320,9 @@
 
 -type event_rescind() :: #event_rescind{}.
 -export_type([event_rescind/0]).
+
+-type event_update() :: #event_update{}.
+-export_type([event_update/0]).
 
 -type event_error() :: #event_error{}.
 -export_type([event_error/0]).
@@ -306,6 +357,12 @@
 -type labels() :: #labels{}.
 -export_type([labels/0]).
 
+-type network_info() :: #network_info{}.
+-export_type([network_info/0]).
+
+-type network_info_ip_address() :: #network_info_ip_address{}.
+-export_type([network_info_ip_address/0]).
+
 -type offer() :: #offer{}.
 -export_type([offer/0]).
 
@@ -335,6 +392,9 @@
 
 -type task_id() :: #task_id{}.
 -export_type([task_id/0]).
+
+-type task_status() :: #task_status{}.
+-export_type([task_status/0]).
 
 -type time_info() :: #time_info{}.
 -export_type([time_info/0]).
