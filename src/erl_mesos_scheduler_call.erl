@@ -124,8 +124,51 @@ labels_obj(#labels{labels = Labels}) ->
 %% @doc Returns call accept obj.
 %% @private
 -spec call_accept_obj(call_accept()) -> erl_mesos_obj:data_obj().
-call_accept_obj(#call_accept{} = CallAccept) ->
-    ?ERL_MESOS_OBJ_FROM_RECORD(call_accept, CallAccept).
+call_accept_obj(#call_accept{offer_ids = OfferIds,
+                             operations = OfferOperations} = CallAccept) ->
+    OfferIdObjs = offer_id_objs(OfferIds),
+    OfferOperationObjs = offer_operation_objs(OfferOperations),
+    CallAccept1 = CallAccept#call_accept{offer_ids = OfferIdObjs,
+                                         operations = OfferOperationObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_accept, CallAccept1).
+
+%% @doc Returns offer id objs.
+%% @private
+-spec offer_id_objs(undefined | [offer_id()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+offer_id_objs(undefined) ->
+    undefined;
+offer_id_objs(OfferIds) ->
+    [?ERL_MESOS_OBJ_FROM_RECORD(offer_id, OfferId) || OfferId <- OfferIds].
+
+%% @doc Returns offer operation objs.
+%% @private
+-spec offer_operation_objs(undefined | [offer_operation()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+offer_operation_objs(undefined) ->
+    undefined;
+offer_operation_objs(OfferOperations) ->
+    [offer_operation_obj(OfferOperation) || OfferOperation <- OfferOperations].
+
+%% @doc Returns offer operation obj.
+%% @private
+-spec offer_operation_obj(offer_operation()) -> erl_mesos_obj:data_obj().
+offer_operation_obj(#offer_operation{launch = OfferOperationLaunch} =
+                    OfferOperation) ->
+    OfferOperationLaunchObj = offer_operation_launch_obj(OfferOperationLaunch),
+    OfferOperation1 =
+        OfferOperation#offer_operation{launch = OfferOperationLaunchObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation, OfferOperation1).
+
+%% @doc Returns offer operation launch obj.
+%% @private
+-spec offer_operation_launch_obj(undefined | offer_operation_launch()) ->
+    undefined | erl_mesos_obj:data_obj().
+offer_operation_launch_obj(undefined) ->
+    undefined;
+offer_operation_launch_obj(#offer_operation_launch{task_infos = _TaskInfos} =
+                           OfferOperationLaunch) ->
+    ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation_launch, OfferOperationLaunch).
 
 %% @doc Sends http request.
 %% @private
