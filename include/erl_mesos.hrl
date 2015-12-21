@@ -65,6 +65,17 @@
 -record(container_status, {network_infos :: [network_info() |
                                              erl_mesos_obj:data_obj()]}).
 
+%% Discovery info.
+-record(discovery_info, {visibility :: erl_mesos_obj:data_string(),
+                         name :: undefined | erl_mesos_obj:data_string(),
+                         environment :: undefined |
+                                        erl_mesos_obj:data_string(),
+                         location :: undefined | erl_mesos_obj:data_string(),
+                         version :: undefined | erl_mesos_obj:data_string(),
+                         ports :: undefined | pts() | erl_mesos_obj:data_obj(),
+                         labels :: undefined | labels() |
+                                   erl_mesos_obj:data_obj()}).
+
 %% Duration info.
 -record(duration_info, {nanoseconds :: non_neg_integer}).
 
@@ -395,6 +406,9 @@
 -type container_status() :: #container_status{}.
 -export_type([container_status/0]).
 
+-type discovery_info() :: #discovery_info{}.
+-export_type([discovery_info/0]).
+
 -type duration_info() :: #duration_info{}.
 -export_type([duration_info/0]).
 
@@ -484,6 +498,9 @@
 
 -type pt() :: #port{}.
 -export_type([pt/0]).
+
+-type pts() :: #ports{}.
+-export_type([pts/0]).
 
 -type parameter() :: #parameter{}.
 -export_type([parameter/0]).
