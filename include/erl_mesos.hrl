@@ -375,6 +375,9 @@
 -type call_accept() :: #call_accept{}.
 -export_type([call_accept/0]).
 
+-type command_info() :: #command_info{}.
+-export_type([command_info/0]).
+
 -type command_info_uri() :: #command_info_uri{}.
 -export_type([command_info_uri/0]).
 
