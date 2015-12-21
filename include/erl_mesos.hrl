@@ -38,12 +38,43 @@
                                                  erl_mesos_obj:data_obj()],
                       filters :: undefined | erl_mesos_obj:data_obj()}).
 
+%% Command info.
+-record(command_info, {container :: undefined | command_info_container_info() |
+                                    erl_mesos_obj:data_obj(),
+                       uris :: undefined | [command_info_uri() |
+                                            erl_mesos_obj:data_obj()],
+                       environment :: undefined | environment() |
+                                      erl_mesos_obj:data_obj(),
+                       shell :: undefined | boolean(),
+                       value :: undefined | erl_mesos_obj:data_string(),
+                       arguments :: undefined | [erl_mesos_obj:data_string()],
+                       user :: undefined | erl_mesos_obj:data_string()}).
+
+%% Command info uri.
+-record(command_info_uri, {value :: erl_mesos_obj:data_string(),
+                           executable :: undefined | boolean(),
+                           extract :: undefined | boolean(),
+                           cache :: undefined | boolean()}).
+
+%% Command info container info.
+-record(command_info_container_info, {image :: erl_mesos_obj:data_string(),
+                                      options :: undefined |
+                                          [erl_mesos_obj:data_string()]}).
+
 %% Container status.
 -record(container_status, {network_infos :: [network_info() |
                                              erl_mesos_obj:data_obj()]}).
 
 %% Duration info.
 -record(duration_info, {nanoseconds :: non_neg_integer}).
+
+%% Environment.
+-record(environment, {variables :: [environment_variable() |
+                                    erl_mesos_obj:data_obj()]}).
+
+%% Environment variable.
+-record(environment_variable, {name :: erl_mesos_obj:data_string(),
+                               value :: erl_mesos_obj:data_string()}).
 
 %% Event.
 -record(event, {type :: subscribed | offers | rescind | update | message |
@@ -254,7 +285,11 @@
 -record(task_id, {value :: erl_mesos_obj:data_string()}).
 
 %% Task info.
--record(task_info, {}).
+-record(task_info, {name :: erl_mesos_obj:data_string(),
+                    task_id :: task_id() | erl_mesos_obj:data_obj(),
+                    agent_id :: agent_id() | erl_mesos_obj:data_obj(),
+                    resources :: undefined | [resource() |
+                                              erl_mesos_obj:data_obj()]}).
 
 %% Task status.
 -record(task_status, {task_id :: task_id() | erl_mesos_obj:data_obj(),
@@ -340,11 +375,23 @@
 -type call_accept() :: #call_accept{}.
 -export_type([call_accept/0]).
 
+-type command_info_uri() :: #command_info_uri{}.
+-export_type([command_info_uri/0]).
+
+-type command_info_container_info() :: #command_info_container_info{}.
+-export_type([command_info_container_info/0]).
+
 -type container_status() :: #container_status{}.
 -export_type([container_status/0]).
 
 -type duration_info() :: #duration_info{}.
 -export_type([duration_info/0]).
+
+-type environment() :: #environment{}.
+-export_type([environment/0]).
+
+-type environment_variable() :: #environment_variable{}.
+-export_type([environment_variable/0]).
 
 -type event() :: #event{}.
 -export_type([event/0]).
