@@ -466,6 +466,8 @@ recv_reply() ->
             {resource_offers, SchedulerPid, SchedulerInfo, EventOffers};
         {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind} ->
             {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind};
+        {status_update, SchedulerPid, SchedulerInfo, EventUpdate} ->
+            {status_update, SchedulerPid, SchedulerInfo, EventUpdate};
         {error, SchedulerPid, SchedulerInfo, ErrorEvent} ->
             {error, SchedulerPid, SchedulerInfo, ErrorEvent};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->

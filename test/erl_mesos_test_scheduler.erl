@@ -10,6 +10,7 @@
          disconnected/2,
          resource_offers/3,
          offer_rescinded/3,
+         status_update/3,
          error/3,
          handle_info/3,
          terminate/3]).
@@ -47,6 +48,10 @@ offer_rescinded(SchedulerInfo, EventRescind,
                 #state{test_pid = TestPid} = State) ->
     reply(TestPid, {offer_rescinded, self(), SchedulerInfo, EventRescind}),
     {ok, State#state{callback = offer_rescinded}}.
+
+status_update(SchedulerInfo, EventUpdate, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {status_update, self(), SchedulerInfo, EventUpdate}),
+    {ok, State#state{callback = status_update}}.
 
 error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, EventError}),

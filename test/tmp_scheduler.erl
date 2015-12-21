@@ -10,6 +10,7 @@
          disconnected/2,
          resource_offers/3,
          offer_rescinded/3,
+         update_status/3,
          error/3,
          handle_info/3,
          terminate/3]).
@@ -84,6 +85,14 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
     Result = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
     io:format("~n~nResult ~p~n~n", [Result]),
     erlang:send_after(5000, self(), stop),
+    {ok, State}.
+
+update_status(SchedulerInfo, #event_update{} = EventUpdate, State) ->
+    call_log("== Update status callback~n"
+             "== Scheduler info: ~p~n"
+             "== Event update: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, EventUpdate, State]),
     {ok, State}.
 
 offer_rescinded(SchedulerInfo, #event_rescind{} = EventRescind, State) ->
