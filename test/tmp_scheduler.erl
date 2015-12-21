@@ -46,10 +46,8 @@ disconnected(SchedulerInfo, State) ->
 
 resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
     io:format("Offers ~p~n", [Offers]),
-    [#offer{id = #offer_id{value = OfferIdValue},
+    [#offer{id = OfferId,
             agent_id = #agent_id{value = AgentIdValue}} | _] = Offers,
-
-    OfferIdObj = erl_mesos_obj:new([{<<"value">>, OfferIdValue}]),
 
     AgentIdObj = erl_mesos_obj:new([{<<"value">>, AgentIdValue}]),
 
@@ -75,13 +73,13 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
                                      {<<"command">>, CommandInfoObj},
                                      {<<"resources">>, [ResourceCpuObj]}]),
 
-    LaunchObj = erl_mesos_obj:new([{<<"task_infos">>, [TaskInfoObj]}]),
+    Launch = #offer_operation_launch{task_infos = [TaskInfoObj]},
 
-    OfferOperationObj = erl_mesos_obj:new([{<<"type">>, <<"LAUNCH">>},
-                                           {<<"launch">>, LaunchObj}]),
+    OfferOperation = #offer_operation{type = <<"LAUNCH">>,
+                                      launch = Launch},
 
-    CallAccept = #call_accept{offer_ids = [OfferIdObj],
-                              operations = [OfferOperationObj]},
+    CallAccept = #call_accept{offer_ids = [OfferId],
+                              operations = [OfferOperation]},
     Result = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
     io:format("~n~nResult ~p~n~n", [Result]),
     erlang:send_after(5000, self(), stop),
