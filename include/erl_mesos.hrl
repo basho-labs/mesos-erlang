@@ -210,10 +210,10 @@
 
 %% Value.
 -record(value, {type :: value_type(),
-                scalar :: undefined | value_scalar(),
-                ranges :: undefined | value_ranges(),
-                set :: undefined | value_set(),
-                text :: value_text()}).
+                scalar :: undefined | value_scalar() | erl_mesos_obj:data_obj(),
+                ranges :: undefined | value_ranges() | erl_mesos_obj:data_obj(),
+                set :: undefined | value_set() | erl_mesos_obj:data_obj(),
+                text :: undefined | value_text() | erl_mesos_obj:data_obj()}).
 
 %% Value type.
 -record(value_type, {type :: erl_mesos_obj:data_string()}).
