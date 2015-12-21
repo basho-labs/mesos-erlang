@@ -36,6 +36,9 @@ parse_event(#event{type = <<"RESCIND">>,
                                        EventRescind#event_rescind.offer_id),
     EventRescind1 = EventRescind#event_rescind{offer_id = OfferId},
     Event#event{type = rescind, rescind = EventRescind1};
+parse_event(#event{type = <<"UPDATE">>, update = EventUpdateObj} = Event) ->
+    EventUpdate = parse_event_update_obj(EventUpdateObj),
+    Event#event{type = update, update = EventUpdate};
 parse_event(#event{type = <<"ERROR">>, error = EventErrorObj} = Event) ->
     EventError = ?ERL_MESOS_OBJ_TO_RECORD(event_error, EventErrorObj),
     Event#event{type = error, error = EventError};
@@ -144,8 +147,7 @@ parse_inverse_offer_obj(InverseOfferObj) ->
 
 %% @doc Parses url obj.
 %% @private
--spec parse_url_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | url().
+-spec parse_url_obj(undefined | erl_mesos_obj:data_obj()) -> undefined | url().
 parse_url_obj(UrlObj) ->
     Url = ?ERL_MESOS_OBJ_TO_RECORD(url, UrlObj),
     Address = ?ERL_MESOS_OBJ_TO_RECORD(address, Url#url.address),
@@ -395,3 +397,81 @@ parse_duration_info_obj(undefined) ->
     undefined;
 parse_duration_info_obj(DurationInfoObj) ->
     ?ERL_MESOS_OBJ_TO_RECORD(duration_info, DurationInfoObj).
+
+%% @doc Parses event update obj.
+%% @private
+-spec parse_event_update_obj(erl_mesos_obj:data_obj()) -> event_update().
+parse_event_update_obj(EventUpdateObj) ->
+    EventUpdate = ?ERL_MESOS_OBJ_TO_RECORD(event_update, EventUpdateObj),
+    TaskStatus = parse_task_status_obj(EventUpdate#event_update.status),
+    EventUpdate#event_update{status = TaskStatus}.
+
+%% @doc Parses task status obj.
+%% @private
+-spec parse_task_status_obj(erl_mesos_obj:data_obj()) -> task_status().
+parse_task_status_obj(TaskStatusObj) ->
+    TaskStatus = ?ERL_MESOS_OBJ_TO_RECORD(task_status, TaskStatusObj),
+    TaskId = ?ERL_MESOS_OBJ_TO_RECORD(task_id, TaskStatus#task_status.task_id),
+    AgentId = parse_agent_id_obj(TaskStatus#task_status.agent_id),
+    ExecutorId = parse_executor_id_obj(TaskStatus#task_status.executor_id),
+    Labels = parse_labels_obj(TaskStatus#task_status.labels),
+    ContainerStatus =
+        parse_container_status_obj(TaskStatus#task_status.container_status),
+    TaskStatus#task_status{task_id = TaskId,
+                           agent_id = AgentId,
+                           executor_id = ExecutorId,
+                           labels = Labels,
+                           container_status = ContainerStatus}.
+
+%% @doc Parses agent id obj.
+%% @private
+-spec parse_agent_id_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | agent_id().
+parse_agent_id_obj(undefined) ->
+    undefined;
+parse_agent_id_obj(AgentIdObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(agent_id, AgentIdObj).
+
+%% @doc Parses executor id obj.
+%% @private
+-spec parse_executor_id_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | executor_id().
+parse_executor_id_obj(undefined) ->
+    undefined;
+parse_executor_id_obj(ExecutorIdObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(executor_id, ExecutorIdObj).
+
+%% @doc Parses container status obj.
+%% @private
+-spec parse_container_status_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | container_status().
+parse_container_status_obj(undefined) ->
+    undefined;
+parse_container_status_obj(ContainerStatusObj) ->
+    ContainerStatus = ?ERL_MESOS_OBJ_TO_RECORD(container_status,
+                                               ContainerStatusObj),
+    ContainerStatus#container_status{network_infos =
+    [parse_network_info_obj(NetworkInfoObj) ||
+     NetworkInfoObj <- ContainerStatus#container_status.network_infos]}.
+
+%% @doc Parses network info obj.
+%% @private
+-spec parse_network_info_obj(uerl_mesos_obj:data_obj()) -> network_info().
+parse_network_info_obj(NetworkInfoObj) ->
+    NetworkInfo = ?ERL_MESOS_OBJ_TO_RECORD(network_info, NetworkInfoObj),
+    IpAddresses = parse_network_info_ip_address_objs(
+                      NetworkInfo#network_info.ip_addresses),
+    Labels = parse_labels_obj(NetworkInfo#network_info.labels),
+    NetworkInfo#network_info{ip_addresses = IpAddresses, labels = Labels}.
+
+%% @doc Parses network info ip address objs.
+%% @private
+-spec parse_network_info_ip_address_objs(undefined |
+                                         [erl_mesos_obj:data_obj()]) ->
+    undefined | [network_info_ip_address()].
+parse_network_info_ip_address_objs(undefined) ->
+    undefined;
+parse_network_info_ip_address_objs(NetworkInfoIpAddressObjs) ->
+    [?ERL_MESOS_OBJ_TO_RECORD(network_info_ip_address,
+                              NetworkInfoIpAddressObj) ||
+     NetworkInfoIpAddressObj <- NetworkInfoIpAddressObjs].
