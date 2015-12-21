@@ -246,6 +246,9 @@
                name :: undefined | erl_mesos_obj:data_string(),
                protocol :: undefined | erl_mesos_obj:data_string()}).
 
+%% Ports.
+-record(ports, {ports :: [pt() | erl_mesos_obj:data_obj()]}).
+
 %% Resource.
 -record(resource, {name :: erl_mesos_obj:data_string(),
                    type :: erl_mesos_obj:data_string(),
