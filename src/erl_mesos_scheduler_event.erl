@@ -287,7 +287,8 @@ parse_image_obj(undefined) ->
 parse_image_obj(ImageObj) ->
     Image = ?ERL_MESOS_OBJ_TO_RECORD(image, ImageObj),
     Appc = parse_image_appc_obj(Image#image.appc),
-    Image#image{appc = Appc}.
+    Docker = parse_image_docker_obj(Image#image.docker),
+    Image#image{appc = Appc, docker = Docker}.
 
 %% @doc Parses image appc obj.
 %% @private
@@ -299,6 +300,15 @@ parse_image_appc_obj(ImageAppcObj) ->
     ImageAppc = ?ERL_MESOS_OBJ_TO_RECORD(image_appc, ImageAppcObj),
     Labels = parse_labels_obj(ImageAppc#image_appc.labels),
     ImageAppc#image_appc{labels = Labels}.
+
+%% @doc Parses image docker obj.
+%% @private
+-spec parse_image_docker_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | image_docker().
+parse_image_docker_obj(undefined) ->
+    undefined;
+parse_image_docker_obj(ImageDockerObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(image_docker, ImageDockerObj).
 
 %% @doc Parses labels obj.
 %% @private

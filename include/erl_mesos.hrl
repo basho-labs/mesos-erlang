@@ -96,13 +96,18 @@
 
 %% Image.
 -record(image, {type :: erl_mesos_obj:data_string(),
-                appc :: undefined | image_appc() | erl_mesos_obj:data_obj()}).
+                appc :: undefined | image_appc() | erl_mesos_obj:data_obj(),
+                docker :: undefined | image_docker() |
+                          erl_mesos_obj:data_obj()}).
 
 %% Image appc.
 -record(image_appc, {name :: erl_mesos_obj:data_string(),
                      id :: undefined | erl_mesos_obj:data_string(),
                      labels :: undefined | labels() |
                                erl_mesos_obj:data_obj()}).
+
+%% Image docker.
+-record(image_docker, {name :: erl_mesos_obj:data_string()}).
 
 %% Inverse offer.
 -record(inverse_offer, {id :: offer_id() | erl_mesos_obj:data_obj(),
@@ -288,6 +293,9 @@
 
 -type image_appc() :: #image_appc{}.
 -export_type([image_appc/0]).
+
+-type image_docker() :: #image_docker{}.
+-export_type([image_docker/0]).
 
 -type inverse_offer() :: #inverse_offer{}.
 -export_type([inverse_offer/0]).
