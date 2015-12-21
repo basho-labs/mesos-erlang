@@ -10,13 +10,13 @@
          disconnected/2,
          resource_offers/3,
          offer_rescinded/3,
-         update_status/3,
+         status_update/3,
          error/3,
          handle_info/3,
          terminate/3]).
 
 init(Options) ->
-    FrameworkInfo = #framework_info{user = <<"dima">>,
+    FrameworkInfo = #framework_info{user = <<"root">>,
                                     name = <<"Erlang test framework">>},
     call_log("== Init callback~n"
              "== Options: ~p~n~n", [Options]),
@@ -53,7 +53,7 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
 
     AgentIdObj = erl_mesos_obj:new([{<<"value">>, AgentIdValue}]),
 
-    TaskIdObj = erl_mesos_obj:new([{<<"value">>, <<"1">>}]),
+    TaskIdObj = erl_mesos_obj:new([{<<"value">>, <<"2">>}]),
 
 %%    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"test-executor">>}]),
 %%    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]},
@@ -87,20 +87,20 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
     erlang:send_after(5000, self(), stop),
     {ok, State}.
 
-update_status(SchedulerInfo, #event_update{} = EventUpdate, State) ->
-    call_log("== Update status callback~n"
-             "== Scheduler info: ~p~n"
-             "== Event update: ~p~n"
-             "== State: ~p~n~n",
-             [SchedulerInfo, EventUpdate, State]),
-    {ok, State}.
-
 offer_rescinded(SchedulerInfo, #event_rescind{} = EventRescind, State) ->
     call_log("== Offer rescinded callback~n"
              "== Scheduler info: ~p~n"
              "== Event rescind: ~p~n"
              "== State: ~p~n~n",
              [SchedulerInfo, EventRescind, State]),
+    {ok, State}.
+
+status_update(SchedulerInfo, #event_update{} = EventUpdate, State) ->
+    call_log("== Update status callback~n"
+             "== Scheduler info: ~p~n"
+             "== Event update: ~p~n"
+             "== State: ~p~n~n",
+             [SchedulerInfo, EventUpdate, State]),
     {ok, State}.
 
 error(SchedulerInfo, #event_error{} = EventError, State) ->
