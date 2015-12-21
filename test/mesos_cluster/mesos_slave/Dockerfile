@@ -22,4 +22,4 @@ RUN cd "$DIR" && wget http://www.apache.org/dist/mesos/"$VSN"/mesos-"$VSN".tar.g
 RUN cd "$DIR" && tar -zxf mesos-"$VSN".tar.gz
 RUN cd "$DIR"/mesos-$VSN && mkdir build && cd build && ../configure && make
 
-CMD ["sh", "-c", "${DIR}/mesos-$VSN/build/bin/mesos-slave.sh ${conf}"]
+CMD ["sh", "-c", "${DIR}/mesos-$VSN/build/bin/mesos-slave.sh --resources='cpus:0.5' ${conf}"]
