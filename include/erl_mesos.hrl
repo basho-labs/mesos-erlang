@@ -241,6 +241,11 @@
 -record(parameter, {key :: erl_mesos_obj:data_string(),
                     value :: erl_mesos_obj:data_string()}).
 
+%% Port.
+-record(port, {number :: integer(),
+               name :: undefined | erl_mesos_obj:data_string(),
+               protocol :: undefined | erl_mesos_obj:data_string()}).
+
 %% Resource.
 -record(resource, {name :: erl_mesos_obj:data_string(),
                    type :: erl_mesos_obj:data_string(),
@@ -473,6 +478,9 @@
 
 -type offer_id() :: #offer_id{}.
 -export_type([offer_id/0]).
+
+-type mesos_port() :: #port{}.
+-export_type([mesos_port/0]).
 
 -type parameter() :: #parameter{}.
 -export_type([parameter/0]).
