@@ -479,8 +479,8 @@
 -type offer_id() :: #offer_id{}.
 -export_type([offer_id/0]).
 
--type mesos_port() :: #port{}.
--export_type([mesos_port/0]).
+-type pt() :: #port{}.
+-export_type([pt/0]).
 
 -type parameter() :: #parameter{}.
 -export_type([parameter/0]).
