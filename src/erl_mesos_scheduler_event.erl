@@ -456,7 +456,7 @@ parse_container_status_obj(ContainerStatusObj) ->
 
 %% @doc Parses network info obj.
 %% @private
--spec parse_network_info_obj(uerl_mesos_obj:data_obj()) -> network_info().
+-spec parse_network_info_obj(erl_mesos_obj:data_obj()) -> network_info().
 parse_network_info_obj(NetworkInfoObj) ->
     NetworkInfo = ?ERL_MESOS_OBJ_TO_RECORD(network_info, NetworkInfoObj),
     IpAddresses = parse_network_info_ip_address_objs(
