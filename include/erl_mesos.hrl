@@ -165,7 +165,7 @@
 -record(executor_info, {executor_id :: executor_id() | erl_mesos_obj:data_obj(),
                         framework_id :: undefined | framework_id() |
                                         erl_mesos_obj:data_obj(),
-                        command :: container_info() | erl_mesos_obj:data_obj(),
+                        command :: command_info() | erl_mesos_obj:data_obj(),
                         container :: undefined | container_info() |
                                      erl_mesos_obj:data_obj(),
                         resources :: undefined | [resource() |
@@ -361,7 +361,9 @@
                     task_id :: task_id() | erl_mesos_obj:data_obj(),
                     agent_id :: agent_id() | erl_mesos_obj:data_obj(),
                     resources :: undefined | [resource() |
-                                              erl_mesos_obj:data_obj()]}).
+                                              erl_mesos_obj:data_obj()],
+                    executor :: undefined | executor_info() |
+                                erl_mesos_obj:data_obj()}).
 
 %% Task status.
 -record(task_status, {task_id :: task_id() | erl_mesos_obj:data_obj(),

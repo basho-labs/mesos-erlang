@@ -180,13 +180,16 @@ offer_operation_launch_obj(#offer_operation_launch{task_infos = TaskInfos} =
 -spec task_info_obj(task_info()) -> erl_mesos_obj:data_obj().
 task_info_obj(#task_info{task_id = TaskId,
                          agent_id = AgentId,
-                         resources = Resources} = TaskInfo) ->
+                         resources = Resources,
+                         executor = ExecutorInfo} = TaskInfo) ->
     TaskIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(task_id, TaskId),
     AgentIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(agent_id, AgentId),
     ResourceObjs = resource_objs(Resources),
+    ExecutorInfoObj = executor_info_obj(ExecutorInfo),
     TaskInfo1 = TaskInfo#task_info{task_id = TaskIdObj,
                                    agent_id = AgentIdObj,
-                                   resources = ResourceObjs},
+                                   resources = ResourceObjs,
+                                   executor = ExecutorInfoObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(task_info, TaskInfo1).
 
 %% @doc Returns resource objs.
@@ -344,6 +347,77 @@ resource_revocable_info_obj(undefined) ->
     undefined;
 resource_revocable_info_obj(ResourceRevocableInfo) ->
     ?ERL_MESOS_OBJ_FROM_RECORD(resource_revocable_info, ResourceRevocableInfo).
+
+%% @doc Returns executor info obj.
+%% @private
+-spec executor_info_obj(undefined | executor_info()) ->
+    undefined | erl_mesos_obj:data_obj().
+executor_info_obj(undefined) ->
+    undefined;
+executor_info_obj(#executor_info{executor_id = ExecutorId,
+                                 framework_id = FrameworkId,
+                                 command = CommandInfo} = ExecutorInfo) ->
+    ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
+    FrameworkIdObj = framework_id_obj(FrameworkId),
+    CommandInfoObj = command_info_obj(CommandInfo),
+    ExecutorInfo1 = ExecutorInfo#executor_info{executor_id = ExecutorIdObj,
+                                               framework_id = FrameworkIdObj,
+                                               command = CommandInfoObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(executor_info, ExecutorInfo1).
+
+%% @doc Returns command info obj.
+%% @private
+-spec command_info_obj(undefined | command_info()) ->
+    undefined | erl_mesos_obj:data_obj().
+command_info_obj(undefined) ->
+    undefined;
+command_info_obj(#command_info{container = CommandInfoContainerInfo,
+                               uris = CommandInfoUris,
+                               environment = Environment} =
+                 CommandInfo) ->
+    CommandInfoContainerInfoObj =
+        command_info_container_info_obj(CommandInfoContainerInfo),
+    CommandInfoUriObjs = command_info_uri_objs(CommandInfoUris),
+    EnvironmentObj = environment_obj(Environment),
+    CommandInfo1 = CommandInfo#command_info{container =
+                                                CommandInfoContainerInfoObj,
+                                            uris = CommandInfoUriObjs,
+                                            environment = EnvironmentObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(command_info, CommandInfo1).
+
+%% @doc Returns command info container info obj.
+%% @private
+-spec command_info_container_info_obj(undefined |
+                                      command_info_container_info()) ->
+    undefined | erl_mesos_obj:data_obj().
+command_info_container_info_obj(undefined) ->
+    undefined;
+command_info_container_info_obj(CommandInfoContainerInfo) ->
+    ?ERL_MESOS_OBJ_FROM_RECORD(command_info_container_info,
+        CommandInfoContainerInfo).
+
+%% @doc Returns command info uri objs.
+%% @private
+-spec command_info_uri_objs(undefined | [command_info_uri()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+command_info_uri_objs(undefined) ->
+    undefined;
+command_info_uri_objs(CommandInfoUris) ->
+    [?ERL_MESOS_OBJ_FROM_RECORD(command_info_uri, CommandInfoUri) ||
+     CommandInfoUri <- CommandInfoUris].
+
+%% @doc Returns environment obj.
+%% @private
+-spec environment_obj(undefined | environment()) ->
+    undefined | erl_mesos_obj:data_obj().
+environment_obj(undefined) ->
+    undefined;
+environment_obj(#environment{variables = EnvironmentVariables} = Environment) ->
+    EnvironmentVariableObjs =
+        [?ERL_MESOS_OBJ_FROM_RECORD(environment_variable, EnvironmentVariable)
+         || EnvironmentVariable <- EnvironmentVariables],
+    Environment1 = Environment#environment{variables = EnvironmentVariableObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(environment, Environment1).
 
 %% %% @doc Returns discovery info obj.
 %% %% @private
