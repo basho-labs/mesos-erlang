@@ -155,9 +155,21 @@ offer_operation_objs(OfferOperations) ->
 %% @doc Returns offer operation obj.
 %% @private
 -spec offer_operation_obj(offer_operation()) -> erl_mesos_obj:data_obj().
-offer_operation_obj(#offer_operation{launch = Launch} = OfferOperation) ->
+offer_operation_obj(#offer_operation{launch = Launch,
+                                     reserve = Reserve,
+                                     unreserve = Unreserve,
+                                     create = Create,
+                                     destroy = Destroy} = OfferOperation) ->
     LaunchObj = offer_operation_launch_obj(Launch),
-    OfferOperation1 = OfferOperation#offer_operation{launch = LaunchObj},
+    ReserveObj = offer_operation_reserve_obj(Reserve),
+    UnreserveObj = offer_operation_unreserve(Unreserve),
+    CreateObj = offer_operation_create_obj(Create),
+    DestroyObj = offer_operation_destroy_obj(Destroy),
+    OfferOperation1 = OfferOperation#offer_operation{launch = LaunchObj,
+                                                     reserve = ReserveObj,
+                                                     unreserve = UnreserveObj,
+                                                     create = CreateObj,
+                                                     destroy = DestroyObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation, OfferOperation1).
 
 %% @doc Returns offer operation launch obj.
@@ -172,6 +184,60 @@ offer_operation_launch_obj(#offer_operation_launch{task_infos = TaskInfos} =
     OfferOperationLaunch1 =
         OfferOperationLaunch#offer_operation_launch{task_infos = TaskInfoObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation_launch, OfferOperationLaunch1).
+
+%% @doc Returns offer operation reserve obj.
+%% @private
+-spec offer_operation_reserve_obj(undefined | offer_operation_reserve()) ->
+    undefined | erl_mesos_obj:data_obj().
+offer_operation_reserve_obj(undefined) ->
+    undefined;
+offer_operation_reserve_obj(#offer_operation_reserve{resources = Resources} =
+                            OfferOperationReserve) ->
+    ResourceObjs = resource_objs(Resources),
+    OfferOperationReserve1 =
+        OfferOperationReserve#offer_operation_reserve{resources = ResourceObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation_reserve, OfferOperationReserve1).
+
+%% @doc Returns offer operation unreserve obj.
+%% @private
+-spec offer_operation_unreserve(undefined | offer_operation_unreserve()) ->
+    undefined | erl_mesos_obj:data_obj().
+offer_operation_unreserve(undefined) ->
+    undefined;
+offer_operation_unreserve(#offer_operation_unreserve{resources = Resources} =
+                          OfferOperationUnreserve) ->
+    ResourceObjs = resource_objs(Resources),
+    OfferOperationUnreserve1 =
+        OfferOperationUnreserve#offer_operation_unreserve{resources =
+                                                              ResourceObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation_reserve,
+                               OfferOperationUnreserve1).
+
+%% @doc Returns offer operation create obj.
+%% @private
+-spec offer_operation_create_obj(undefined | offer_operation_create()) ->
+    undefined | erl_mesos_obj:data_obj().
+offer_operation_create_obj(undefined) ->
+    undefined;
+offer_operation_create_obj(#offer_operation_create{volumes = Volumes} =
+                           OfferOperationCreate) ->
+    VolumeObjs = resource_objs(Volumes),
+    OfferOperationCreate1 =
+        OfferOperationCreate#offer_operation_create{volumes = VolumeObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation_create, OfferOperationCreate1).
+
+%% @doc Returns offer operation destroy obj.
+%% @private
+-spec offer_operation_destroy_obj(undefined | offer_operation_destroy()) ->
+    undefined | erl_mesos_obj:data_obj().
+offer_operation_destroy_obj(undefined) ->
+    undefined;
+offer_operation_destroy_obj(#offer_operation_destroy{volumes = Volumes} =
+                            OfferOperationDestroy) ->
+    VolumeObjs = resource_objs(Volumes),
+    OfferOperationDestroy1 =
+        OfferOperationDestroy#offer_operation_destroy{volumes = VolumeObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation_create, OfferOperationDestroy1).
 
 %% @doc Returns task info obj.
 %% @private
