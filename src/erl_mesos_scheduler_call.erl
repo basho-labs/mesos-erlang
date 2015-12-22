@@ -349,15 +349,21 @@ executor_info_obj(undefined) ->
 executor_info_obj(#executor_info{executor_id = ExecutorId,
                                  framework_id = FrameworkId,
                                  command = Command,
-                                 container = Container} = ExecutorInfo) ->
+                                 container = Container,
+                                 resources = Resources,
+                                 discovery = Discovery} = ExecutorInfo) ->
     ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
     FrameworkIdObj = framework_id_obj(FrameworkId),
     CommandObj = command_info_obj(Command),
     ContainerObj = container_info_obj(Container),
+    ResourceObjs = resource_objs(Resources),
+    DiscoveryObj = discovery_info_obj(Discovery),
     ExecutorInfo1 = ExecutorInfo#executor_info{executor_id = ExecutorIdObj,
                                                framework_id = FrameworkIdObj,
                                                command = CommandObj,
-                                               container = ContainerObj},
+                                               container = ContainerObj,
+                                               resources = ResourceObjs,
+                                               discovery = DiscoveryObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(executor_info, ExecutorInfo1).
 
 %% @doc Returns command info obj.
@@ -529,29 +535,29 @@ parameter_objs(Parameters) ->
     [?ERL_MESOS_OBJ_FROM_RECORD(parameter, Parameter) ||
      Parameter <- Parameters].
 
-%% %% @doc Returns discovery info obj.
-%% %% @private
-%% -spec discovery_info_obj(undefined | discovery_info()) ->
-%%     undefined | erl_mesos_obj:data_obj().
-%% discovery_info_obj(undefined) ->
-%%     undefined;
-%% discovery_info_obj(#discovery_info{ports = Ports,
-%%                                    labels = Labels} = DiscoveryInfo) ->
-%%     PortsObj = ports_obj(Ports),
-%%     LabelsObj = labels_obj(Labels),
-%%     DiscoveryInfo1 = DiscoveryInfo#discovery_info{ports = PortsObj,
-%%                                                   labels = LabelsObj},
-%%     ?ERL_MESOS_OBJ_FROM_RECORD(discovery_info, DiscoveryInfo1).
-%%
-%% %% @doc Returns ports obj.
-%% %% @private
-%% -spec ports_obj(undefined | pts()) -> undefined | erl_mesos_obj:data_obj().
-%% ports_obj(undefined) ->
-%%     undefined;
-%% ports_obj(#ports{ports = PortsList} = Ports) ->
-%%     PortObjs = [?ERL_MESOS_OBJ_FROM_RECORD(port, Port) || Port <- PortsList],
-%%     Ports1 = Ports#ports{ports = PortObjs},
-%%     ?ERL_MESOS_OBJ_FROM_RECORD(ports, Ports1).
+ %% @doc Returns discovery info obj.
+ %% @private
+ -spec discovery_info_obj(undefined | discovery_info()) ->
+     undefined | erl_mesos_obj:data_obj().
+ discovery_info_obj(undefined) ->
+     undefined;
+ discovery_info_obj(#discovery_info{ports = Ports,
+                                    labels = Labels} = DiscoveryInfo) ->
+     PortsObj = ports_obj(Ports),
+     LabelsObj = labels_obj(Labels),
+     DiscoveryInfo1 = DiscoveryInfo#discovery_info{ports = PortsObj,
+                                                   labels = LabelsObj},
+     ?ERL_MESOS_OBJ_FROM_RECORD(discovery_info, DiscoveryInfo1).
+
+ %% @doc Returns ports obj.
+ %% @private
+ -spec ports_obj(undefined | pts()) -> undefined | erl_mesos_obj:data_obj().
+ ports_obj(undefined) ->
+     undefined;
+ ports_obj(#ports{ports = PortsList} = Ports) ->
+     PortObjs = [?ERL_MESOS_OBJ_FROM_RECORD(port, Port) || Port <- PortsList],
+     Ports1 = Ports#ports{ports = PortObjs},
+     ?ERL_MESOS_OBJ_FROM_RECORD(ports, Ports1).
 
 %% @doc Sends http request.
 %% @private
