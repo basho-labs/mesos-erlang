@@ -39,6 +39,9 @@ parse_event(#event{type = <<"RESCIND">>,
 parse_event(#event{type = <<"UPDATE">>, update = EventUpdateObj} = Event) ->
     EventUpdate = parse_event_update_obj(EventUpdateObj),
     Event#event{type = update, update = EventUpdate};
+parse_event(#event{type = <<"FAILURE">>, failure = EventFailureObj} = Event) ->
+    EventFailure = parse_event_failure_obj(EventFailureObj),
+    Event#event{type = failure, failure = EventFailure};
 parse_event(#event{type = <<"ERROR">>, error = EventErrorObj} = Event) ->
     EventError = ?ERL_MESOS_OBJ_TO_RECORD(event_error, EventErrorObj),
     Event#event{type = error, error = EventError};
@@ -475,3 +478,12 @@ parse_network_info_ip_address_objs(NetworkInfoIpAddressObjs) ->
     [?ERL_MESOS_OBJ_TO_RECORD(network_info_ip_address,
                               NetworkInfoIpAddressObj) ||
      NetworkInfoIpAddressObj <- NetworkInfoIpAddressObjs].
+
+%% @doc Parses event failure obj.
+%% @private
+-spec parse_event_failure_obj(erl_mesos_obj:data_obj()) -> event_failure().
+parse_event_failure_obj(EventFailureObj) ->
+    EventFailure = ?ERL_MESOS_OBJ_TO_RECORD(event_failure, EventFailureObj),
+    AgentId = parse_agent_id_obj(EventFailure#event_failure.agent_id),
+    ExecutorId = parse_executor_id_obj(EventFailure#event_failure.executor_id),
+    EventFailure#event_failure{agent_id = AgentId, executor_id = ExecutorId}.

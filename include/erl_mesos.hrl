@@ -135,6 +135,8 @@
                 rescind :: undefined | event_rescind() |
                            erl_mesos_obj:data_obj(),
                 update :: undefined | event_update() | erl_mesos_obj:data_obj(),
+                failure :: undefined | event_failure() |
+                           erl_mesos_obj:data_obj(),
                 error :: undefined | event_error() | erl_mesos_obj:data_obj()}).
 
 %% Event subscribed.
@@ -152,10 +154,17 @@
 %% Event rescind.
 -record(event_rescind, {offer_id :: offer_id() | erl_mesos_obj:data_obj()}).
 
-%% Error update.
+%% Event update.
 -record(event_update, {status :: task_status() | erl_mesos_obj:data_obj()}).
 
-%% Error event.
+%% Event failure.
+-record(event_failure, {agent_id :: undefined | agent_id() |
+                                    erl_mesos_obj:data_obj(),
+                        executor_id :: undefined | executor_id() |
+                                       erl_mesos_obj:data_obj(),
+                        status :: undefined | integer()}).
+
+%% Event error.
 -record(event_error, {message :: erl_mesos_obj:data_string()}).
 
 %% Executor id.
@@ -527,6 +536,9 @@
 
 -type event_update() :: #event_update{}.
 -export_type([event_update/0]).
+
+-type event_failure() :: #event_failure{}.
+-export_type([event_failure/0]).
 
 -type event_error() :: #event_error{}.
 -export_type([event_error/0]).
