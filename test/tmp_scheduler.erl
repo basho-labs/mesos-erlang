@@ -47,33 +47,48 @@ disconnected(SchedulerInfo, State) ->
 resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
     io:format("Offers ~p~n", [Offers]),
     [#offer{id = OfferId,
-            agent_id = #agent_id{value = AgentIdValue}} | _] = Offers,
+            agent_id = AgentId} | _] = Offers,
 
-    AgentIdObj = erl_mesos_obj:new([{<<"value">>, AgentIdValue}]),
 
-    TaskIdObj = erl_mesos_obj:new([{<<"value">>, <<"2">>}]),
+    TaskId = #task_id{value = <<"3">>},
 
 %%    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"test-executor">>}]),
 %%    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]},
 %%                                        {<<"shall">>, false}]),
 
+
+
     CommandValue = <<"while true; do echo 'Test task is running...'; sleep 1; done">>,
-    CommandInfoObj = erl_mesos_obj:new([{<<"shall">>, true},
-                                        {<<"value">>, CommandValue}]),
+%%    CommandInfoObj = erl_mesos_obj:new([{<<"shall">>, true},
+%%                                        {<<"value">>, CommandValue}]),
 
-    CpuScalarObj = erl_mesos_obj:new([{<<"value">>, 0.1}]),
+    CommandInfo = #command_info{shell = true,
+                                value = CommandValue},
 
-    ResourceCpuObj = erl_mesos_obj:new([{<<"name">>, <<"cpus">>},
-                                        {<<"type">>, <<"SCALAR">>},
-                                        {<<"scalar">>, CpuScalarObj}]),
+    CpuScalarValue = #value_scalar{value = 0.1},
 
-    TaskInfoObj = erl_mesos_obj:new([{<<"name">>, <<"TEST TASK">>},
-                                     {<<"task_id">>, TaskIdObj},
-                                     {<<"agent_id">>, AgentIdObj},
-                                     {<<"command">>, CommandInfoObj},
-                                     {<<"resources">>, [ResourceCpuObj]}]),
+    %CpuScalarObj = erl_mesos_obj:new([{<<"value">>, 0.1}]),
 
-    Launch = #offer_operation_launch{task_infos = [TaskInfoObj]},
+%%    ResourceCpuObj = erl_mesos_obj:new([{<<"name">>, <<"cpus">>},
+%%                                        {<<"type">>, <<"SCALAR">>},
+%%                                        {<<"scalar">>, CpuScalarObj}]),
+    ResourceCpu = #resource{name = <<"cpus">>,
+                            type = <<"SCALAR">>,
+                            scalar = CpuScalarValue},
+
+%%    TaskInfoObj = erl_mesos_obj:new([{<<"name">>, <<"TEST TASK">>},
+%%                                     {<<"task_id">>, TaskIdObj},
+%%                                     {<<"agent_id">>, AgentIdObj},
+%%                                     {<<"command">>, CommandInfoObj},
+%%                                     {<<"resources">>, [ResourceCpuObj]}]),
+
+    TaskInfo = #task_info{name = <<"test_task">>,
+                          task_id = TaskId,
+                          agent_id = AgentId,
+                          command = CommandInfo,
+                          resources = [ResourceCpu]},
+
+    Launch = #offer_operation_launch{task_infos = [TaskInfo]},
 
     OfferOperation = #offer_operation{type = <<"LAUNCH">>,
                                       launch = Launch},
@@ -82,7 +97,7 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
                               operations = [OfferOperation]},
     Result = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
     io:format("~n~nResult ~p~n~n", [Result]),
-    erlang:send_after(5000, self(), stop),
+    %erlang:send_after(5000, self(), stop),
     {ok, State}.
 
 offer_rescinded(SchedulerInfo, #event_rescind{} = EventRescind, State) ->
