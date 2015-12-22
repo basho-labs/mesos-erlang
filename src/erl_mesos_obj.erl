@@ -56,7 +56,7 @@ from_record(_RecordName, Record, RecordFields) ->
 -spec to_record(data_obj(), tuple(), [atom()]) -> tuple().
 to_record({struct, Fields}, Record, RecordFields) ->
     list_to_tuple([element(1, Record) |
-                   decode_record_fields(Fields, Record, 2, RecordFields)]).
+                   decode_record_fields(Fields, Record, 2, RecordFields, [])]).
 
 %% Internal functions.
 
@@ -80,14 +80,17 @@ encode_record_fields(Record, Index, [RecordField | RecordFields], Fields) ->
 %% @doc Decodes record fields.
 %% @private
 -spec decode_record_fields([{data_string(), data()}], tuple(), pos_integer(),
-                           [atom()]) ->
+                           [atom()], [data()]) ->
     [data()].
-decode_record_fields(_Fields, _Record, _Index, []) ->
-    [];
-decode_record_fields(Fields, Record, Index, [RecordField | RecordFields]) ->
-    [case lists:keysearch(atom_to_binary(RecordField, utf8), 1, Fields) of
-         {value, {_, Value}} ->
-             Value;
-         false ->
-             element(Index, Record)
-     end | decode_record_fields(Fields, Record, Index + 1, RecordFields)].
+decode_record_fields(_Fields, _Record, _Index, [], Values) ->
+    lists:reverse(Values);
+decode_record_fields(Fields, Record, Index, [RecordField | RecordFields],
+                     Values) ->
+    case lists:keyfind(atom_to_binary(RecordField, utf8), 1, Fields) of
+        {_, Value} ->
+            decode_record_fields(Fields, Record, Index + 1, RecordFields,
+                                 [Value | Values]);
+        false ->
+            decode_record_fields(Fields, Record, Index + 1, RecordFields,
+                                 [element(Index, Record) | Values])
+    end.
