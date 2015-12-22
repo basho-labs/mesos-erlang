@@ -82,16 +82,16 @@ call_subscribe_obj(#call_subscribe{framework_info = FrameworkInfo} =
 %% @doc Returns framework info obj.
 %% @private
 -spec framework_info_obj(framework_info()) -> erl_mesos_obj:data_obj().
-framework_info_obj(#framework_info{id = FrameworkId,
+framework_info_obj(#framework_info{id = Id,
                                    capabilities = Capabilities,
                                    labels = Labels} = FrameworkInfo) ->
-    FrameworkIdObj = framework_id_obj(FrameworkId),
+    IdObj = framework_id_obj(Id),
     CapabilitiesObj = framework_info_capabilitie_obj(Capabilities),
     LabelsObj = labels_obj(Labels),
-    FrameworkInfo1 = FrameworkInfo#framework_info{id = FrameworkIdObj,
-                                                  capabilities =
-                                                      CapabilitiesObj,
-                                                  labels = LabelsObj},
+    FrameworkInfo1 =
+        FrameworkInfo#framework_info{id = IdObj,
+                                     capabilities = CapabilitiesObj,
+                                     labels = LabelsObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(framework_info, FrameworkInfo1).
 
 %% @doc Returns framework id obj.
@@ -127,11 +127,11 @@ labels_obj(#labels{labels = LabelsList} = Labels) ->
 %% @private
 -spec call_accept_obj(call_accept()) -> erl_mesos_obj:data_obj().
 call_accept_obj(#call_accept{offer_ids = OfferIds,
-                             operations = OfferOperations} = CallAccept) ->
+                             operations = Operations} = CallAccept) ->
     OfferIdObjs = offer_id_objs(OfferIds),
-    OfferOperationObjs = offer_operation_objs(OfferOperations),
+    OperationObjs = offer_operation_objs(Operations),
     CallAccept1 = CallAccept#call_accept{offer_ids = OfferIdObjs,
-                                         operations = OfferOperationObjs},
+                                         operations = OperationObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_accept, CallAccept1).
 
 %% @doc Returns offer id objs.
@@ -155,11 +155,9 @@ offer_operation_objs(OfferOperations) ->
 %% @doc Returns offer operation obj.
 %% @private
 -spec offer_operation_obj(offer_operation()) -> erl_mesos_obj:data_obj().
-offer_operation_obj(#offer_operation{launch = OfferOperationLaunch} =
-                    OfferOperation) ->
-    OfferOperationLaunchObj = offer_operation_launch_obj(OfferOperationLaunch),
-    OfferOperation1 =
-        OfferOperation#offer_operation{launch = OfferOperationLaunchObj},
+offer_operation_obj(#offer_operation{launch = Launch} = OfferOperation) ->
+    LaunchObj = offer_operation_launch_obj(Launch),
+    OfferOperation1 = OfferOperation#offer_operation{launch = LaunchObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(offer_operation, OfferOperation1).
 
 %% @doc Returns offer operation launch obj.
@@ -181,15 +179,15 @@ offer_operation_launch_obj(#offer_operation_launch{task_infos = TaskInfos} =
 task_info_obj(#task_info{task_id = TaskId,
                          agent_id = AgentId,
                          resources = Resources,
-                         executor = ExecutorInfo} = TaskInfo) ->
+                         executor = Executor} = TaskInfo) ->
     TaskIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(task_id, TaskId),
     AgentIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(agent_id, AgentId),
     ResourceObjs = resource_objs(Resources),
-    ExecutorInfoObj = executor_info_obj(ExecutorInfo),
+    ExecutorObj = executor_info_obj(Executor),
     TaskInfo1 = TaskInfo#task_info{task_id = TaskIdObj,
                                    agent_id = AgentIdObj,
                                    resources = ResourceObjs,
-                                   executor = ExecutorInfoObj},
+                                   executor = ExecutorObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(task_info, TaskInfo1).
 
 %% @doc Returns resource objs.
@@ -204,26 +202,24 @@ resource_objs(Resources) ->
 %% @doc Returns resource obj.
 %% @private
 -spec resource_obj(resource()) -> erl_mesos_obj:data_obj().
-resource_obj(#resource{scalar = ValueScalar,
-                       ranges = ValueRanges,
-                       set = ValueSet,
-                       reservation = ResourceReservationInfo,
-                       disk = ResourceDiskInfo,
-                       revocable = ResourceRevocableInfo} = Resource) ->
-    ValueScalarObj = value_scalar_obj(ValueScalar),
-    ValueRangesObj = value_ranges_obj(ValueRanges),
-    ValueSetObj = value_set_obj(ValueSet),
-    ResourceReservationInfoObj =
-        resource_reservation_info_obj(ResourceReservationInfo),
-    ResourceDiskInfoObj = resource_disk_info_obj(ResourceDiskInfo),
-    ResourceRevocableInfoObj =
-        resource_revocable_info_obj(ResourceRevocableInfo),
-    Resource1 = Resource#resource{scalar = ValueScalarObj,
-                                  ranges = ValueRangesObj,
-                                  set = ValueSetObj,
-                                  reservation = ResourceReservationInfoObj,
-                                  disk = ResourceDiskInfoObj,
-                                  revocable = ResourceRevocableInfoObj},
+resource_obj(#resource{scalar = Scalar,
+                       ranges = Ranges,
+                       set = Set,
+                       reservation = Reservation,
+                       disk = Disk,
+                       revocable = Revocable} = Resource) ->
+    ScalarObj = value_scalar_obj(Scalar),
+    RangesObj = value_ranges_obj(Ranges),
+    SetObj = value_set_obj(Set),
+    ReservationObj = resource_reservation_info_obj(Reservation),
+    DiskObj = resource_disk_info_obj(Disk),
+    RevocableObj = resource_revocable_info_obj(Revocable),
+    Resource1 = Resource#resource{scalar = ScalarObj,
+                                  ranges = RangesObj,
+                                  set = SetObj,
+                                  reservation = ReservationObj,
+                                  disk = DiskObj,
+                                  revocable = RevocableObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(resource, Resource1).
 
 %% @doc Returns value scalar obj.
@@ -241,10 +237,10 @@ value_scalar_obj(ValueScalar) ->
     undefined | erl_mesos_obj:data_obj().
 value_ranges_obj(undefined) ->
     undefined;
-value_ranges_obj(#value_ranges{range = ValueRangesList} = ValueRanges) ->
-    ValueRangeObjs = [?ERL_MESOS_OBJ_FROM_RECORD(value_range, ValueRange) ||
-                      ValueRange <- ValueRangesList],
-    ValueRanges1 = ValueRanges#value_ranges{range = ValueRangeObjs},
+value_ranges_obj(#value_ranges{range = RangeList} = ValueRanges) ->
+    RangeObjs = [?ERL_MESOS_OBJ_FROM_RECORD(value_range, Range) ||
+                 Range <- RangeList],
+    ValueRanges1 = ValueRanges#value_ranges{range = RangeObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(value_ranges, ValueRanges1).
 
 %% @doc Returns value set obj.
@@ -272,16 +268,13 @@ resource_reservation_info_obj(ResourceReservationInfo) ->
     undefined | erl_mesos_obj:data_obj().
 resource_disk_info_obj(undefined) ->
     undefined;
-resource_disk_info_obj(#resource_disk_info{persistence =
-                                               ResourceDiskInfoPersistence,
+resource_disk_info_obj(#resource_disk_info{persistence = Persistence,
                                            volume = Volume} =
                        ResourceDiskInfo) ->
-    ResourceDiskInfoPersistenceObj =
-        resource_disk_info_persistence_obj(ResourceDiskInfoPersistence),
+    PersistenceObj = resource_disk_info_persistence_obj(Persistence),
     VolumeObj = volume_obj(Volume),
     ResourceDiskInfo1 =
-        ResourceDiskInfo#resource_disk_info{persistence =
-                                                ResourceDiskInfoPersistenceObj,
+        ResourceDiskInfo#resource_disk_info{persistence = PersistenceObj,
                                             volume = VolumeObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(resource_disk_info, ResourceDiskInfo1).
 
@@ -311,12 +304,11 @@ volume_obj(#volume{image = Image} = Volume) ->
 -spec image_obj(undefined | image()) -> undefined | erl_mesos_obj:data_obj().
 image_obj(undefined) ->
     undefined;
-image_obj(#image{appc = ImageAppc,
-                 docker = ImageDocker} = Image) ->
-    ImageAppcObj = image_appc_obj(ImageAppc),
-    ImageDockerObj = image_docker_obj(ImageDocker),
-    Image1 = Image#image{appc = ImageAppcObj,
-                         docker = ImageDockerObj},
+image_obj(#image{appc = Appc,
+                 docker = Docker} = Image) ->
+    AppcObj = image_appc_obj(Appc),
+    DockerObj = image_docker_obj(Docker),
+    Image1 = Image#image{appc = AppcObj, docker = DockerObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(image, Image1).
 
 %% @doc Returns image appc obj.
@@ -356,16 +348,16 @@ executor_info_obj(undefined) ->
     undefined;
 executor_info_obj(#executor_info{executor_id = ExecutorId,
                                  framework_id = FrameworkId,
-                                 command = CommandInfo,
-                                 container = ContainerInfo} = ExecutorInfo) ->
+                                 command = Command,
+                                 container = Container} = ExecutorInfo) ->
     ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
     FrameworkIdObj = framework_id_obj(FrameworkId),
-    CommandInfoObj = command_info_obj(CommandInfo),
-    ContainerInfoObj = container_info_obj(ContainerInfo),
+    CommandObj = command_info_obj(Command),
+    ContainerObj = container_info_obj(Container),
     ExecutorInfo1 = ExecutorInfo#executor_info{executor_id = ExecutorIdObj,
                                                framework_id = FrameworkIdObj,
-                                               command = CommandInfoObj,
-                                               container = ContainerInfoObj},
+                                               command = CommandObj,
+                                               container = ContainerObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(executor_info, ExecutorInfo1).
 
 %% @doc Returns command info obj.
@@ -374,17 +366,14 @@ executor_info_obj(#executor_info{executor_id = ExecutorId,
     undefined | erl_mesos_obj:data_obj().
 command_info_obj(undefined) ->
     undefined;
-command_info_obj(#command_info{container = CommandInfoContainerInfo,
-                               uris = CommandInfoUris,
-                               environment = Environment} =
-                 CommandInfo) ->
-    CommandInfoContainerInfoObj =
-        command_info_container_info_obj(CommandInfoContainerInfo),
-    CommandInfoUriObjs = command_info_uri_objs(CommandInfoUris),
+command_info_obj(#command_info{container = Container,
+                               uris = Uris,
+                               environment = Environment} = CommandInfo) ->
+    ContainerObj = command_info_container_info_obj(Container),
+    UriObjs = command_info_uri_objs(Uris),
     EnvironmentObj = environment_obj(Environment),
-    CommandInfo1 = CommandInfo#command_info{container =
-                                                CommandInfoContainerInfoObj,
-                                            uris = CommandInfoUriObjs,
+    CommandInfo1 = CommandInfo#command_info{container = ContainerObj,
+                                            uris = UriObjs,
                                             environment = EnvironmentObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(command_info, CommandInfo1).
 
@@ -397,7 +386,7 @@ command_info_container_info_obj(undefined) ->
     undefined;
 command_info_container_info_obj(CommandInfoContainerInfo) ->
     ?ERL_MESOS_OBJ_FROM_RECORD(command_info_container_info,
-        CommandInfoContainerInfo).
+                               CommandInfoContainerInfo).
 
 %% @doc Returns command info uri objs.
 %% @private
@@ -415,29 +404,32 @@ command_info_uri_objs(CommandInfoUris) ->
     undefined | erl_mesos_obj:data_obj().
 environment_obj(undefined) ->
     undefined;
-environment_obj(#environment{variables = EnvironmentVariables} = Environment) ->
-    EnvironmentVariableObjs =
-        [?ERL_MESOS_OBJ_FROM_RECORD(environment_variable, EnvironmentVariable)
-         || EnvironmentVariable <- EnvironmentVariables],
-    Environment1 = Environment#environment{variables = EnvironmentVariableObjs},
+environment_obj(#environment{variables = Variables} = Environment) ->
+    VariableObjs = [?ERL_MESOS_OBJ_FROM_RECORD(environment_variable, Variable)
+                    || Variable <- Variables],
+    Environment1 = Environment#environment{variables = VariableObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(environment, Environment1).
 
+%% @doc Returns container info obj.
+%% @private
+-spec container_info_obj(undefined | container_info()) ->
+    undefined | erl_mesos_obj:data_obj().
 container_info_obj(undefined) ->
     undefined;
 container_info_obj(#container_info{volumes = Volumes,
-                                   docker = DockerInfo,
-                                   mesos = MesosInfo,
+                                   docker = Docker,
+                                   mesos = Mesos,
                                    network_infos = NetworkInfos} =
                    ContainerInfo) ->
     VolumeObjs = volume_objs(Volumes),
-    DockerInfoObj = container_info_docker_info_obj(DockerInfo),
-    MesosInfoObj = container_info_mesos_info_obj(MesosInfo),
+    DockerObj = container_info_docker_info_obj(Docker),
+    MesosObj = container_info_mesos_info_obj(Mesos),
     NetworkInfoObjs = network_info_objs(NetworkInfos),
-    ContainerInfo1 = ContainerInfo#container_info{volumes = VolumeObjs,
-                                                  docker = DockerInfoObj,
-                                                  mesos = MesosInfoObj,
-                                                  network_infos =
-                                                      NetworkInfoObjs},
+    ContainerInfo1 =
+        ContainerInfo#container_info{volumes = VolumeObjs,
+                                     docker = DockerObj,
+                                     mesos = MesosObj,
+                                     network_infos = NetworkInfoObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(container_info, ContainerInfo1).
 
 %% @doc Returns volume objs.
@@ -456,18 +448,18 @@ volume_objs(Volumes) ->
 container_info_docker_info_obj(undefined) ->
     undefined;
 container_info_docker_info_obj(#container_info_docker_info{port_mappings =
-                                                                PortMappings,
+                                                               PortMappings,
                                                            parameters =
-                                                                Parameters} =
+                                                               Parameters} =
                                ContainerInfoDockerInfo) ->
     PortMappingObjs =
         container_info_docker_info_port_mapping_objs(PortMappings),
     ParameterObjs = parameter_objs(Parameters),
     ContainerInfoDockerInfo1 =
         ContainerInfoDockerInfo#container_info_docker_info{port_mappings =
-                                                                PortMappingObjs,
+                                                               PortMappingObjs,
                                                            parameters =
-                                                                ParameterObjs},
+                                                               ParameterObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(container_info_docker_info,
                                ContainerInfoDockerInfo1).
 
@@ -524,9 +516,8 @@ network_info_obj(#network_info{ip_addresses = IpAddresses,
 network_info_ip_address_objs(undefined) ->
     undefined;
 network_info_ip_address_objs(NetworkInfoIpAddresses) ->
-    [?ERL_MESOS_OBJ_FROM_RECORD(network_info_ip_address,
-                                NetworkInfoIpAddress) ||
-     NetworkInfoIpAddress <- NetworkInfoIpAddresses].
+    [?ERL_MESOS_OBJ_FROM_RECORD(network_info_ip_address, NetworkInfoIpAddress)
+     || NetworkInfoIpAddress <- NetworkInfoIpAddresses].
 
 %% @doc Returns parameter objs.
 %% @private
