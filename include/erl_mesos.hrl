@@ -61,6 +61,44 @@
                                       options :: undefined |
                                           [erl_mesos_obj:data_string()]}).
 
+%% Container info.
+-record(container_info, {type :: erl_mesos_obj:data_string(),
+                         volumes :: undefined | [volume() |
+                                                 erl_mesos_obj:data_obj()],
+                         hostname :: undefined | erl_mesos_obj:data_string(),
+                         docker :: undefined | container_info_docker_info() |
+                                   erl_mesos_obj:data_obj(),
+                         mesos :: undefined | container_info_mesos_info() |
+                                  erl_mesos_obj:data_obj(),
+                         network_infos :: undefined |
+                                          [network_info() |
+                                           erl_mesos_obj:data_obj()]}).
+
+%% Container info docker info.
+-record(container_info_docker_info, {image :: erl_mesos_obj:data_string(),
+                                     network :: undefined |
+                                                erl_mesos_obj:data_string(),
+                                     port_mappings :: undefined |
+                                     [container_info_docker_info_port_mapping()|
+                                      erl_mesos_obj:data_obj()],
+                                     privileged :: undefined | boolean(),
+                                     parameters :: undefined |
+                                                   [parameter() |
+                                                    erl_mesos_obj:data_obj()],
+                                     force_pull_image :: undefined |
+                                                         boolean()}).
+
+%% Container info docker info port mapping.
+-record(container_info_docker_info_port_mapping, {host_port :: pos_integer(),
+                                                  container_port ::
+                                                      pos_integer(),
+                                                  protocol :: undefined |
+                                                  erl_mesos_obj:data_string()}).
+
+%% Container info mesos info.
+-record(container_info_mesos_info, {image :: undefined | image() |
+                                             erl_mesos_obj:data_obj()}).
+
 %% Container status.
 -record(container_status, {network_infos :: [network_info() |
                                              erl_mesos_obj:data_obj()]}).
@@ -402,6 +440,19 @@
 
 -type command_info_container_info() :: #command_info_container_info{}.
 -export_type([command_info_container_info/0]).
+
+-type container_info() :: #container_info{}.
+-export_type([container_info/0]).
+
+-type container_info_docker_info() :: #container_info_docker_info{}.
+-export_type([container_info_docker_info/0]).
+
+-type container_info_docker_info_port_mapping() ::
+          #container_info_docker_info_port_mapping{}.
+-export_type([container_info_docker_info_port_mapping/0]).
+
+-type container_info_mesos_info() :: #container_info_mesos_info{}.
+-export_type([container_info_mesos_info/0]).
 
 -type container_status() :: #container_status{}.
 -export_type([container_status/0]).
