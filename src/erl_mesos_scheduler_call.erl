@@ -356,13 +356,16 @@ executor_info_obj(undefined) ->
     undefined;
 executor_info_obj(#executor_info{executor_id = ExecutorId,
                                  framework_id = FrameworkId,
-                                 command = CommandInfo} = ExecutorInfo) ->
+                                 command = CommandInfo,
+                                 container = ContainerInfo} = ExecutorInfo) ->
     ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
     FrameworkIdObj = framework_id_obj(FrameworkId),
     CommandInfoObj = command_info_obj(CommandInfo),
+    ContainerInfoObj = container_info_obj(ContainerInfo),
     ExecutorInfo1 = ExecutorInfo#executor_info{executor_id = ExecutorIdObj,
                                                framework_id = FrameworkIdObj,
-                                               command = CommandInfoObj},
+                                               command = CommandInfoObj,
+                                               container = ContainerInfoObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(executor_info, ExecutorInfo1).
 
 %% @doc Returns command info obj.
@@ -418,6 +421,122 @@ environment_obj(#environment{variables = EnvironmentVariables} = Environment) ->
          || EnvironmentVariable <- EnvironmentVariables],
     Environment1 = Environment#environment{variables = EnvironmentVariableObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(environment, Environment1).
+
+container_info_obj(undefined) ->
+    undefined;
+container_info_obj(#container_info{volumes = Volumes,
+                                   docker = DockerInfo,
+                                   mesos = MesosInfo,
+                                   network_infos = NetworkInfos} =
+                   ContainerInfo) ->
+    VolumeObjs = volume_objs(Volumes),
+    DockerInfoObj = container_info_docker_info_obj(DockerInfo),
+    MesosInfoObj = container_info_mesos_info_obj(MesosInfo),
+    NetworkInfoObjs = network_info_objs(NetworkInfos),
+    ContainerInfo1 = ContainerInfo#container_info{volumes = VolumeObjs,
+                                                  docker = DockerInfoObj,
+                                                  mesos = MesosInfoObj,
+                                                  network_infos =
+                                                      NetworkInfoObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(container_info, ContainerInfo1).
+
+%% @doc Returns volume objs.
+%% @private
+-spec volume_objs(undefined | [volume()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+volume_objs(undefined) ->
+    undefined;
+volume_objs(Volumes) ->
+    [volume_obj(Volume) || Volume <- Volumes].
+
+%% @doc Returns container info docker info obj.
+%% @private
+-spec container_info_docker_info_obj(undefined | container_info_docker_info()) ->
+    undefined | erl_mesos_obj:data_obj().
+container_info_docker_info_obj(undefined) ->
+    undefined;
+container_info_docker_info_obj(#container_info_docker_info{port_mappings =
+                                                                PortMappings,
+                                                           parameters =
+                                                                Parameters} =
+                               ContainerInfoDockerInfo) ->
+    PortMappingObjs =
+        container_info_docker_info_port_mapping_objs(PortMappings),
+    ParameterObjs = parameter_objs(Parameters),
+    ContainerInfoDockerInfo1 =
+        ContainerInfoDockerInfo#container_info_docker_info{port_mappings =
+                                                                PortMappingObjs,
+                                                           parameters =
+                                                                ParameterObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(container_info_docker_info,
+                               ContainerInfoDockerInfo1).
+
+%% @doc Returns container info docker info port mapping objs.
+%% @private
+-spec container_info_docker_info_port_mapping_objs(undefined |
+          [container_info_docker_info_port_mapping()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+container_info_docker_info_port_mapping_objs(undefined) ->
+    undefined;
+container_info_docker_info_port_mapping_objs(PortMappings) ->
+    [?ERL_MESOS_OBJ_FROM_RECORD(container_info_docker_info_port_mapping,
+                                PortMapping) ||
+     PortMapping <- PortMappings].
+
+%% @doc Returns container info mesos info obj.
+%% @private
+-spec container_info_mesos_info_obj(undefined | container_info_mesos_info()) ->
+    undefined | erl_mesos_obj:data_obj().
+container_info_mesos_info_obj(undefined) ->
+    undefined;
+container_info_mesos_info_obj(#container_info_mesos_info{image = Image} =
+                              ContainerInfoMesosInfo) ->
+    ImageObj = image_obj(Image),
+    ContainerInfoMesosInfo1 =
+        ContainerInfoMesosInfo#container_info_mesos_info{image = ImageObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(container_info_mesos_info,
+                               ContainerInfoMesosInfo1).
+
+%% @doc Returns network info objs.
+%% @private
+-spec network_info_objs(undefined | [network_info()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+network_info_objs(undefined) ->
+    undefined;
+network_info_objs(NetworkInfos) ->
+    [network_info_obj(NetworkInfo) || NetworkInfo <- NetworkInfos].
+
+%% @doc Returns network info obj.
+%% @private
+-spec network_info_obj(network_info()) -> erl_mesos_obj:data_obj().
+network_info_obj(#network_info{ip_addresses = IpAddresses,
+                               labels = Labels} = NetworkInfo) ->
+    IpAddressObjs = network_info_ip_address_objs(IpAddresses),
+    LabelsObj = labels_obj(Labels),
+    NetworkInfo1 = NetworkInfo#network_info{ip_addresses = IpAddressObjs,
+                                            labels = LabelsObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(network_info, NetworkInfo1).
+
+%% @doc Returns network info ip address objs.
+%% @private
+-spec network_info_ip_address_objs(undefined | [network_info_ip_address()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+network_info_ip_address_objs(undefined) ->
+    undefined;
+network_info_ip_address_objs(NetworkInfoIpAddresses) ->
+    [?ERL_MESOS_OBJ_FROM_RECORD(network_info_ip_address,
+                                NetworkInfoIpAddress) ||
+     NetworkInfoIpAddress <- NetworkInfoIpAddresses].
+
+%% @doc Returns parameter objs.
+%% @private
+-spec parameter_objs(undefined | [parameter()]) ->
+    undefined | [erl_mesos_obj:data_obj()].
+parameter_objs(undefined) ->
+    undefined;
+parameter_objs(Parameters) ->
+    [?ERL_MESOS_OBJ_FROM_RECORD(parameter, Parameter) ||
+     Parameter <- Parameters].
 
 %% %% @doc Returns discovery info obj.
 %% %% @private
