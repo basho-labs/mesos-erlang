@@ -179,15 +179,30 @@ offer_operation_launch_obj(#offer_operation_launch{task_infos = TaskInfos} =
 task_info_obj(#task_info{task_id = TaskId,
                          agent_id = AgentId,
                          resources = Resources,
-                         executor = Executor} = TaskInfo) ->
+                         executor = Executor,
+                         command = Command,
+                         container = Container,
+                         health_check = HealthCheck,
+                         labels = Labels,
+                         discovery = Discovery} = TaskInfo) ->
     TaskIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(task_id, TaskId),
     AgentIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(agent_id, AgentId),
     ResourceObjs = resource_objs(Resources),
     ExecutorObj = executor_info_obj(Executor),
+    CommandObj = command_info_obj(Command),
+    ContainerObj = container_info_obj(Container),
+    HealthCheckObj = health_check_obj(HealthCheck),
+    LabelsObj = labels_obj(Labels),
+    DiscoveryObj = discovery_info_obj(Discovery),
     TaskInfo1 = TaskInfo#task_info{task_id = TaskIdObj,
                                    agent_id = AgentIdObj,
                                    resources = ResourceObjs,
-                                   executor = ExecutorObj},
+                                   executor = ExecutorObj,
+                                   command = CommandObj,
+                                   container = ContainerObj,
+                                   health_check = HealthCheckObj,
+                                   labels = LabelsObj,
+                                   discovery = DiscoveryObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(task_info, TaskInfo1).
 
 %% @doc Returns resource objs.
@@ -535,29 +550,53 @@ parameter_objs(Parameters) ->
     [?ERL_MESOS_OBJ_FROM_RECORD(parameter, Parameter) ||
      Parameter <- Parameters].
 
- %% @doc Returns discovery info obj.
- %% @private
- -spec discovery_info_obj(undefined | discovery_info()) ->
-     undefined | erl_mesos_obj:data_obj().
- discovery_info_obj(undefined) ->
-     undefined;
- discovery_info_obj(#discovery_info{ports = Ports,
-                                    labels = Labels} = DiscoveryInfo) ->
-     PortsObj = ports_obj(Ports),
-     LabelsObj = labels_obj(Labels),
-     DiscoveryInfo1 = DiscoveryInfo#discovery_info{ports = PortsObj,
-                                                   labels = LabelsObj},
-     ?ERL_MESOS_OBJ_FROM_RECORD(discovery_info, DiscoveryInfo1).
+%% @doc Returns discovery info obj.
+%% @private
+-spec discovery_info_obj(undefined | discovery_info()) ->
+    undefined | erl_mesos_obj:data_obj().
+discovery_info_obj(undefined) ->
+    undefined;
+discovery_info_obj(#discovery_info{ports = Ports,
+                                   labels = Labels} = DiscoveryInfo) ->
+    PortsObj = ports_obj(Ports),
+    LabelsObj = labels_obj(Labels),
+    DiscoveryInfo1 = DiscoveryInfo#discovery_info{ports = PortsObj,
+                                                  labels = LabelsObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(discovery_info, DiscoveryInfo1).
 
- %% @doc Returns ports obj.
- %% @private
- -spec ports_obj(undefined | pts()) -> undefined | erl_mesos_obj:data_obj().
- ports_obj(undefined) ->
-     undefined;
- ports_obj(#ports{ports = PortsList} = Ports) ->
-     PortObjs = [?ERL_MESOS_OBJ_FROM_RECORD(port, Port) || Port <- PortsList],
-     Ports1 = Ports#ports{ports = PortObjs},
-     ?ERL_MESOS_OBJ_FROM_RECORD(ports, Ports1).
+%% @doc Returns ports obj.
+%% @private
+-spec ports_obj(undefined | pts()) -> undefined | erl_mesos_obj:data_obj().
+ports_obj(undefined) ->
+    undefined;
+ports_obj(#ports{ports = PortsList} = Ports) ->
+    PortObjs = [?ERL_MESOS_OBJ_FROM_RECORD(port, Port) || Port <- PortsList],
+    Ports1 = Ports#ports{ports = PortObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(ports, Ports1).
+
+%% @doc Returns health check obj.
+%% @private
+-spec health_check_obj(undefined | health_check()) ->
+    undefined | erl_mesos_obj:data_obj().
+health_check_obj(undefined) ->
+    undefined;
+health_check_obj(#health_check{http = Http,
+                               command = Command} = HealthCheckObj) ->
+    HttpObj = health_check_http_obj(Http),
+    CommandObj = command_info_obj(Command),
+    HealthCheckObj1 = HealthCheckObj#health_check{http = HttpObj,
+                                                  command = CommandObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(health_check, HealthCheckObj1).
+
+%% @doc Returns health check http obj.
+%% @private
+-spec health_check_http_obj(undefined | health_check_http()) ->
+    undefined | erl_mesos_obj:data_obj().
+health_check_http_obj(undefined) ->
+    undefined;
+health_check_http_obj(HealthCheckHttpObj) ->
+    ?ERL_MESOS_OBJ_FROM_RECORD(health_check_http, HealthCheckHttpObj).
+
 
 %% @doc Sends http request.
 %% @private

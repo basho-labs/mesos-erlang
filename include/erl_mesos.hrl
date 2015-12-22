@@ -196,7 +196,24 @@
                          labels :: undefined | labels() |
                                    erl_mesos_obj:data_obj()}).
 
+%% Framework info capabilitie.
 -record(framework_info_capabilitie, {type :: erl_mesos_obj:data_string()}).
+
+%% Health check.
+-record(health_check, {http :: undefined | health_check_http() |
+                               erl_mesos_obj:data_obj(),
+                       delay_seconds :: undefined | float(),
+                       interval_seconds :: undefined | float(),
+                       timeout_seconds :: undefined | float(),
+                       consecutive_failures :: undefined | pos_integer(),
+                       grace_period_seconds :: undefined | float(),
+                       command :: undefined | command_info() |
+                                  erl_mesos_obj:data_obj()}).
+
+%% Health check http.
+-record(health_check_http, {port :: pos_integer(),
+                            path :: undefined | erl_mesos_obj:data_string(),
+                            statuses :: undefined | [pos_integer()]}).
 
 %% Image.
 -record(image, {type :: erl_mesos_obj:data_string(),
@@ -363,7 +380,17 @@
                     resources :: undefined | [resource() |
                                               erl_mesos_obj:data_obj()],
                     executor :: undefined | executor_info() |
-                                erl_mesos_obj:data_obj()}).
+                                erl_mesos_obj:data_obj(),
+                    command :: undefined | command_info() |
+                               erl_mesos_obj:data_obj(),
+                    container :: undefined | container_info() |
+                                 erl_mesos_obj:data_obj(),
+                    data :: undefined | erl_mesos_obj:data_string(),
+                    health_check :: undefined | health_check() |
+                                    erl_mesos_obj:data_obj(),
+                    labels :: undefined | labels() | erl_mesos_obj:data_obj(),
+                    discovery :: undefined | discovery_info() |
+                                 erl_mesos_obj:data_obj()}).
 
 %% Task status.
 -record(task_status, {task_id :: task_id() | erl_mesos_obj:data_obj(),
@@ -518,6 +545,12 @@
 
 -type framework_info_capabilitie() :: #framework_info_capabilitie{}.
 -export_type([framework_info_capabilitie/0]).
+
+-type health_check() :: #health_check{}.
+-export_type([health_check/0]).
+
+-type health_check_http() :: #health_check_http{}.
+-export_type([health_check_http/0]).
 
 -type image() :: #image{}.
 -export_type([image/0]).
