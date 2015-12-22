@@ -161,6 +161,21 @@
 %% Executor id.
 -record(executor_id, {value :: erl_mesos_obj:data_string()}).
 
+%% Executor info.
+-record(executor_info, {executor_id :: executor_id() | erl_mesos_obj:data_obj(),
+                        framework_id :: undefined | framework_id() |
+                                        erl_mesos_obj:data_obj(),
+                        command :: container_info() | erl_mesos_obj:data_obj(),
+                        container :: undefined | container_info() |
+                                     erl_mesos_obj:data_obj(),
+                        resources :: undefined | [resource() |
+                                                  erl_mesos_obj:data_obj()],
+                        name :: undefined | erl_mesos_obj:data_string(),
+                        source :: undefined | erl_mesos_obj:data_string(),
+                        data :: undefined | erl_mesos_obj:data_string(),
+                        discovery :: undefined | discovery_info() |
+                                     erl_mesos_obj:data_obj()}).
+
 %% Framework id.
 -record(framework_id, {value :: erl_mesos_obj:data_string()}).
 
@@ -489,6 +504,9 @@
 
 -type executor_id() :: #executor_id{}.
 -export_type([executor_id/0]).
+
+-type executor_info() :: #executor_info{}.
+-export_type([executor_info/0]).
 
 -type framework_id() :: #framework_id{}.
 -export_type([framework_id/0]).
