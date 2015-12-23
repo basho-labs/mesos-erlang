@@ -36,7 +36,8 @@
                                    [offer_id() | erl_mesos_obj:data_obj()],
                       operations :: undefined | [offer_operation() |
                                                  erl_mesos_obj:data_obj()],
-                      filters :: undefined | erl_mesos_obj:data_obj()}).
+                      filters :: undefined | filters() |
+                                 erl_mesos_obj:data_obj()}).
 
 %% Command info.
 -record(command_info, {container :: undefined | command_info_container_info() |
@@ -184,6 +185,9 @@
                         data :: undefined | erl_mesos_obj:data_string(),
                         discovery :: undefined | discovery_info() |
                                      erl_mesos_obj:data_obj()}).
+
+%% Filters.
+-record(filters, {refuse_seconds :: undefined | float()}).
 
 %% Framework id.
 -record(framework_id, {value :: erl_mesos_obj:data_string()}).
@@ -548,6 +552,9 @@
 
 -type executor_info() :: #executor_info{}.
 -export_type([executor_info/0]).
+
+-type filters() :: #filters{}.
+-export_type([filters/0]).
 
 -type framework_id() :: #framework_id{}.
 -export_type([framework_id/0]).

@@ -127,11 +127,14 @@ labels_obj(#labels{labels = LabelsList} = Labels) ->
 %% @private
 -spec call_accept_obj(call_accept()) -> erl_mesos_obj:data_obj().
 call_accept_obj(#call_accept{offer_ids = OfferIds,
-                             operations = Operations} = CallAccept) ->
+                             operations = Operations,
+                             filters = Filters} = CallAccept) ->
     OfferIdObjs = offer_id_objs(OfferIds),
     OperationObjs = offer_operation_objs(Operations),
+    FiltersObj = filters_obj(Filters),
     CallAccept1 = CallAccept#call_accept{offer_ids = OfferIdObjs,
-                                         operations = OperationObjs},
+                                         operations = OperationObjs,
+                                         filters = FiltersObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_accept, CallAccept1).
 
 %% @doc Returns offer id objs.
@@ -663,6 +666,14 @@ health_check_http_obj(undefined) ->
 health_check_http_obj(HealthCheckHttpObj) ->
     ?ERL_MESOS_OBJ_FROM_RECORD(health_check_http, HealthCheckHttpObj).
 
+%% @doc Returns filters obj.
+%% @private
+-spec filters_obj(undefined | filters()) ->
+    undefined | erl_mesos_obj:data_obj().
+filters_obj(undefined) ->
+    undefined;
+filters_obj(FiltersObj) ->
+    ?ERL_MESOS_OBJ_FROM_RECORD(health_check_http, FiltersObj).
 
 %% @doc Sends http request.
 %% @private
