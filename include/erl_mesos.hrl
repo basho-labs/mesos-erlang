@@ -24,7 +24,9 @@
                subscribe :: undefined | call_subscribe() |
                             erl_mesos_obj:data_obj(),
                accept :: undefined | call_accept() |
-                         erl_mesos_obj:data_obj()}).
+                         erl_mesos_obj:data_obj(),
+               reconcile :: undefined | call_reconcile() |
+                            erl_mesos_obj:data_obj()}).
 
 %% Call subscribe.
 -record(call_subscribe, {framework_info :: framework_info() |
@@ -38,6 +40,15 @@
                                                  erl_mesos_obj:data_obj()],
                       filters :: undefined | filters() |
                                  erl_mesos_obj:data_obj()}).
+
+%% Call reconcile.
+-record(call_reconcile, {tasks :: [call_reconcile_task() |
+                                   erl_mesos_obj:data_obj()]}).
+
+%% Call reconcile task.
+-record(call_reconcile_task, {task_id :: task_id() | erl_mesos_obj:data_obj(),
+                              agent_id :: undefined | agent_id() |
+                                          erl_mesos_obj:data_obj()}).
 
 %% Command info.
 -record(command_info, {container :: undefined | command_info_container_info() |
@@ -488,6 +499,12 @@
 
 -type call_accept() :: #call_accept{}.
 -export_type([call_accept/0]).
+
+-type call_reconcile() :: #call_reconcile{}.
+-export_type([call_reconcile/0]).
+
+-type call_reconcile_task() :: #call_reconcile_task{}.
+-export_type([call_reconcile_task/0]).
 
 -type command_info() :: #command_info{}.
 -export_type([command_info/0]).

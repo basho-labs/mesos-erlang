@@ -6,7 +6,7 @@
 
 -export([start_link/4]).
 
--export([accept/2]).
+-export([accept/2, reconcile/2]).
 
 -export([init/1,
          handle_call/3,
@@ -112,9 +112,14 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
                           []).
 
 %% @equiv erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept)
--spec accept(scheduler_info(), call_subscribe()) -> ok | {error, term()}.
+-spec accept(scheduler_info(), call_accept()) -> ok | {error, term()}.
 accept(SchedulerInfo, CallAccept) ->
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
+
+%% @equiv erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile)
+-spec reconcile(scheduler_info(), call_reconcile()) -> ok | {error, term()}.
+reconcile(SchedulerInfo, CallReconcile) ->
+    erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
 
 %% gen_server callback functions.
 

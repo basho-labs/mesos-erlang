@@ -4,7 +4,7 @@
 
 -include("erl_mesos_obj.hrl").
 
--export([subscribe/2, accept/2]).
+-export([subscribe/2, accept/2, reconcile/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -27,7 +27,7 @@ subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     request(SchedulerInfo1, CallObj).
 
 %% Executes accept call.
--spec accept(scheduler_info(), call_subscribe()) -> ok | {error, term()}.
+-spec accept(scheduler_info(), call_accept()) -> ok | {error, term()}.
 accept(#scheduler_info{subscribed = false}, _CallAccept) ->
     {error, not_subscribed};
 accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
@@ -37,6 +37,20 @@ accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
                                                   RequestOptions1},
     CallAcceptObj = call_accept_obj(CallAccept),
     Call = #call{type = <<"ACCEPT">>, accept = CallAcceptObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
+
+%% Executes reconcile call.
+-spec reconcile(scheduler_info(), call_reconcile()) -> ok | {error, term()}.
+reconcile(#scheduler_info{subscribed = false}, _CallReconcile) ->
+    {error, not_subscribed};
+reconcile(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+          CallReconcile) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    CallReconcileObj = call_reconcile_obj(CallReconcile),
+    Call = #call{type = <<"RECONCILE">>, reconcile = CallReconcileObj},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(request(SchedulerInfo1, CallObj)).
 
@@ -674,6 +688,15 @@ filters_obj(undefined) ->
     undefined;
 filters_obj(FiltersObj) ->
     ?ERL_MESOS_OBJ_FROM_RECORD(health_check_http, FiltersObj).
+
+%% @doc Returns call reconcile obj.
+%% @private
+-spec call_reconcile_obj(call_reconcile()) -> erl_mesos_obj:data_obj().
+call_reconcile_obj(#call_reconcile{tasks = Tasks} = CallReconcile) ->
+    TaskObjs = [?ERL_MESOS_OBJ_FROM_RECORD(call_reconcile, Task) ||
+                Task <- Tasks],
+    CallReconcile1 = CallReconcile#call_reconcile{tasks = TaskObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_reconcile, CallReconcile1).
 
 %% @doc Sends http request.
 %% @private
