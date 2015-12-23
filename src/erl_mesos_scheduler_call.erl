@@ -693,10 +693,32 @@ filters_obj(FiltersObj) ->
 %% @private
 -spec call_reconcile_obj(call_reconcile()) -> erl_mesos_obj:data_obj().
 call_reconcile_obj(#call_reconcile{tasks = Tasks} = CallReconcile) ->
-    TaskObjs = [?ERL_MESOS_OBJ_FROM_RECORD(call_reconcile, Task) ||
-                Task <- Tasks],
+    TaskObjs = [call_reconcile_task_obj(Task) || Task <- Tasks],
     CallReconcile1 = CallReconcile#call_reconcile{tasks = TaskObjs},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_reconcile, CallReconcile1).
+
+%% @doc Returns call reconcile task obj.
+%% @private
+-spec call_reconcile_task_obj(call_reconcile_task()) ->
+    erl_mesos_obj:data_obj().
+call_reconcile_task_obj(#call_reconcile_task{task_id = TaskId,
+                                             agent_id = AgentId} =
+                        CallReconcileTask) ->
+    TaskIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(task_id, TaskId),
+    AgentIdObj = agent_id_obj(AgentId),
+    CallReconcileTask1 =
+        CallReconcileTask#call_reconcile_task{task_id = TaskIdObj,
+                                              agent_id = AgentIdObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_reconcile_task, CallReconcileTask1).
+
+%% @doc Returns agent id obj.
+%% @private
+-spec agent_id_obj(undefined | agent_id()) ->
+    undefined | erl_mesos_obj:data_obj().
+agent_id_obj(undefined) ->
+    undefined;
+agent_id_obj(AgentId) ->
+    ?ERL_MESOS_OBJ_FROM_RECORD(agent_id, AgentId).
 
 %% @doc Sends http request.
 %% @private
