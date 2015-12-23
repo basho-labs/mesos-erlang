@@ -19,7 +19,8 @@
          reregistered/1,
          resource_offers/1,
          offer_rescinded/1,
-         error/1]).
+         error/1,
+         accept/1]).
 
 -record(state, {callback,
                 test_pid}).
@@ -35,7 +36,8 @@ groups() ->
                       reregistered,
                       resource_offers,
                       offer_rescinded,
-                      error]}].
+                      error,
+                      accept]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -81,6 +83,8 @@ end_per_testcase(TestCase, Config) ->
     end.
 
 %% Test functions.
+
+%% Callbacks.
 
 bad_options(Config) ->
     log("Bad options test cases", Config),
@@ -259,7 +263,6 @@ resource_offers(Config) ->
     {registered, SchedulerPid, _, _} = recv_reply(),
     stop_mesos_slave(Config),
     start_mesos_slave(Config),
-    timer:sleep(5000),
     {resource_offers, SchedulerPid, SchedulerInfo, EventOffers} = recv_reply(),
     %% Test scheduler info.
     #scheduler_info{subscribed = true} = SchedulerInfo,
@@ -324,8 +327,7 @@ offer_rescinded(Config) ->
     {registered, SchedulerPid, _, _} = recv_reply(),
     stop_mesos_slave(Config),
     start_mesos_slave(Config),
-    timer:sleep(5000),
-    {resource_offers, SchedulerPid, _SchedulerInfo, _OffersEvent} =
+    {resource_offers, SchedulerPid, _SchedulerInfo, _EventOffers} =
         recv_reply(),
     %% Test scheduler info.
     stop_mesos_slave(Config),
@@ -366,6 +368,30 @@ error(Config) ->
     %% Test scheduler state.
     {terminate, SchedulerPid, _, _, State} = recv_reply(),
     #state{callback = error} = State.
+
+%% Calls.
+
+accept(Config) ->
+    log("Accept test cases test cases", Config),
+    Ref = {erl_mesos_scheduler, accept},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    stop_mesos_slave(Config),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
+        recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    stop_mesos_slave(Config),
+    ok = stop_scheduler(Ref, Config).
 
 %% Internal functions.
 
@@ -417,7 +443,6 @@ stop_mesos_slave(Config) ->
         [StopRes],
         Config).
 
-
 start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Config) ->
     log("Start scheduler~n"
         "Ref == ~p~n"
@@ -468,8 +493,14 @@ recv_reply() ->
             {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind};
         {status_update, SchedulerPid, SchedulerInfo, EventUpdate} ->
             {status_update, SchedulerPid, SchedulerInfo, EventUpdate};
+        {slave_lost, SchedulerPid, SchedulerInfo, EventFailure} ->
+            {slave_lost, SchedulerPid, SchedulerInfo, EventFailure};
+        {executor_lost, SchedulerPid, SchedulerInfo, EventFailure} ->
+            {executor_lost, SchedulerPid, SchedulerInfo, EventFailure};
         {error, SchedulerPid, SchedulerInfo, ErrorEvent} ->
             {error, SchedulerPid, SchedulerInfo, ErrorEvent};
+        {accept, Accept} ->
+            {accept, Accept};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->
@@ -477,6 +508,12 @@ recv_reply() ->
     after 5000 ->
         {error, timeout}
     end.
+
+timestamp_task_id() ->
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
+    Timestamp = (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs,
+    #task_id{value = list_to_binary(integer_to_list(Timestamp))}.
+
 
 log(Format, Config) ->
     log(Format, [], Config).
