@@ -181,7 +181,13 @@ handle_info(Info, #state{client_ref = ClientRef,
                 _Info ->
                     call_handle_info(Info, State)
             end;
-        _AsyncResponse ->
+        {async_response, _ClientRef, done} ->
+            {noreply, State};
+        AsyncResponse ->
+            log_warning("** Scheduler received unexpected async response~n",
+                        "** Async response == ~p~n",
+                        [AsyncResponse],
+                        State),
             {noreply, State}
     end.
 
