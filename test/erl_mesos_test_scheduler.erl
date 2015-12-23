@@ -11,6 +11,8 @@
          resource_offers/3,
          offer_rescinded/3,
          status_update/3,
+         slave_lost/3,
+         executor_lost/3,
          error/3,
          handle_info/3,
          terminate/3]).
@@ -53,10 +55,40 @@ status_update(SchedulerInfo, EventUpdate, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {status_update, self(), SchedulerInfo, EventUpdate}),
     {ok, State#state{callback = status_update}}.
 
+slave_lost(SchedulerInfo, EventFailure, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {slave_lost, self(), SchedulerInfo, EventFailure}),
+    {ok, State#state{callback = slave_lost}}.
+
+executor_lost(SchedulerInfo, EventFailure, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {executor_lost, self(), SchedulerInfo, EventFailure}),
+    {ok, State#state{callback = executor_lost}}.
+
 error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, EventError}),
     {stop, State#state{callback = error}}.
 
+handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    CommandValue = <<"while true; sleep 1; done">>,
+    CommandInfo = #command_info{shell = true,
+                                value = CommandValue},
+    CpuScalarValue = #value_scalar{value = 0.1},
+    ResourceCpu = #resource{name = <<"cpus">>,
+                            type = <<"SCALAR">>,
+                            scalar = CpuScalarValue},
+    TaskInfo = #task_info{name = <<"test_task">>,
+                          task_id = TaskId,
+                          agent_id = AgentId,
+                          command = CommandInfo,
+                          resources = [ResourceCpu]},
+    Launch = #offer_operation_launch{task_infos = [TaskInfo]},
+    OfferOperation = #offer_operation{type = <<"LAUNCH">>,
+                                      launch = Launch},
+    CallAccept = #call_accept{offer_ids = [OfferId],
+                              operations = [OfferOperation]},
+    Accept = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
+    reply(TestPid, {accept, Accept}),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->
