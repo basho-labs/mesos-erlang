@@ -553,7 +553,7 @@ apply_event(Obj, #state{master_host = MasterHost,
                             EventSubscribed}
           when is_record(SubscribeState, subscribe_response),
                Id =:= undefined ->
-            log_info("** Successfuly subscribed~n",
+            log_info("** Successfully subscribed~n",
                      "** Host == ~s~n",
                      [MasterHost],
                      State),
@@ -569,7 +569,7 @@ apply_event(Obj, #state{master_host = MasterHost,
                subscribed = #event_subscribed{heartbeat_interval_seconds =
                                               HeartbeatIntervalSeconds}}
           when is_record(SubscribeState, subscribe_response) ->
-            log_info("** Successfuly resubscribed~n",
+            log_info("** Successfully resubscribed~n",
                      "** Host == ~s~n",
                      [MasterHost],
                      State),
