@@ -11,6 +11,7 @@
          resource_offers/3,
          offer_rescinded/3,
          status_update/3,
+         framework_message/3,
          slave_lost/3,
          executor_lost/3,
          error/3,
@@ -48,7 +49,7 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers} = EventOffers,
     case State of
         #state{offer = accept} ->
             [#offer{id = OfferId, agent_id = AgentId} | _] = Offers,
-            CommandValue = <<"while true; do echo 'Test task is running...'; sleep 1; done">>,
+            CommandValue = <<"while true; sleep 1; done">>,
             CommandInfo = #command_info{shell = true,
                                         value = CommandValue},
             CpuScalarValue = #value_scalar{value = 0.1},
@@ -63,12 +64,11 @@ resource_offers(SchedulerInfo, #event_offers{offers = Offers} = EventOffers,
             Launch = #offer_operation_launch{task_infos = [TaskInfo]},
             OfferOperation = #offer_operation{type = <<"LAUNCH">>,
                                               launch = Launch},
-            CallAccept = #call_accept{offer_ids = [OfferId],
-                                      operations = [OfferOperation]},
-            ok = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
+            ok = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
+                                            [OfferOperation]),
             CallReconcileTask = #call_reconcile_task{task_id = TaskId},
-            CallReconcile = #call_reconcile{tasks = [CallReconcileTask]},
-            ok = erl_mesos_scheduler:reconcile(SchedulerInfo, CallReconcile),
+            ok = erl_mesos_scheduler:reconcile(SchedulerInfo,
+                                               [CallReconcileTask]),
             State#state{offer = decline};
         #state{offer = decline} ->
             State
@@ -89,6 +89,12 @@ status_update(_SchedulerInfo, #event_update{} = EventUpdate, State) ->
     call_log("== Update status callback~n"
              "== Event update: ~p~n",
              [EventUpdate]),
+    {ok, State}.
+
+framework_message(_SchedulerInfo, #event_message{} = EventMessage, State) ->
+    call_log("== Framework message callback~n"
+             "== Event message: ~p~n",
+             [EventMessage]),
     {ok, State}.
 
 slave_lost(_SchedulerInfo, #event_failure{} = EventFailure, State) ->
