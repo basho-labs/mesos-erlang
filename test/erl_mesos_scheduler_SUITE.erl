@@ -263,7 +263,6 @@ resource_offers(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, SchedulerPid, _, _} = recv_reply(),
-    stop_mesos_slave(Config),
     start_mesos_slave(Config),
     {resource_offers, SchedulerPid, SchedulerInfo, EventOffers} = recv_reply(),
     %% Test scheduler info.
@@ -314,7 +313,6 @@ resource_offers(Config) ->
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = resource_offers} = scheduler_state(FormatState),
-    stop_mesos_slave(Config),
     ok = stop_scheduler(Ref, Config).
 
 offer_rescinded(Config) ->
@@ -327,7 +325,6 @@ offer_rescinded(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, SchedulerPid, _, _} = recv_reply(),
-    stop_mesos_slave(Config),
     start_mesos_slave(Config),
     {resource_offers, SchedulerPid, _SchedulerInfo, _EventOffers} =
         recv_reply(),
@@ -354,7 +351,6 @@ status_update(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
         Config),
     {registered, SchedulerPid, _, _} = recv_reply(),
-    stop_mesos_slave(Config),
     start_mesos_slave(Config),
     {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
         recv_reply(),
@@ -382,7 +378,6 @@ status_update(Config) ->
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = status_update} = scheduler_state(FormatState),
-    stop_mesos_slave(Config),
     ok = stop_scheduler(Ref, Config).
 
 error(Config) ->
@@ -424,7 +419,6 @@ accept(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, SchedulerPid, _, _} = recv_reply(),
-    stop_mesos_slave(Config),
     start_mesos_slave(Config),
     {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
         recv_reply(),
@@ -433,7 +427,6 @@ accept(Config) ->
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(),
-    stop_mesos_slave(Config),
     ok = stop_scheduler(Ref, Config).
 
 %% Internal functions.

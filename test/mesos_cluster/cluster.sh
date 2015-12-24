@@ -81,6 +81,7 @@ case "$1" in
         start
         ;;
     stop)
+        stop_slave
         stop
         ;;
     restart)
