@@ -119,7 +119,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions.
 
-%% @doc Retruns scheduler option.
+%% @doc Returns scheduler option.
 %% @private
 -spec get_scheduler_option(term(), atom()) -> {ok, term()} | not_found.
 get_scheduler_option(Ref, Key) ->
