@@ -106,7 +106,7 @@ bad_options(Config) ->
     Options2 = [{master_hosts, MasterHosts1}],
     {error, {bad_master_hosts, MasterHosts1}} =
         erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options2),
-    %% Bad requset options.
+    %% Bad request options.
     RequestOptions = undefined,
     Options3 = [{request_options, RequestOptions}],
     {error, {bad_request_options, RequestOptions}} =
@@ -183,7 +183,7 @@ disconnected(Config) ->
     %% Test scheduler state.
     {terminate, SchedulerPid, _, _, State} = recv_reply(),
     #state{callback = disconnected} = State,
-    %% Test claster stop.
+    %% Test cluster stop.
     Ref1 = {erl_mesos_scheduler, disconnected, 1},
     {ok, _} = start_scheduler(Ref1, Scheduler, SchedulerOptions1, Options1,
                               Config),
