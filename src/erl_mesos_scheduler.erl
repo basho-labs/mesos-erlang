@@ -132,9 +132,11 @@ accept(SchedulerInfo, OfferIds, Operations, Filters) ->
                               filters = Filters},
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
 
-%% @equiv erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile)
--spec reconcile(scheduler_info(), call_reconcile()) -> ok | {error, term()}.
-reconcile(SchedulerInfo, CallReconcile) ->
+%% @doc Reconcile call.
+-spec reconcile(scheduler_info(), [call_reconcile_task()]) ->
+    ok | {error, term()}.
+reconcile(SchedulerInfo, CallReconcileTasks) ->
+    CallReconcile = #call_reconcile{tasks = CallReconcileTasks},
     erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
 
 %% gen_server callback functions.
