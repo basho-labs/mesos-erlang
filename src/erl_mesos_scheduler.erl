@@ -6,7 +6,9 @@
 
 -export([start_link/4]).
 
--export([accept/2, reconcile/2]).
+-export([accept/3,
+         accept/4,
+         reconcile/2]).
 
 -export([init/1,
          handle_call/3,
@@ -114,9 +116,20 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
 
-%% @equiv erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept)
--spec accept(scheduler_info(), call_accept()) -> ok | {error, term()}.
-accept(SchedulerInfo, CallAccept) ->
+%% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
+-spec accept(scheduler_info(), [offer_id()], [options()]) ->
+    ok | {error, term()}.
+accept(SchedulerInfo, OfferIds, Operations) ->
+    accept(SchedulerInfo, OfferIds, Operations, undefined).
+
+%% @doc Accept call.
+-spec accept(scheduler_info(), [offer_id()], [options()],
+             undefined | filters()) ->
+    ok | {error, term()}.
+accept(SchedulerInfo, OfferIds, Operations, Filters) ->
+    CallAccept = #call_accept{offer_ids = OfferIds,
+                              operations = Operations,
+                              filters = Filters},
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
 
 %% @equiv erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile)
@@ -308,7 +321,7 @@ heartbeat_timeout_window(Options) ->
             {error, {bad_heartbeat_timeout_window, HeartbeatTimeoutWindow}}
     end.
 
-%% @doc Returns maximum numumber of resubscribe.
+%% @doc Returns maximum number of resubscribe.
 %% @private
 -spec max_num_resubscribe(options()) ->
     {ok, {max_num_resubscribe, non_neg_integer() | infinity}} |
