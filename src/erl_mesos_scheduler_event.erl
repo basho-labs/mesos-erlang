@@ -25,17 +25,12 @@ parse_event(#event{type = <<"SUBSCRIBED">>,
                    subscribed = EventSubscribedObj} = Event) ->
     EventSubscribed = parse_event_subscribed_obj(EventSubscribedObj),
     Event#event{type = subscribed, subscribed = EventSubscribed};
-parse_event(#event{type = <<"OFFERS">>,
-                   offers = EventOffersObj} = Event) ->
+parse_event(#event{type = <<"OFFERS">>, offers = EventOffersObj} = Event) ->
     EventOffers = parse_event_offers_obj(EventOffersObj),
     Event#event{type = offers, offers = EventOffers};
-parse_event(#event{type = <<"RESCIND">>,
-                   rescind = EventRescindObj} = Event) ->
-    EventRescind = ?ERL_MESOS_OBJ_TO_RECORD(event_rescind, EventRescindObj),
-    OfferId = ?ERL_MESOS_OBJ_TO_RECORD(offer_id,
-                                       EventRescind#event_rescind.offer_id),
-    EventRescind1 = EventRescind#event_rescind{offer_id = OfferId},
-    Event#event{type = rescind, rescind = EventRescind1};
+parse_event(#event{type = <<"RESCIND">>, rescind = EventRescindObj} = Event) ->
+    EventRescind = parse_event_rescind_obj(EventRescindObj),
+    Event#event{type = rescind, rescind = EventRescind};
 parse_event(#event{type = <<"UPDATE">>, update = EventUpdateObj} = Event) ->
     EventUpdate = parse_event_update_obj(EventUpdateObj),
     Event#event{type = update, update = EventUpdate};
@@ -478,6 +473,15 @@ parse_network_info_ip_address_objs(NetworkInfoIpAddressObjs) ->
     [?ERL_MESOS_OBJ_TO_RECORD(network_info_ip_address,
                               NetworkInfoIpAddressObj) ||
      NetworkInfoIpAddressObj <- NetworkInfoIpAddressObjs].
+
+%% @doc Parses event rescind obj.
+%% @private
+-spec parse_event_rescind_obj(erl_mesos_obj:data_obj()) -> event_rescind().
+parse_event_rescind_obj(EventRescindObj) ->
+    EventRescind = ?ERL_MESOS_OBJ_TO_RECORD(event_rescind, EventRescindObj),
+    OfferId = ?ERL_MESOS_OBJ_TO_RECORD(offer_id,
+                                       EventRescind#event_rescind.offer_id),
+    EventRescind#event_rescind{offer_id = OfferId}.
 
 %% @doc Parses event failure obj.
 %% @private
