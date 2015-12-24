@@ -117,13 +117,13 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
                           []).
 
 %% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
--spec accept(scheduler_info(), [offer_id()], [options()]) ->
+-spec accept(scheduler_info(), [offer_id()], [offer_operation()]) ->
     ok | {error, term()}.
 accept(SchedulerInfo, OfferIds, Operations) ->
     accept(SchedulerInfo, OfferIds, Operations, undefined).
 
 %% @doc Accept call.
--spec accept(scheduler_info(), [offer_id()], [options()],
+-spec accept(scheduler_info(), [offer_id()], [offer_operation()],
              undefined | filters()) ->
     ok | {error, term()}.
 accept(SchedulerInfo, OfferIds, Operations, Filters) ->
