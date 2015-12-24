@@ -19,6 +19,7 @@
          reregistered/1,
          resource_offers/1,
          offer_rescinded/1,
+         status_update/1,
          error/1,
          accept/1]).
 
@@ -36,13 +37,14 @@ groups() ->
                       reregistered,
                       resource_offers,
                       offer_rescinded,
+                      status_update,
                       error,
                       accept]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
     Scheduler = erl_mesos_test_scheduler,
-    SchedulerOptions = [{user, <<"user">>},
+    SchedulerOptions = [{user, <<"root">>},
                         {name, <<"erl_mesos_test_scheduler">>}],
     {ok, Masters} = erl_mesos_cluster:config(masters, Config),
     MasterHosts = proplists:get_keys(Masters),
@@ -340,6 +342,47 @@ offer_rescinded(Config) ->
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = offer_rescinded} = scheduler_state(FormatState),
+    ok = stop_scheduler(Ref, Config).
+
+status_update(Config) ->
+    log("Status update test cases test cases", Config),
+    Ref = {erl_mesos_scheduler, status_update},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+        Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    stop_mesos_slave(Config),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
+        recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, SchedulerInfo, EventUpdate} = recv_reply(),
+    %% Test scheduler info.
+    #scheduler_info{subscribed = true} = SchedulerInfo,
+    %% Test event update.
+    #event_update{status = Status} = EventUpdate,
+    #task_status{task_id = TaskId,
+                 state = <<"TASK_RUNNING">>,
+                 source = <<"SOURCE_EXECUTOR">>,
+                 agent_id = AgentId,
+                 executor_id = ExecutorId,
+                 timestamp = Timestamp,
+                 uuid = Uuid} = Status,
+    #executor_id{value = ExecutorIdValue} = ExecutorId,
+    true = is_binary(ExecutorIdValue),
+    true = is_float(Timestamp),
+    true = is_binary(Uuid),
+    %% Test scheduler state.
+    FormatState = format_state(SchedulerPid),
+    #state{callback = status_update} = scheduler_state(FormatState),
+    stop_mesos_slave(Config),
     ok = stop_scheduler(Ref, Config).
 
 error(Config) ->
