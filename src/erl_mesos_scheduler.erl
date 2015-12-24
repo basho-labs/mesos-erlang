@@ -33,7 +33,7 @@
                 subscribe_state :: undefined | subscribe_state(),
                 num_redirect = 0 :: non_neg_integer(),
                 num_resubscribe = 0 :: non_neg_integer(),
-                heartbeat_timeout :: pos_integer(),
+                heartbeat_timeout :: undefined | pos_integer(),
                 heartbeat_timer_ref :: undefined | reference(),
                 resubscribe_timer_ref :: undefined | reference()}).
 
