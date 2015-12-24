@@ -34,6 +34,9 @@ parse_event(#event{type = <<"RESCIND">>, rescind = EventRescindObj} = Event) ->
 parse_event(#event{type = <<"UPDATE">>, update = EventUpdateObj} = Event) ->
     EventUpdate = parse_event_update_obj(EventUpdateObj),
     Event#event{type = update, update = EventUpdate};
+parse_event(#event{type = <<"MESSAGE">>, message = EventMessageObj} = Event) ->
+    EventMessage = parse_event_message_obj(EventMessageObj),
+    Event#event{type = message, message = EventMessage};
 parse_event(#event{type = <<"FAILURE">>, failure = EventFailureObj} = Event) ->
     EventFailure = parse_event_failure_obj(EventFailureObj),
     Event#event{type = failure, failure = EventFailure};
@@ -482,6 +485,15 @@ parse_event_rescind_obj(EventRescindObj) ->
     OfferId = ?ERL_MESOS_OBJ_TO_RECORD(offer_id,
                                        EventRescind#event_rescind.offer_id),
     EventRescind#event_rescind{offer_id = OfferId}.
+
+%% @doc Parses event message obj.
+%% @private
+-spec parse_event_message_obj(erl_mesos_obj:data_obj()) -> event_message().
+parse_event_message_obj(EventMessageObj) ->
+    EventMessage = ?ERL_MESOS_OBJ_TO_RECORD(event_message, EventMessageObj),
+    AgentId = parse_agent_id_obj(EventMessage#event_message.agent_id),
+    ExecutorId = parse_executor_id_obj(EventMessage#event_message.executor_id),
+    EventMessage#event_message{agent_id = AgentId, executor_id = ExecutorId}.
 
 %% @doc Parses event failure obj.
 %% @private

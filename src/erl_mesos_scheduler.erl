@@ -72,6 +72,9 @@
 -callback status_update(scheduler_info(), event_update(), term()) ->
     {ok, term()} | {stop, term()}.
 
+-callback framework_message(scheduler_info(), event_message(), term()) ->
+    {ok, term()} | {stop, term()}.
+
 -callback slave_lost(scheduler_info(), event_failure(), term()) ->
     {ok, term()} | {stop, term()}.
 
@@ -583,6 +586,8 @@ apply_event(Obj, #state{master_host = MasterHost,
             call(offer_rescinded, EventRescind, State);
         #event{type = update, update = EventUpdate} ->
             call(status_update, EventUpdate, State);
+        #event{type = message, message = EventMessage} ->
+            call(framework_message, EventMessage, State);
         #event{type = failure,
                failure = #event_failure{executor_id = undefined} =
                EventFailure} ->
