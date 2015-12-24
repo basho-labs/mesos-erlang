@@ -568,6 +568,8 @@ recv_reply() ->
             {offer_rescinded, SchedulerPid, SchedulerInfo, EventRescind};
         {status_update, SchedulerPid, SchedulerInfo, EventUpdate} ->
             {status_update, SchedulerPid, SchedulerInfo, EventUpdate};
+        {framework_message, SchedulerPid, SchedulerInfo, EventMessage} ->
+            {framework_message, SchedulerPid, SchedulerInfo, EventMessage};
         {slave_lost, SchedulerPid, SchedulerInfo, EventFailure} ->
             {slave_lost, SchedulerPid, SchedulerInfo, EventFailure};
         {executor_lost, SchedulerPid, SchedulerInfo, EventFailure} ->
