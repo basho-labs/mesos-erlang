@@ -11,6 +11,7 @@
          resource_offers/3,
          offer_rescinded/3,
          status_update/3,
+         framework_message/3,
          slave_lost/3,
          executor_lost/3,
          error/3,
@@ -55,6 +56,11 @@ status_update(SchedulerInfo, EventUpdate, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {status_update, self(), SchedulerInfo, EventUpdate}),
     {ok, State#state{callback = status_update}}.
 
+framework_message(SchedulerInfo, EventMessage,
+                  #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {framework_message, self(), SchedulerInfo, EventMessage}),
+    {ok, State#state{callback = framework_message}}.
+
 slave_lost(SchedulerInfo, EventFailure, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {slave_lost, self(), SchedulerInfo, EventFailure}),
     {ok, State#state{callback = slave_lost}}.
@@ -87,9 +93,8 @@ handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
     Launch = #offer_operation_launch{task_infos = [TaskInfo]},
     OfferOperation = #offer_operation{type = <<"LAUNCH">>,
                                       launch = Launch},
-    CallAccept = #call_accept{offer_ids = [OfferId],
-                              operations = [OfferOperation]},
-    Accept = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
+    Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
+                                        [OfferOperation]),
     reply(TestPid, {accept, Accept}),
     {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
