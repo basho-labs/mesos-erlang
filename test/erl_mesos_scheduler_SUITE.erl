@@ -22,6 +22,7 @@
          status_update/1,
          slave_lost/1,
          error/1,
+         teardown/1,
          accept/1,
          reconcile/1]).
 
@@ -42,6 +43,7 @@ groups() ->
                       status_update,
                       slave_lost,
                       error,
+                      teardown,
                       accept,
                       reconcile]}].
 
@@ -450,6 +452,20 @@ error(Config) ->
 
 %% Calls.
 
+teardown(Config) ->
+    log("Teardown test cases test cases", Config),
+    Ref = {erl_mesos_scheduler, teardown},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    SchedulerPid ! teardown,
+    {teardown, ok} = recv_reply(),
+    {terminate, SchedulerPid, _, _, _} = recv_reply().
+
 accept(Config) ->
     log("Accept test cases test cases", Config),
     Ref = {erl_mesos_scheduler, accept},
@@ -461,14 +477,14 @@ accept(Config) ->
                               Config),
     {registered, SchedulerPid, _, _} = recv_reply(),
     start_mesos_slave(Config),
-    {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
+    {resource_offers, SchedulerPid, _, EventOffers} =
         recv_reply(),
     #event_offers{offers = [Offer | _]} = EventOffers,
     #offer{id = OfferId, agent_id = AgentId} = Offer,
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(),
-    {status_update, SchedulerPid, _SchedulerInfo, EventUpdate} = recv_reply(),
+    {status_update, SchedulerPid, _, EventUpdate} = recv_reply(),
     #event_update{status = Status} = EventUpdate,
     #task_status{task_id = TaskId,
                  state = <<"TASK_RUNNING">>,
@@ -486,17 +502,17 @@ reconcile(Config) ->
                               Config),
     {registered, SchedulerPid, _, _} = recv_reply(),
     start_mesos_slave(Config),
-    {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
+    {resource_offers, SchedulerPid, _, EventOffers} =
         recv_reply(),
     #event_offers{offers = [Offer | _]} = EventOffers,
     #offer{id = OfferId, agent_id = AgentId} = Offer,
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(),
-    {status_update, SchedulerPid, _SchedulerInfo, _EventUpdate} = recv_reply(),
+    {status_update, SchedulerPid, _, _} = recv_reply(),
     SchedulerPid ! {reconcile, TaskId},
     {reconcile, ok} = recv_reply(),
-    {status_update, SchedulerPid, _SchedulerInfo, EventUpdate} = recv_reply(),
+    {status_update, SchedulerPid, _, EventUpdate} = recv_reply(),
     #event_update{status = Status} = EventUpdate,
     #task_status{task_id = TaskId,
                  state = <<"TASK_RUNNING">>,
@@ -612,6 +628,8 @@ recv_reply() ->
             {executor_lost, SchedulerPid, SchedulerInfo, EventFailure};
         {error, SchedulerPid, SchedulerInfo, ErrorEvent} ->
             {error, SchedulerPid, SchedulerInfo, ErrorEvent};
+        {teardown, Teardown} ->
+            {teardown, Teardown};
         {accept, Accept} ->
             {accept, Accept};
         {reconcile, Reconcile} ->

@@ -74,6 +74,10 @@ error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, EventError}),
     {stop, State#state{callback = error}}.
 
+handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
+    Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
+    reply(TestPid, {teardown, Teardown}),
+    {stop, State};
 handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
             #state{test_pid = TestPid} = State) ->
     CommandValue = <<"while true; sleep 1; done">>,
@@ -143,4 +147,3 @@ reply(undefined, _Message) ->
     undefined;
 reply(TestPid, Message) ->
     TestPid ! Message.
-
