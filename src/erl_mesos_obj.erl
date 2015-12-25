@@ -37,7 +37,7 @@
 new(Fields) ->
     {struct, Fields}.
 
-%% @equiv get_value(Key, Obj, undefined).
+%% @equiv get_value(Key, Obj, undefined)
 -spec get_value(data_string(), data_obj()) -> undefined | data().
 get_value(Key, Obj) ->
     get_value(Key, Obj, undefined).

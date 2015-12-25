@@ -20,16 +20,14 @@ start() ->
     ok = application:ensure_started(erl_mesos).
 
 %% @equiv erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options,
-%%                                  infinity).
+%%                                  infinity)
 -spec start_scheduler(term(), module(), term(),
                       erl_mesos_scheduler:options()) ->
     {ok, pid()} | {error, term()}.
 start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
     start_scheduler(Ref, Scheduler, SchedulerOptions, Options, infinity).
 
-%% @equiv erl_mesos_scheduler_manager:start_scheduler(Ref, Scheduler,
-%%                                                    SchedulerOptions,
-%%                                                    Options, Timeout).
+%% @doc Starts scheduler.
 -spec start_scheduler(term(), module(), term(),
                       erl_mesos_scheduler:options(), timeout()) ->
     {ok, pid()} | {error, term()}.
@@ -38,7 +36,7 @@ start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Timeout) ->
                                                 SchedulerOptions, Options,
                                                 Timeout).
 
-%% @equiv erl_mesos_scheduler_manager:stop_scheduler(Ref).
+%% @doc Stops scheduler.
 -spec stop_scheduler(term())  -> ok | {error, term()}.
 stop_scheduler(Ref) ->
     erl_mesos_scheduler_manager:stop_scheduler(Ref).
