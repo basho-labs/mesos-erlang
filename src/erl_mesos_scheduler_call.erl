@@ -9,6 +9,7 @@
 -export([subscribe/2,
          teardown/1,
          accept/2,
+         decline/2,
          reconcile/2]).
 
 -type version() :: v1.
@@ -55,6 +56,21 @@ accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
                                                   RequestOptions1},
     CallAcceptObj = call_accept_obj(CallAccept),
     Call = #call{type = <<"ACCEPT">>, accept = CallAcceptObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
+
+%% Executes decline call.
+-spec decline(erl_mesos:scheduler_info(), erl_mesos:call_decline()) ->
+    ok | {error, term()}.
+decline(#scheduler_info{subscribed = false}, _CallDecline) ->
+    {error, not_subscribed};
+decline(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+        CallDecline) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    CallDeclineObj = call_decline_obj(CallDecline),
+    Call = #call{type = <<"DECLINE">>, decline = CallDeclineObj},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(request(SchedulerInfo1, CallObj)).
 
@@ -727,6 +743,18 @@ filters_obj(undefined) ->
     undefined;
 filters_obj(FiltersObj) ->
     ?ERL_MESOS_OBJ_FROM_RECORD(health_check_http, FiltersObj).
+
+%% @doc Returns call decline obj.
+%% @private
+-spec call_decline_obj(erl_mesos:call_decline()) ->
+    erl_mesos_obj:data_obj().
+call_decline_obj(#call_decline{offer_ids = OfferIds,
+                               filters = Filters} = CallDecline) ->
+    OfferIdObjs = offer_id_objs(OfferIds),
+    FiltersObj = filters_obj(Filters),
+    CallDecline1 = CallDecline#call_decline{offer_ids = OfferIdObjs,
+                                            filters = FiltersObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_decline, CallDecline1).
 
 %% @doc Returns call reconcile obj.
 %% @private

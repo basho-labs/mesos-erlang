@@ -27,7 +27,9 @@
                accept :: undefined | erl_mesos:call_accept() |
                          erl_mesos_obj:data_obj(),
                reconcile :: undefined | erl_mesos:call_reconcile() |
-                            erl_mesos_obj:data_obj()}).
+                            erl_mesos_obj:data_obj(),
+               decline :: undefined | erl_mesos:call_decline() |
+                          erl_mesos_obj:data_obj()}).
 
 %% Call subscribe.
 -record(call_subscribe, {framework_info :: erl_mesos:framework_info() |
@@ -35,13 +37,18 @@
                          force :: undefined | boolean()}).
 
 %% Call accept.
--record(call_accept, {offer_ids :: undefined |
-                                   [erl_mesos:offer_id() |
+-record(call_accept, {offer_ids :: [erl_mesos:offer_id() |
                                     erl_mesos_obj:data_obj()],
-                      operations :: undefined | [erl_mesos:offer_operation() |
-                                                 erl_mesos_obj:data_obj()],
+                      operations :: [erl_mesos:offer_operation() |
+                                     erl_mesos_obj:data_obj()],
                       filters :: undefined | erl_mesos:filters() |
                                  erl_mesos_obj:data_obj()}).
+
+%% Call decline.
+-record(call_decline, {offer_ids :: [erl_mesos:offer_id() |
+                                     erl_mesos_obj:data_obj()],
+                       filters :: undefined | erl_mesos:filters() |
+                                  erl_mesos_obj:data_obj()}).
 
 %% Call reconcile.
 -record(call_reconcile, {tasks :: [erl_mesos:call_reconcile_task() |

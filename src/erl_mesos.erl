@@ -28,6 +28,9 @@
 -type call_accept() :: #call_accept{}.
 -export_type([call_accept/0]).
 
+-type call_decline() :: #call_decline{}.
+-export_type([call_decline/0]).
+
 -type call_reconcile() :: #call_reconcile{}.
 -export_type([call_reconcile/0]).
 

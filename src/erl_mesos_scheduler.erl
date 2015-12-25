@@ -9,6 +9,8 @@
 -export([teardown/1,
          accept/3,
          accept/4,
+         decline/2,
+         decline/3,
          reconcile/2]).
 
 -export([init/1,
@@ -145,6 +147,21 @@ accept(SchedulerInfo, OfferIds, Operations, Filters) ->
                               operations = Operations,
                               filters = Filters},
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
+
+%% @equiv decline(SchedulerInfo, OfferIds, undefined)
+-spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()]) ->
+    ok | {error, term()}.
+decline(SchedulerInfo, OfferIds) ->
+    decline(SchedulerInfo, OfferIds, undefined).
+
+%% @doc Decline call.
+-spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
+              undefined | erl_mesos:filters()) ->
+    ok | {error, term()}.
+decline(SchedulerInfo, OfferIds, Filters) ->
+    CallDecline = #call_accept{offer_ids = OfferIds,
+                               filters = Filters},
+    erl_mesos_scheduler_call:accept(SchedulerInfo, CallDecline).
 
 %% @doc Reconcile call.
 -spec reconcile(erl_mesos:scheduler_info(),
