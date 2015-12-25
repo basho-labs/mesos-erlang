@@ -6,7 +6,10 @@
 
 -include("erl_mesos_obj.hrl").
 
--export([subscribe/2, accept/2, reconcile/2]).
+-export([subscribe/2,
+         teardown/1,
+         accept/2,
+         reconcile/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -27,6 +30,18 @@ subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     Call = #call{type = <<"SUBSCRIBE">>, subscribe = CallSubscribeObj},
     CallObj = call_obj(SchedulerInfo, Call),
     request(SchedulerInfo1, CallObj).
+
+%% Executes teardown call.
+-spec teardown(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+teardown(#scheduler_info{subscribed = false}) ->
+    {error, not_subscribed};
+teardown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #call{type = <<"TEARDOWN">>},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
 
 %% Executes accept call.
 -spec accept(erl_mesos:scheduler_info(), erl_mesos:call_accept()) ->

@@ -6,7 +6,8 @@
 
 -export([start_link/4]).
 
--export([accept/3,
+-export([teardown/1,
+         accept/3,
          accept/4,
          reconcile/2]).
 
@@ -122,6 +123,11 @@
 start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
+
+%% @doc Teardown call.
+-spec teardown(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+teardown(SchedulerInfo) ->
+    erl_mesos_scheduler_call:teardown(SchedulerInfo).
 
 %% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
 -spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
