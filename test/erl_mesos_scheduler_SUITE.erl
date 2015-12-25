@@ -468,11 +468,16 @@ accept(Config) ->
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, _SchedulerInfo, EventUpdate} = recv_reply(),
+    #event_update{status = Status} = EventUpdate,
+    #task_status{task_id = TaskId,
+                 state = <<"TASK_RUNNING">>,
+                 agent_id = AgentId} = Status,
     ok = stop_scheduler(Ref, Config).
 
 reconcile(Config) ->
     log("Reconcile test cases test cases", Config),
-    Ref = {erl_mesos_scheduler, accept},
+    Ref = {erl_mesos_scheduler, reconcile},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     SchedulerOptions1 = set_test_pid(SchedulerOptions),
@@ -488,8 +493,15 @@ reconcile(Config) ->
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, _SchedulerInfo, _EventUpdate} = recv_reply(),
     SchedulerPid ! {reconcile, TaskId},
-    R = recv_reply(),
+    {reconcile, ok} = recv_reply(),
+    {status_update, SchedulerPid, _SchedulerInfo, EventUpdate} = recv_reply(),
+    #event_update{status = Status} = EventUpdate,
+    #task_status{task_id = TaskId,
+                 state = <<"TASK_RUNNING">>,
+                 reason = <<"REASON_RECONCILIATION">>,
+                 agent_id = AgentId} = Status,
     ok = stop_scheduler(Ref, Config).
 
 %% Internal functions.
