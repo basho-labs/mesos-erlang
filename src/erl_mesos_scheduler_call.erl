@@ -395,7 +395,7 @@ resource_disk_info_obj(#resource_disk_info{persistence = Persistence,
 %% @doc Returns resource disk info persistence obj.
 %% @private
 -spec resource_disk_info_persistence_obj(undefined |
-  erl_mesos:resource_disk_info_persistence()) ->
+          erl_mesos:resource_disk_info_persistence()) ->
     undefined | erl_mesos_obj:data_obj().
 resource_disk_info_persistence_obj(undefined) ->
     undefined;
@@ -503,7 +503,7 @@ command_info_obj(#command_info{container = Container,
 %% @doc Returns command info container info obj.
 %% @private
 -spec command_info_container_info_obj(undefined |
-  erl_mesos:command_info_container_info()) ->
+          erl_mesos:command_info_container_info()) ->
     undefined | erl_mesos_obj:data_obj().
 command_info_container_info_obj(undefined) ->
     undefined;
