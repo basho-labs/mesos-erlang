@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_scheduler_manager).
 
 -behaviour(gen_server).

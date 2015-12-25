@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_http).
 
 -export([request/5, body/1]).

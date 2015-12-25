@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_scheduler_call).
 
 -include("erl_mesos.hrl").

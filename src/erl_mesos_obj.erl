@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_obj).
 
 -include("erl_mesos_obj.hrl").
