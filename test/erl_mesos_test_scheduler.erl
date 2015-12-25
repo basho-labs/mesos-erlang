@@ -65,7 +65,8 @@ slave_lost(SchedulerInfo, EventFailure, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {slave_lost, self(), SchedulerInfo, EventFailure}),
     {ok, State#state{callback = slave_lost}}.
 
-executor_lost(SchedulerInfo, EventFailure, #state{test_pid = TestPid} = State) ->
+executor_lost(SchedulerInfo, EventFailure,
+              #state{test_pid = TestPid} = State) ->
     reply(TestPid, {executor_lost, self(), SchedulerInfo, EventFailure}),
     {ok, State#state{callback = executor_lost}}.
 
