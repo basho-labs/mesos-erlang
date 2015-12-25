@@ -22,7 +22,8 @@
          status_update/1,
          slave_lost/1,
          error/1,
-         accept/1]).
+         accept/1,
+         reconcile/1]).
 
 -record(state, {callback,
                 test_pid}).
@@ -41,7 +42,8 @@ groups() ->
                       status_update,
                       slave_lost,
                       error,
-                      accept]}].
+                      accept,
+                      reconcile]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -468,6 +470,28 @@ accept(Config) ->
     {accept, ok} = recv_reply(),
     ok = stop_scheduler(Ref, Config).
 
+reconcile(Config) ->
+    log("Reconcile test cases test cases", Config),
+    Ref = {erl_mesos_scheduler, accept},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
+        recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    SchedulerPid ! {reconcile, TaskId},
+    R = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
+
 %% Internal functions.
 
 start_mesos_cluster(Config) ->
@@ -578,6 +602,8 @@ recv_reply() ->
             {error, SchedulerPid, SchedulerInfo, ErrorEvent};
         {accept, Accept} ->
             {accept, Accept};
+        {reconcile, Reconcile} ->
+            {reconcile, Reconcile};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->

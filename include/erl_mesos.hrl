@@ -93,26 +93,22 @@
                                            erl_mesos_obj:data_obj()]}).
 
 %% Container info docker info.
--record(container_info_docker_info, {image :: erl_mesos_obj:data_string(),
-                                     network :: undefined |
-                                                erl_mesos_obj:data_string(),
-                                     port_mappings :: undefined |
-                                                      [erl_mesos:
-                                     container_info_docker_info_port_mapping() |
-                                      erl_mesos_obj:data_obj()],
-                                     privileged :: undefined | boolean(),
-                                     parameters :: undefined |
-                                                   [erl_mesos:parameter() |
-                                                    erl_mesos_obj:data_obj()],
-                                     force_pull_image :: undefined |
-                                                         boolean()}).
+-record(container_info_docker_info,
+        {image :: erl_mesos_obj:data_string(),
+         network :: undefined | erl_mesos_obj:data_string(),
+         port_mappings :: undefined |
+                          [erl_mesos:container_info_docker_info_port_mapping() |
+                           erl_mesos_obj:data_obj()],
+         privileged :: undefined | boolean(),
+         parameters :: undefined | [erl_mesos:parameter() |
+                                    erl_mesos_obj:data_obj()],
+         force_pull_image :: undefined | boolean()}).
 
 %% Container info docker info port mapping.
--record(container_info_docker_info_port_mapping, {host_port :: pos_integer(),
-                                                  container_port ::
-                                                      pos_integer(),
-                                                  protocol :: undefined |
-                                                  erl_mesos_obj:data_string()}).
+-record(container_info_docker_info_port_mapping,
+        {host_port :: pos_integer(),
+         container_port :: pos_integer(),
+         protocol :: undefined | erl_mesos_obj:data_string()}).
 
 %% Container info mesos info.
 -record(container_info_mesos_info, {image :: undefined | erl_mesos:image() |
@@ -241,8 +237,8 @@
                          principal :: undefined | erl_mesos_obj:data_string(),
                          webui_url :: undefined | erl_mesos_obj:data_string(),
                          capabilities :: undefined |
-                                         erl_mesos:framework_info_capabilitie()|
-                                         erl_mesos_obj:data_obj(),
+                             erl_mesos:framework_info_capabilitie() |
+                             erl_mesos_obj:data_obj(),
                          labels :: undefined | erl_mesos:labels() |
                                    erl_mesos_obj:data_obj()}).
 
@@ -413,12 +409,11 @@
 -record(resource_reservation_info, {principal :: erl_mesos_obj:data_string()}).
 
 %% Resource disk info.
--record(resource_disk_info, {persistence :: undefined |
-                                            erl_mesos:
-                                            resource_disk_info_persistence() |
-                                            erl_mesos_obj:data_obj(),
-                             volume :: undefined | erl_mesos:volume() |
-                                       erl_mesos_obj:data_obj()}).
+-record(resource_disk_info,
+        {persistence :: undefined |
+                        erl_mesos:resource_disk_info_persistence() |
+                        erl_mesos_obj:data_obj(),
+         volume :: undefined | erl_mesos:volume() | erl_mesos_obj:data_obj()}).
 
 %% Resource disk info persistence.
 -record(resource_disk_info_persistence, {id :: erl_mesos_obj:data_string()}).
