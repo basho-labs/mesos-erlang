@@ -27,7 +27,7 @@
                 heartbeat_timeout_window :: pos_integer(),
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
-                call_subscribe :: undefined | call_subscribe(),
+                call_subscribe :: undefined | erl_mesos:call_subscribe(),
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
@@ -54,42 +54,49 @@
 %% Callbacks.
 
 -callback init(term()) ->
-    {ok, framework_info(), boolean(), term()} | {stop, term()}.
+    {ok, erl_mesos:framework_info(), boolean(), term()} | {stop, term()}.
 
--callback registered(scheduler_info(), event_subscribed(), term()) ->
+-callback registered(erl_mesos:scheduler_info(),
+                     erl_mesos:event_subscribed(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback disconnected(scheduler_info(), term()) ->
+-callback disconnected(erl_mesos:scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback reregistered(scheduler_info(), term()) ->
+-callback reregistered(erl_mesos:scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback resource_offers(scheduler_info(), event_offers(), term()) ->
+-callback resource_offers(erl_mesos:scheduler_info(),
+                          erl_mesos:event_offers(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback offer_rescinded(scheduler_info(), event_rescind(), term()) ->
+-callback offer_rescinded(erl_mesos:scheduler_info(),
+                          erl_mesos:event_rescind(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback status_update(scheduler_info(), event_update(), term()) ->
+-callback status_update(erl_mesos:scheduler_info(),
+                        erl_mesos:event_update(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback framework_message(scheduler_info(), event_message(), term()) ->
+-callback framework_message(erl_mesos:scheduler_info(),
+                            erl_mesos:event_message(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback slave_lost(scheduler_info(), event_failure(), term()) ->
+-callback slave_lost(erl_mesos:scheduler_info(),
+                     erl_mesos:event_failure(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback executor_lost(scheduler_info(), event_failure(), term()) ->
+-callback executor_lost(erl_mesos:scheduler_info(),
+                        erl_mesos:event_failure(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback error(scheduler_info(), event_error(), term()) ->
+-callback error(erl_mesos:scheduler_info(), erl_mesos:event_error(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback handle_info(scheduler_info(), term(), term()) ->
+-callback handle_info(erl_mesos:scheduler_info(), term(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback terminate(scheduler_info(), term(), term()) -> term().
+-callback terminate(erl_mesos:scheduler_info(), term(), term()) -> term().
 
 -define(DEFAULT_MASTER_HOSTS, [<<"localhost:5050">>]).
 
@@ -117,14 +124,15 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
                           []).
 
 %% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
--spec accept(scheduler_info(), [offer_id()], [offer_operation()]) ->
+-spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
+             [erl_mesos:offer_operation()]) ->
     ok | {error, term()}.
 accept(SchedulerInfo, OfferIds, Operations) ->
     accept(SchedulerInfo, OfferIds, Operations, undefined).
 
 %% @doc Accept call.
--spec accept(scheduler_info(), [offer_id()], [offer_operation()],
-             undefined | filters()) ->
+-spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
+             [erl_mesos:offer_operation()], undefined | erl_mesos:filters()) ->
     ok | {error, term()}.
 accept(SchedulerInfo, OfferIds, Operations, Filters) ->
     CallAccept = #call_accept{offer_ids = OfferIds,
@@ -133,7 +141,8 @@ accept(SchedulerInfo, OfferIds, Operations, Filters) ->
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
 
 %% @doc Reconcile call.
--spec reconcile(scheduler_info(), [call_reconcile_task()]) ->
+-spec reconcile(erl_mesos:scheduler_info(),
+                [erl_mesos:call_reconcile_task()]) ->
     ok | {error, term()}.
 reconcile(SchedulerInfo, CallReconcileTasks) ->
     CallReconcile = #call_reconcile{tasks = CallReconcileTasks},
@@ -446,7 +455,7 @@ subscribe(#state{master_hosts_queue = []}) ->
 
 %% @doc Returns scheduler info.
 %% @private
--spec scheduler_info(state()) -> scheduler_info().
+-spec scheduler_info(state()) -> erl_mesos:scheduler_info().
 scheduler_info(#state{data_format = DataFormat,
                       api_version = ApiVersion,
                       master_host = MasterHost,

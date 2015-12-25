@@ -14,7 +14,7 @@
 %% External functions.
 
 %% Executes subscribe call.
--spec subscribe(scheduler_info(), call_subscribe()) ->
+-spec subscribe(erl_mesos:scheduler_info(), erl_mesos:call_subscribe()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
           CallSubscribe) ->
@@ -27,7 +27,8 @@ subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     request(SchedulerInfo1, CallObj).
 
 %% Executes accept call.
--spec accept(scheduler_info(), call_accept()) -> ok | {error, term()}.
+-spec accept(erl_mesos:scheduler_info(), erl_mesos:call_accept()) ->
+    ok | {error, term()}.
 accept(#scheduler_info{subscribed = false}, _CallAccept) ->
     {error, not_subscribed};
 accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
@@ -41,7 +42,8 @@ accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     handle_response(request(SchedulerInfo1, CallObj)).
 
 %% Executes reconcile call.
--spec reconcile(scheduler_info(), call_reconcile()) -> ok | {error, term()}.
+-spec reconcile(erl_mesos:scheduler_info(), erl_mesos:call_reconcile()) ->
+    ok | {error, term()}.
 reconcile(#scheduler_info{subscribed = false}, _CallReconcile) ->
     {error, not_subscribed};
 reconcile(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
@@ -77,7 +79,8 @@ request_options(RequestOptions) ->
 
 %% @doc Returns call obj.
 %% @private
--spec call_obj(scheduler_info(), call()) -> erl_mesos_obj:data_obj().
+-spec call_obj(erl_mesos:scheduler_info(), erl_mesos:call()) ->
+    erl_mesos_obj:data_obj().
 call_obj(#scheduler_info{framework_id = FrameworkId}, Call) ->
     FrameworkIdObj = framework_id_obj(FrameworkId),
     Call1 = Call#call{framework_id = FrameworkIdObj},
@@ -85,7 +88,8 @@ call_obj(#scheduler_info{framework_id = FrameworkId}, Call) ->
 
 %% @doc Returns call subscribe obj.
 %% @private
--spec call_subscribe_obj(call_subscribe()) -> erl_mesos_obj:data_obj().
+-spec call_subscribe_obj(erl_mesos:call_subscribe()) ->
+    erl_mesos_obj:data_obj().
 call_subscribe_obj(#call_subscribe{framework_info = FrameworkInfo} =
                    CallSubscribe) ->
     FrameworkInfoObj = framework_info_obj(FrameworkInfo),
@@ -95,7 +99,8 @@ call_subscribe_obj(#call_subscribe{framework_info = FrameworkInfo} =
 
 %% @doc Returns framework info obj.
 %% @private
--spec framework_info_obj(framework_info()) -> erl_mesos_obj:data_obj().
+-spec framework_info_obj(erl_mesos:framework_info()) ->
+    erl_mesos_obj:data_obj().
 framework_info_obj(#framework_info{id = Id,
                                    capabilities = Capabilities,
                                    labels = Labels} = FrameworkInfo) ->
@@ -110,7 +115,8 @@ framework_info_obj(#framework_info{id = Id,
 
 %% @doc Returns framework id obj.
 %% @private
--spec framework_id_obj(undefined | framework_id()) -> erl_mesos_obj:data_obj().
+-spec framework_id_obj(undefined | erl_mesos:framework_id()) ->
+    erl_mesos_obj:data_obj().
 framework_id_obj(undefined) ->
     undefined;
 framework_id_obj(FrameworkId) ->
@@ -118,7 +124,8 @@ framework_id_obj(FrameworkId) ->
 
 %% @doc Returns framework info capabilitie obj.
 %% @private
--spec framework_info_capabilitie_obj(undefined | erl_mesos_obj:data_string()) ->
+-spec framework_info_capabilitie_obj(undefined |
+                                     erl_mesos:framework_info_capabilitie()) ->
     undefined | erl_mesos_obj:data_obj().
 framework_info_capabilitie_obj(undefined) ->
     undefined;
@@ -128,7 +135,7 @@ framework_info_capabilitie_obj(FrameworkInfoCapabilitie) ->
 
 %% @doc Returns labels obj.
 %% @private
--spec labels_obj(undefined | labels()) -> erl_mesos_obj:data_obj().
+-spec labels_obj(undefined | erl_mesos:labels()) -> erl_mesos_obj:data_obj().
 labels_obj(undefined) ->
     undefined;
 labels_obj(#labels{labels = LabelsList} = Labels) ->
@@ -139,7 +146,7 @@ labels_obj(#labels{labels = LabelsList} = Labels) ->
 
 %% @doc Returns call accept obj.
 %% @private
--spec call_accept_obj(call_accept()) -> erl_mesos_obj:data_obj().
+-spec call_accept_obj(erl_mesos:call_accept()) -> erl_mesos_obj:data_obj().
 call_accept_obj(#call_accept{offer_ids = OfferIds,
                              operations = Operations,
                              filters = Filters} = CallAccept) ->
@@ -153,7 +160,7 @@ call_accept_obj(#call_accept{offer_ids = OfferIds,
 
 %% @doc Returns offer id objs.
 %% @private
--spec offer_id_objs(undefined | [offer_id()]) ->
+-spec offer_id_objs(undefined | [erl_mesos:offer_id()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 offer_id_objs(undefined) ->
     undefined;
@@ -162,7 +169,7 @@ offer_id_objs(OfferIds) ->
 
 %% @doc Returns offer operation objs.
 %% @private
--spec offer_operation_objs(undefined | [offer_operation()]) ->
+-spec offer_operation_objs(undefined | [erl_mesos:offer_operation()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 offer_operation_objs(undefined) ->
     undefined;
@@ -171,7 +178,8 @@ offer_operation_objs(OfferOperations) ->
 
 %% @doc Returns offer operation obj.
 %% @private
--spec offer_operation_obj(offer_operation()) -> erl_mesos_obj:data_obj().
+-spec offer_operation_obj(erl_mesos:offer_operation()) ->
+    erl_mesos_obj:data_obj().
 offer_operation_obj(#offer_operation{launch = Launch,
                                      reserve = Reserve,
                                      unreserve = Unreserve,
@@ -191,7 +199,8 @@ offer_operation_obj(#offer_operation{launch = Launch,
 
 %% @doc Returns offer operation launch obj.
 %% @private
--spec offer_operation_launch_obj(undefined | offer_operation_launch()) ->
+-spec offer_operation_launch_obj(undefined |
+                                 erl_mesos:offer_operation_launch()) ->
     undefined | erl_mesos_obj:data_obj().
 offer_operation_launch_obj(undefined) ->
     undefined;
@@ -204,7 +213,8 @@ offer_operation_launch_obj(#offer_operation_launch{task_infos = TaskInfos} =
 
 %% @doc Returns offer operation reserve obj.
 %% @private
--spec offer_operation_reserve_obj(undefined | offer_operation_reserve()) ->
+-spec offer_operation_reserve_obj(undefined |
+                                  erl_mesos:offer_operation_reserve()) ->
     undefined | erl_mesos_obj:data_obj().
 offer_operation_reserve_obj(undefined) ->
     undefined;
@@ -217,7 +227,8 @@ offer_operation_reserve_obj(#offer_operation_reserve{resources = Resources} =
 
 %% @doc Returns offer operation unreserve obj.
 %% @private
--spec offer_operation_unreserve(undefined | offer_operation_unreserve()) ->
+-spec offer_operation_unreserve(undefined |
+                                erl_mesos:offer_operation_unreserve()) ->
     undefined | erl_mesos_obj:data_obj().
 offer_operation_unreserve(undefined) ->
     undefined;
@@ -232,7 +243,8 @@ offer_operation_unreserve(#offer_operation_unreserve{resources = Resources} =
 
 %% @doc Returns offer operation create obj.
 %% @private
--spec offer_operation_create_obj(undefined | offer_operation_create()) ->
+-spec offer_operation_create_obj(undefined |
+                                 erl_mesos:offer_operation_create()) ->
     undefined | erl_mesos_obj:data_obj().
 offer_operation_create_obj(undefined) ->
     undefined;
@@ -245,7 +257,8 @@ offer_operation_create_obj(#offer_operation_create{volumes = Volumes} =
 
 %% @doc Returns offer operation destroy obj.
 %% @private
--spec offer_operation_destroy_obj(undefined | offer_operation_destroy()) ->
+-spec offer_operation_destroy_obj(undefined |
+                                  erl_mesos:offer_operation_destroy()) ->
     undefined | erl_mesos_obj:data_obj().
 offer_operation_destroy_obj(undefined) ->
     undefined;
@@ -258,7 +271,7 @@ offer_operation_destroy_obj(#offer_operation_destroy{volumes = Volumes} =
 
 %% @doc Returns task info obj.
 %% @private
--spec task_info_obj(task_info()) -> erl_mesos_obj:data_obj().
+-spec task_info_obj(erl_mesos:task_info()) -> erl_mesos_obj:data_obj().
 task_info_obj(#task_info{task_id = TaskId,
                          agent_id = AgentId,
                          resources = Resources,
@@ -290,7 +303,7 @@ task_info_obj(#task_info{task_id = TaskId,
 
 %% @doc Returns resource objs.
 %% @private
--spec resource_objs(undefined | [resource()]) ->
+-spec resource_objs(undefined | [erl_mesos:resource()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 resource_objs(undefined) ->
     undefined;
@@ -299,7 +312,7 @@ resource_objs(Resources) ->
 
 %% @doc Returns resource obj.
 %% @private
--spec resource_obj(resource()) -> erl_mesos_obj:data_obj().
+-spec resource_obj(erl_mesos:resource()) -> erl_mesos_obj:data_obj().
 resource_obj(#resource{scalar = Scalar,
                        ranges = Ranges,
                        set = Set,
@@ -322,7 +335,7 @@ resource_obj(#resource{scalar = Scalar,
 
 %% @doc Returns value scalar obj.
 %% @private
--spec value_scalar_obj(undefined | value_scalar()) ->
+-spec value_scalar_obj(undefined | erl_mesos:value_scalar()) ->
     undefined | erl_mesos_obj:data_obj().
 value_scalar_obj(undefined) ->
     undefined;
@@ -331,7 +344,7 @@ value_scalar_obj(ValueScalar) ->
 
 %% @doc Returns value ranges obj.
 %% @private
--spec value_ranges_obj(undefined | value_ranges()) ->
+-spec value_ranges_obj(undefined | erl_mesos:value_ranges()) ->
     undefined | erl_mesos_obj:data_obj().
 value_ranges_obj(undefined) ->
     undefined;
@@ -343,7 +356,7 @@ value_ranges_obj(#value_ranges{range = RangeList} = ValueRanges) ->
 
 %% @doc Returns value set obj.
 %% @private
--spec value_set_obj(undefined | value_set()) ->
+-spec value_set_obj(undefined | erl_mesos:value_set()) ->
     undefined | erl_mesos_obj:data_obj().
 value_set_obj(undefined) ->
     undefined;
@@ -352,7 +365,8 @@ value_set_obj(ValueSet) ->
 
 %% @doc Returns resource reservation info obj.
 %% @private
--spec resource_reservation_info_obj(undefined | resource_reservation_info()) ->
+-spec resource_reservation_info_obj(undefined |
+                                    erl_mesos:resource_reservation_info()) ->
     undefined | erl_mesos_obj:data_obj().
 resource_reservation_info_obj(undefined) ->
     undefined;
@@ -362,7 +376,7 @@ resource_reservation_info_obj(ResourceReservationInfo) ->
 
 %% @doc Returns resource disk info obj.
 %% @private
--spec resource_disk_info_obj(undefined | resource_disk_info()) ->
+-spec resource_disk_info_obj(undefined | erl_mesos:resource_disk_info()) ->
     undefined | erl_mesos_obj:data_obj().
 resource_disk_info_obj(undefined) ->
     undefined;
@@ -379,7 +393,7 @@ resource_disk_info_obj(#resource_disk_info{persistence = Persistence,
 %% @doc Returns resource disk info persistence obj.
 %% @private
 -spec resource_disk_info_persistence_obj(undefined |
-                                         resource_disk_info_persistence()) ->
+  erl_mesos:resource_disk_info_persistence()) ->
     undefined | erl_mesos_obj:data_obj().
 resource_disk_info_persistence_obj(undefined) ->
     undefined;
@@ -389,7 +403,8 @@ resource_disk_info_persistence_obj(ResourceDiskInfoPersistence) ->
 
 %% @doc Returns volume obj.
 %% @private
--spec volume_obj(undefined | volume()) -> undefined | erl_mesos_obj:data_obj().
+-spec volume_obj(undefined | erl_mesos:volume()) ->
+    undefined | erl_mesos_obj:data_obj().
 volume_obj(undefined) ->
     undefined;
 volume_obj(#volume{image = Image} = Volume) ->
@@ -399,7 +414,8 @@ volume_obj(#volume{image = Image} = Volume) ->
 
 %% @doc Returns image obj.
 %% @private
--spec image_obj(undefined | image()) -> undefined | erl_mesos_obj:data_obj().
+-spec image_obj(undefined | erl_mesos:image()) ->
+    undefined | erl_mesos_obj:data_obj().
 image_obj(undefined) ->
     undefined;
 image_obj(#image{appc = Appc,
@@ -411,7 +427,7 @@ image_obj(#image{appc = Appc,
 
 %% @doc Returns image appc obj.
 %% @private
--spec image_appc_obj(undefined | image_appc()) ->
+-spec image_appc_obj(undefined | erl_mesos:image_appc()) ->
     undefined | erl_mesos_obj:data_obj().
 image_appc_obj(undefined) ->
     undefined;
@@ -422,7 +438,7 @@ image_appc_obj(#image_appc{labels = Labels} = ImageAppc) ->
 
 %% @doc Returns image docker obj.
 %% @private
--spec image_docker_obj(undefined | image_docker()) ->
+-spec image_docker_obj(undefined | erl_mesos:image_docker()) ->
     undefined | erl_mesos_obj:data_obj().
 image_docker_obj(undefined) ->
     undefined;
@@ -431,7 +447,8 @@ image_docker_obj(ImageDocker) ->
 
 %% @doc Returns resource revocable info obj.
 %% @private
--spec resource_revocable_info_obj(undefined | resource_revocable_info()) ->
+-spec resource_revocable_info_obj(undefined |
+                                  erl_mesos:resource_revocable_info()) ->
     undefined | erl_mesos_obj:data_obj().
 resource_revocable_info_obj(undefined) ->
     undefined;
@@ -440,7 +457,7 @@ resource_revocable_info_obj(ResourceRevocableInfo) ->
 
 %% @doc Returns executor info obj.
 %% @private
--spec executor_info_obj(undefined | executor_info()) ->
+-spec executor_info_obj(undefined | erl_mesos:executor_info()) ->
     undefined | erl_mesos_obj:data_obj().
 executor_info_obj(undefined) ->
     undefined;
@@ -466,7 +483,7 @@ executor_info_obj(#executor_info{executor_id = ExecutorId,
 
 %% @doc Returns command info obj.
 %% @private
--spec command_info_obj(undefined | command_info()) ->
+-spec command_info_obj(undefined | erl_mesos:command_info()) ->
     undefined | erl_mesos_obj:data_obj().
 command_info_obj(undefined) ->
     undefined;
@@ -484,7 +501,7 @@ command_info_obj(#command_info{container = Container,
 %% @doc Returns command info container info obj.
 %% @private
 -spec command_info_container_info_obj(undefined |
-                                      command_info_container_info()) ->
+  erl_mesos:command_info_container_info()) ->
     undefined | erl_mesos_obj:data_obj().
 command_info_container_info_obj(undefined) ->
     undefined;
@@ -494,7 +511,7 @@ command_info_container_info_obj(CommandInfoContainerInfo) ->
 
 %% @doc Returns command info uri objs.
 %% @private
--spec command_info_uri_objs(undefined | [command_info_uri()]) ->
+-spec command_info_uri_objs(undefined | [erl_mesos:command_info_uri()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 command_info_uri_objs(undefined) ->
     undefined;
@@ -504,7 +521,7 @@ command_info_uri_objs(CommandInfoUris) ->
 
 %% @doc Returns environment obj.
 %% @private
--spec environment_obj(undefined | environment()) ->
+-spec environment_obj(undefined | erl_mesos:environment()) ->
     undefined | erl_mesos_obj:data_obj().
 environment_obj(undefined) ->
     undefined;
@@ -516,7 +533,7 @@ environment_obj(#environment{variables = Variables} = Environment) ->
 
 %% @doc Returns container info obj.
 %% @private
--spec container_info_obj(undefined | container_info()) ->
+-spec container_info_obj(undefined | erl_mesos:container_info()) ->
     undefined | erl_mesos_obj:data_obj().
 container_info_obj(undefined) ->
     undefined;
@@ -538,7 +555,7 @@ container_info_obj(#container_info{volumes = Volumes,
 
 %% @doc Returns volume objs.
 %% @private
--spec volume_objs(undefined | [volume()]) ->
+-spec volume_objs(undefined | [erl_mesos:volume()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 volume_objs(undefined) ->
     undefined;
@@ -547,7 +564,8 @@ volume_objs(Volumes) ->
 
 %% @doc Returns container info docker info obj.
 %% @private
--spec container_info_docker_info_obj(undefined | container_info_docker_info()) ->
+-spec container_info_docker_info_obj(undefined |
+                                     erl_mesos:container_info_docker_info()) ->
     undefined | erl_mesos_obj:data_obj().
 container_info_docker_info_obj(undefined) ->
     undefined;
@@ -570,7 +588,7 @@ container_info_docker_info_obj(#container_info_docker_info{port_mappings =
 %% @doc Returns container info docker info port mapping objs.
 %% @private
 -spec container_info_docker_info_port_mapping_objs(undefined |
-          [container_info_docker_info_port_mapping()]) ->
+  [erl_mesos:container_info_docker_info_port_mapping()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 container_info_docker_info_port_mapping_objs(undefined) ->
     undefined;
@@ -581,7 +599,8 @@ container_info_docker_info_port_mapping_objs(PortMappings) ->
 
 %% @doc Returns container info mesos info obj.
 %% @private
--spec container_info_mesos_info_obj(undefined | container_info_mesos_info()) ->
+-spec container_info_mesos_info_obj(undefined |
+                                    erl_mesos:container_info_mesos_info()) ->
     undefined | erl_mesos_obj:data_obj().
 container_info_mesos_info_obj(undefined) ->
     undefined;
@@ -595,7 +614,7 @@ container_info_mesos_info_obj(#container_info_mesos_info{image = Image} =
 
 %% @doc Returns network info objs.
 %% @private
--spec network_info_objs(undefined | [network_info()]) ->
+-spec network_info_objs(undefined | [erl_mesos:network_info()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 network_info_objs(undefined) ->
     undefined;
@@ -604,7 +623,7 @@ network_info_objs(NetworkInfos) ->
 
 %% @doc Returns network info obj.
 %% @private
--spec network_info_obj(network_info()) -> erl_mesos_obj:data_obj().
+-spec network_info_obj(erl_mesos:network_info()) -> erl_mesos_obj:data_obj().
 network_info_obj(#network_info{ip_addresses = IpAddresses,
                                labels = Labels} = NetworkInfo) ->
     IpAddressObjs = network_info_ip_address_objs(IpAddresses),
@@ -615,7 +634,8 @@ network_info_obj(#network_info{ip_addresses = IpAddresses,
 
 %% @doc Returns network info ip address objs.
 %% @private
--spec network_info_ip_address_objs(undefined | [network_info_ip_address()]) ->
+-spec network_info_ip_address_objs(undefined |
+                                   [erl_mesos:network_info_ip_address()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 network_info_ip_address_objs(undefined) ->
     undefined;
@@ -625,7 +645,7 @@ network_info_ip_address_objs(NetworkInfoIpAddresses) ->
 
 %% @doc Returns parameter objs.
 %% @private
--spec parameter_objs(undefined | [parameter()]) ->
+-spec parameter_objs(undefined | [erl_mesos:parameter()]) ->
     undefined | [erl_mesos_obj:data_obj()].
 parameter_objs(undefined) ->
     undefined;
@@ -635,7 +655,7 @@ parameter_objs(Parameters) ->
 
 %% @doc Returns discovery info obj.
 %% @private
--spec discovery_info_obj(undefined | discovery_info()) ->
+-spec discovery_info_obj(undefined | erl_mesos:discovery_info()) ->
     undefined | erl_mesos_obj:data_obj().
 discovery_info_obj(undefined) ->
     undefined;
@@ -649,7 +669,8 @@ discovery_info_obj(#discovery_info{ports = Ports,
 
 %% @doc Returns ports obj.
 %% @private
--spec ports_obj(undefined | pts()) -> undefined | erl_mesos_obj:data_obj().
+-spec ports_obj(undefined | erl_mesos:pts()) ->
+    undefined | erl_mesos_obj:data_obj().
 ports_obj(undefined) ->
     undefined;
 ports_obj(#ports{ports = PortsList} = Ports) ->
@@ -659,7 +680,7 @@ ports_obj(#ports{ports = PortsList} = Ports) ->
 
 %% @doc Returns health check obj.
 %% @private
--spec health_check_obj(undefined | health_check()) ->
+-spec health_check_obj(undefined | erl_mesos:health_check()) ->
     undefined | erl_mesos_obj:data_obj().
 health_check_obj(undefined) ->
     undefined;
@@ -673,7 +694,8 @@ health_check_obj(#health_check{http = Http,
 
 %% @doc Returns health check http obj.
 %% @private
--spec health_check_http_obj(undefined | health_check_http()) ->
+-spec health_check_http_obj(undefined |
+                            erl_mesos:health_check_http()) ->
     undefined | erl_mesos_obj:data_obj().
 health_check_http_obj(undefined) ->
     undefined;
@@ -682,7 +704,7 @@ health_check_http_obj(HealthCheckHttpObj) ->
 
 %% @doc Returns filters obj.
 %% @private
--spec filters_obj(undefined | filters()) ->
+-spec filters_obj(undefined | erl_mesos:filters()) ->
     undefined | erl_mesos_obj:data_obj().
 filters_obj(undefined) ->
     undefined;
@@ -691,7 +713,8 @@ filters_obj(FiltersObj) ->
 
 %% @doc Returns call reconcile obj.
 %% @private
--spec call_reconcile_obj(call_reconcile()) -> erl_mesos_obj:data_obj().
+-spec call_reconcile_obj(erl_mesos:call_reconcile()) ->
+    erl_mesos_obj:data_obj().
 call_reconcile_obj(#call_reconcile{tasks = Tasks} = CallReconcile) ->
     TaskObjs = [call_reconcile_task_obj(Task) || Task <- Tasks],
     CallReconcile1 = CallReconcile#call_reconcile{tasks = TaskObjs},
@@ -699,7 +722,7 @@ call_reconcile_obj(#call_reconcile{tasks = Tasks} = CallReconcile) ->
 
 %% @doc Returns call reconcile task obj.
 %% @private
--spec call_reconcile_task_obj(call_reconcile_task()) ->
+-spec call_reconcile_task_obj(erl_mesos:call_reconcile_task()) ->
     erl_mesos_obj:data_obj().
 call_reconcile_task_obj(#call_reconcile_task{task_id = TaskId,
                                              agent_id = AgentId} =
@@ -713,7 +736,7 @@ call_reconcile_task_obj(#call_reconcile_task{task_id = TaskId,
 
 %% @doc Returns agent id obj.
 %% @private
--spec agent_id_obj(undefined | agent_id()) ->
+-spec agent_id_obj(undefined | erl_mesos:agent_id()) ->
     undefined | erl_mesos_obj:data_obj().
 agent_id_obj(undefined) ->
     undefined;
@@ -722,7 +745,7 @@ agent_id_obj(AgentId) ->
 
 %% @doc Sends http request.
 %% @private
--spec request(scheduler_info(), erl_mesos_obj:data_obj()) ->
+-spec request(erl_mesos:scheduler_info(), erl_mesos_obj:data_obj()) ->
     {ok, erl_mesos_http:client_ref()} |
     {ok, non_neg_integer(), erl_mesos_http:headers(),
      erl_mesos_http:client_ref()} |
