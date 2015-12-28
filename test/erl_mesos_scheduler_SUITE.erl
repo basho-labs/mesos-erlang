@@ -25,6 +25,7 @@
          teardown/1,
          accept/1,
          decline/1,
+         revive/1,
          reconcile/1]).
 
 -record(state, {callback,
@@ -47,6 +48,7 @@ groups() ->
                       teardown,
                       accept,
                       decline,
+                      revive,
                       reconcile]}].
 
 init_per_suite(Config) ->
@@ -511,6 +513,28 @@ decline(Config) ->
     {decline, ok} = recv_reply(),
     ok = stop_scheduler(Ref, Config).
 
+revive(Config) ->
+    log("Revive test cases", Config),
+    Ref = {erl_mesos_scheduler, reconcile},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+        Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, _, _} = recv_reply(),
+    SchedulerPid ! revive,
+    {revive, ok} = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
+
 reconcile(Config) ->
     log("Reconcile test cases", Config),
     Ref = {erl_mesos_scheduler, reconcile},
@@ -522,8 +546,7 @@ reconcile(Config) ->
                               Config),
     {registered, SchedulerPid, _, _} = recv_reply(),
     start_mesos_slave(Config),
-    {resource_offers, SchedulerPid, _, EventOffers} =
-        recv_reply(),
+    {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
     #event_offers{offers = [Offer | _]} = EventOffers,
     #offer{id = OfferId, agent_id = AgentId} = Offer,
     TaskId = timestamp_task_id(),
@@ -654,6 +677,8 @@ recv_reply() ->
             {accept, Accept};
         {decline, Decline} ->
             {decline, Decline};
+        {revive, Revive} ->
+            {revive, Revive};
         {reconcile, Reconcile} ->
             {reconcile, Reconcile};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
