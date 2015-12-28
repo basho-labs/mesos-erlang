@@ -233,7 +233,7 @@ handle_info(Info, #state{client_ref = ClientRef,
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef) ->
-                    handle_unsubscribe(State);
+                    {noreply, State};
                 {timeout, HeartbeatTimerRef, heartbeat}
                   when SubscribeState =:= subscribed ->
                     log_error("** Heartbeat timeout occurred~n",
