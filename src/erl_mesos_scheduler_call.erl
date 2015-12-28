@@ -11,6 +11,7 @@
          accept/2,
          decline/2,
          revive/1,
+         kill/2,
          reconcile/2]).
 
 -type version() :: v1.
@@ -84,6 +85,21 @@ revive(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
                                                   RequestOptions1},
     Call = #call{type = <<"REVIVE">>},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
+
+%% Executes kill call.
+-spec kill(erl_mesos:scheduler_info(), erl_mesos:call_kill()) ->
+    ok | {error, term()}.
+kill(#scheduler_info{subscribed = false}, _CallKill) ->
+    {error, not_subscribed};
+kill(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+     CallKill) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    CallKillObj = call_kill_obj(CallKill),
+    Call = #call{type = <<"KILL">>, kill = CallKillObj},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(request(SchedulerInfo1, CallObj)).
 
@@ -768,6 +784,16 @@ call_decline_obj(#call_decline{offer_ids = OfferIds,
     CallDecline1 = CallDecline#call_decline{offer_ids = OfferIdObjs,
                                             filters = FiltersObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_decline, CallDecline1).
+
+%% @doc Returns call kill obj.
+%% @private
+-spec call_kill_obj(erl_mesos:call_kill()) -> erl_mesos_obj:data_obj().
+call_kill_obj(#call_kill{task_id = TaskId,
+                         agent_id = AgentId} = CallKill) ->
+    TaskIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(task_id, TaskId),
+    AgentIdObj = agent_id_obj(AgentId),
+    CallKill1 = CallKill#call_kill{task_id = TaskIdObj, agent_id = AgentIdObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_kill, CallKill1).
 
 %% @doc Returns call reconcile obj.
 %% @private

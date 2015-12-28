@@ -12,6 +12,8 @@
          decline/2,
          decline/3,
          revive/1,
+         kill/2,
+         kill/3,
          reconcile/2]).
 
 -export([init/1,
@@ -171,6 +173,21 @@ decline(SchedulerInfo, OfferIds, Filters) ->
 -spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
 revive(SchedulerInfo) ->
     erl_mesos_scheduler_call:revive(SchedulerInfo).
+
+%% @equiv kill(SchedulerInfo, TaskId, undefined)
+-spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id()) ->
+    ok | {error, term()}.
+kill(SchedulerInfo, TaskId) ->
+    kill(SchedulerInfo, TaskId, undefined).
+
+%% @doc Kill call.
+-spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id(),
+           undefined | erl_mesos:agent_id()) ->
+    ok | {error, term()}.
+kill(SchedulerInfo, TaskId, AgentId) ->
+    CallKill = #call_kill{task_id = TaskId,
+                          agent_id = AgentId},
+    erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
 
 %% @doc Reconcile call.
 -spec reconcile(erl_mesos:scheduler_info(),
