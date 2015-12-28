@@ -26,10 +26,12 @@
                             erl_mesos_obj:data_obj(),
                accept :: undefined | erl_mesos:call_accept() |
                          erl_mesos_obj:data_obj(),
-               reconcile :: undefined | erl_mesos:call_reconcile() |
-                            erl_mesos_obj:data_obj(),
                decline :: undefined | erl_mesos:call_decline() |
-                          erl_mesos_obj:data_obj()}).
+                          erl_mesos_obj:data_obj(),
+               kill :: undefined | erl_mesos:call_kill() |
+                       erl_mesos_obj:data_obj(),
+               reconcile :: undefined | erl_mesos:call_reconcile() |
+                            erl_mesos_obj:data_obj()}).
 
 %% Call subscribe.
 -record(call_subscribe, {framework_info :: erl_mesos:framework_info() |
@@ -49,6 +51,12 @@
                                      erl_mesos_obj:data_obj()],
                        filters :: undefined | erl_mesos:filters() |
                                   erl_mesos_obj:data_obj()}).
+
+%% Call kill.
+-record(call_kill, {task_id :: erl_mesos:task_id() |
+                               erl_mesos_obj:data_obj(),
+                    agent_id :: undefined | erl_mesos:agent_id() |
+                                erl_mesos_obj:data_obj()}).
 
 %% Call reconcile.
 -record(call_reconcile, {tasks :: [erl_mesos:call_reconcile_task() |
