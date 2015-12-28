@@ -34,6 +34,9 @@
 -type call_kill() :: #call_kill{}.
 -export_type([call_kill/0]).
 
+-type call_shutdown() :: #call_shutdown{}.
+-export_type([call_shutdown/0]).
+
 -type call_reconcile() :: #call_reconcile{}.
 -export_type([call_reconcile/0]).
 

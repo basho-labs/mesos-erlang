@@ -30,6 +30,8 @@
                           erl_mesos_obj:data_obj(),
                kill :: undefined | erl_mesos:call_kill() |
                        erl_mesos_obj:data_obj(),
+               shutdown :: undefined | erl_mesos:call_shutdown() |
+                           erl_mesos_obj:data_obj(),
                reconcile :: undefined | erl_mesos:call_reconcile() |
                             erl_mesos_obj:data_obj()}).
 
@@ -57,6 +59,12 @@
                                erl_mesos_obj:data_obj(),
                     agent_id :: undefined | erl_mesos:agent_id() |
                                 erl_mesos_obj:data_obj()}).
+
+%% Call shutdown.
+-record(call_shutdown, {executor_id :: erl_mesos:executor_id() |
+                                       erl_mesos_obj:data_obj(),
+                        agent_id :: erl_mesos:agent_id() |
+                                    erl_mesos_obj:data_obj()}).
 
 %% Call reconcile.
 -record(call_reconcile, {tasks :: [erl_mesos:call_reconcile_task() |
