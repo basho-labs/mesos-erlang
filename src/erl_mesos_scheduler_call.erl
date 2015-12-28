@@ -10,6 +10,7 @@
          teardown/1,
          accept/2,
          decline/2,
+         revive/1,
          reconcile/2]).
 
 -type version() :: v1.
@@ -71,6 +72,18 @@ decline(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
                                                   RequestOptions1},
     CallDeclineObj = call_decline_obj(CallDecline),
     Call = #call{type = <<"DECLINE">>, decline = CallDeclineObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
+
+%% Executes revive call.
+-spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+revive(#scheduler_info{subscribed = false}) ->
+    {error, not_subscribed};
+revive(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #call{type = <<"REVIVE">>},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(request(SchedulerInfo1, CallObj)).
 

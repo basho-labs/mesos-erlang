@@ -11,6 +11,7 @@
          accept/4,
          decline/2,
          decline/3,
+         revive/1,
          reconcile/2]).
 
 -export([init/1,
@@ -165,6 +166,11 @@ decline(SchedulerInfo, OfferIds, Filters) ->
     CallDecline = #call_accept{offer_ids = OfferIds,
                                filters = Filters},
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallDecline).
+
+%% @doc Revive call.
+-spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+revive(SchedulerInfo) ->
+    erl_mesos_scheduler_call:revive(SchedulerInfo).
 
 %% @doc Reconcile call.
 -spec reconcile(erl_mesos:scheduler_info(),
