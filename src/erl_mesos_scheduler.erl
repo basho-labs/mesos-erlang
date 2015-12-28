@@ -35,6 +35,7 @@
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
                 client_ref :: undefined | erl_mesos_http:client_ref(),
+                recv_timer_ref :: undefined | reference(),
                 subscribe_state :: undefined | subscribe_state(),
                 num_redirect = 0 :: non_neg_integer(),
                 num_resubscribe = 0 :: non_neg_integer(),
@@ -104,6 +105,8 @@
 -define(DEFAULT_MASTER_HOSTS, [<<"localhost:5050">>]).
 
 -define(DEFAULT_REQUEST_OPTIONS, []).
+
+-define(DEFAULT_RECV_TIMEOUT, 30000).
 
 -define(DEFAULT_MAX_REDIRECT, 5).
 
@@ -204,6 +207,7 @@ handle_cast(Request, State) ->
 -spec handle_info(term(), state()) ->
     {noreply, state()} | {stop, term(), state()}.
 handle_info(Info, #state{client_ref = ClientRef,
+                         recv_timer_ref = RecvTimerRef,
                          subscribe_state = SubscribeState,
                          heartbeat_timer_ref = HeartbeatTimerRef,
                          resubscribe_timer_ref = ResubscribeTimerRef} =
@@ -218,6 +222,13 @@ handle_info(Info, #state{client_ref = ClientRef,
                               "** Reason == ~p~n",
                               [Reason],
                               State),
+                    handle_unsubscribe(State);
+                {timeout, RecvTimerRef, recv}
+                  when is_reference(RecvTimerRef),
+                       SubscribeState =/= subscribed ->
+                    handle_unsubscribe(State);
+                {timeout, RecvTimerRef, recv}
+                  when is_reference(RecvTimerRef) ->
                     handle_unsubscribe(State);
                 {timeout, HeartbeatTimerRef, heartbeat}
                   when SubscribeState =:= subscribed ->
@@ -462,9 +473,10 @@ subscribe(#state{call_subscribe = CallSubscribe,
     SchedulerInfo1 = SchedulerInfo#scheduler_info{master_host = MasterHost},
     case erl_mesos_scheduler_call:subscribe(SchedulerInfo1, CallSubscribe) of
         {ok, ClientRef} ->
-            {ok, State#state{master_hosts_queue = MasterHostsQueue,
-                             master_host = MasterHost,
-                             client_ref = ClientRef}};
+            State1 = set_recv_timer(State),
+            {ok, State1#state{master_hosts_queue = MasterHostsQueue,
+                              master_host = MasterHost,
+                              client_ref = ClientRef}};
         {error, Reason} ->
             log_error("** Can not subscribe~n",
                       "** Host == ~s~n"
@@ -475,6 +487,23 @@ subscribe(#state{call_subscribe = CallSubscribe,
     end;
 subscribe(#state{master_hosts_queue = []}) ->
     {error, bad_hosts}.
+
+%% @doc Sets recv timer.
+%% @private
+-spec set_recv_timer(state()) -> state().
+set_recv_timer(#state{request_options = RequestOptions} = State) ->
+    RecvTimeout = proplists:get_value(recv_timeout, RequestOptions,
+                                      ?DEFAULT_RECV_TIMEOUT),
+    set_recv_timer(RecvTimeout, State).
+
+%% @doc Sets recv timer.
+%% @private
+-spec set_recv_timer(infinity, state()) -> state().
+set_recv_timer(infinity, State) ->
+    State;
+set_recv_timer(Timeout, #state{recv_timer_ref = RecvTimerRef} = State) ->
+    RecvTimerRef = erlang:start_timer(Timeout, self(), recv),
+    State#state{recv_timer_ref = RecvTimerRef}.
 
 %% @doc Returns scheduler info.
 %% @private
@@ -504,8 +533,7 @@ handle_async_response({status, Status, _Message},
     SubscribeResponse = #subscribe_response{status = Status},
     {noreply, State#state{subscribe_state = SubscribeResponse}};
 handle_async_response({headers, Headers},
-                      #state{client_ref = __ClientRef,
-                             subscribe_state =
+                      #state{subscribe_state =
                              #subscribe_response{headers = undefined} =
                              SubscribeResponse} = State) ->
     SubscribeResponse1 = SubscribeResponse#subscribe_response{headers =
@@ -520,7 +548,7 @@ handle_async_response(Body,
     ContentType = proplists:get_value(<<"Content-Type">>, Headers),
     case erl_mesos_data_format:content_type(DataFormat) of
         ContentType ->
-            handle_events(Body, State);
+            handle_events(Body, unset_recv_timer(State));
         _ContentType ->
             log_error("** Invalid content type~n",
                       "** Content type == ~s~n",
@@ -534,7 +562,7 @@ handle_async_response(Events, #state{subscribe_state = subscribed} = State)
 handle_async_response(_Body,
                       #state{subscribe_state =
                              #subscribe_response{status = 307}} = State) ->
-    handle_redirect(State);
+    handle_redirect(unset_recv_timer(State));
 handle_async_response(Body,
                       #state{subscribe_state =
                              #subscribe_response{status = Status}} = State) ->
@@ -556,6 +584,15 @@ handle_async_response({error, Reason}, State) ->
               [Reason],
               State),
     handle_unsubscribe(State).
+
+%% @doc Unsets recv timer.
+%% @private
+-spec unset_recv_timer(state()) -> state().
+unset_recv_timer(#state{recv_timer_ref = undefined} = State) ->
+    State;
+unset_recv_timer(#state{recv_timer_ref = RecvTimerRef} = State) ->
+    erlang:cancel_timer(RecvTimerRef),
+    State#state{recv_timer_ref = undefined}.
 
 %% @doc Handles list of events.
 %% @private
@@ -933,6 +970,7 @@ format_state(#state{ref = Ref,
                     master_hosts_queue = MasterHostsQueue,
                     master_host = MasterHost,
                     client_ref = ClientRef,
+                    recv_timer_ref = RecvTimerRef,
                     subscribe_state = SubscribeState,
                     num_redirect = NumRedirect,
                     num_resubscribe = NumResubscribe,
@@ -950,6 +988,7 @@ format_state(#state{ref = Ref,
              {master_hosts_queue, MasterHostsQueue},
              {master_host, MasterHost},
              {client_ref, ClientRef},
+             {recv_timer_ref, RecvTimerRef},
              {subscribe_state, SubscribeState},
              {num_redirect, NumRedirect},
              {num_resubscribe, NumResubscribe},
