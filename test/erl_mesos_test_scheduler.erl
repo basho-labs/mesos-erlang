@@ -111,6 +111,11 @@ handle_info(SchedulerInfo, revive, #state{test_pid = TestPid} = State) ->
     Revive = erl_mesos_scheduler:revive(SchedulerInfo),
     reply(TestPid, {revive, Revive}),
     {ok, State};
+handle_info(SchedulerInfo, {kill, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    Kill = erl_mesos_scheduler:kill(SchedulerInfo, TaskId),
+    reply(TestPid, {kill, Kill}),
+    {ok, State};
 handle_info(SchedulerInfo, {reconcile, TaskId},
             #state{test_pid = TestPid} = State) ->
     CallReconcileTask = #call_reconcile_task{task_id = TaskId},
