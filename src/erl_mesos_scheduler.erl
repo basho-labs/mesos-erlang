@@ -226,6 +226,10 @@ handle_info(Info, #state{client_ref = ClientRef,
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef),
                        SubscribeState =/= subscribed ->
+                    log_error("** Receive timeout occurred~n",
+                              "",
+                              [],
+                              State),
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef) ->
@@ -473,17 +477,19 @@ subscribe(#state{call_subscribe = CallSubscribe,
     SchedulerInfo1 = SchedulerInfo#scheduler_info{master_host = MasterHost},
     case erl_mesos_scheduler_call:subscribe(SchedulerInfo1, CallSubscribe) of
         {ok, ClientRef} ->
-            State1 = set_recv_timer(State),
-            {ok, State1#state{master_hosts_queue = MasterHostsQueue,
-                              master_host = MasterHost,
-                              client_ref = ClientRef}};
+            State1 = State#state{master_hosts_queue = MasterHostsQueue,
+                                 master_host = MasterHost,
+                                 client_ref = ClientRef},
+            State2 = set_recv_timer(State1),
+            {ok, State2};
         {error, Reason} ->
             log_error("** Can not subscribe~n",
                       "** Host == ~s~n"
                       "** Error reason == ~p~n",
                       [MasterHost, Reason],
                       State),
-            subscribe(State#state{master_hosts_queue = MasterHostsQueue})
+            State1 = State#state{master_hosts_queue = MasterHostsQueue},
+            subscribe(State1)
     end;
 subscribe(#state{master_hosts_queue = []}) ->
     {error, bad_hosts}.
@@ -501,7 +507,7 @@ set_recv_timer(#state{request_options = RequestOptions} = State) ->
 -spec set_recv_timer(infinity, state()) -> state().
 set_recv_timer(infinity, State) ->
     State;
-set_recv_timer(Timeout, #state{recv_timer_ref = RecvTimerRef} = State) ->
+set_recv_timer(Timeout, State) ->
     RecvTimerRef = erlang:start_timer(Timeout, self(), recv),
     State#state{recv_timer_ref = RecvTimerRef}.
 
@@ -541,6 +547,7 @@ handle_async_response({headers, Headers},
     {noreply, State#state{subscribe_state = SubscribeResponse1}};
 handle_async_response(Body,
                       #state{data_format = DataFormat,
+                             recv_timer_ref = RecvTimerRef,
                              subscribe_state =
                              #subscribe_response{status = 200,
                                                  headers = Headers}} = State)
@@ -548,7 +555,8 @@ handle_async_response(Body,
     ContentType = proplists:get_value(<<"Content-Type">>, Headers),
     case erl_mesos_data_format:content_type(DataFormat) of
         ContentType ->
-            handle_events(Body, unset_recv_timer(State));
+            cancel_recv_timer(RecvTimerRef),
+            handle_events(Body, State);
         _ContentType ->
             log_error("** Invalid content type~n",
                       "** Content type == ~s~n",
@@ -560,9 +568,11 @@ handle_async_response(Events, #state{subscribe_state = subscribed} = State)
   when is_binary(Events) ->
     handle_events(Events, State);
 handle_async_response(_Body,
-                      #state{subscribe_state =
+                      #state{recv_timer_ref = RecvTimerRef,
+                             subscribe_state =
                              #subscribe_response{status = 307}} = State) ->
-    handle_redirect(unset_recv_timer(State));
+    cancel_recv_timer(RecvTimerRef),
+    handle_redirect(State);
 handle_async_response(Body,
                       #state{subscribe_state =
                              #subscribe_response{status = Status}} = State) ->
@@ -585,14 +595,14 @@ handle_async_response({error, Reason}, State) ->
               State),
     handle_unsubscribe(State).
 
-%% @doc Unsets recv timer.
+%% @doc Cancels recv timer.
 %% @private
--spec unset_recv_timer(state()) -> state().
-unset_recv_timer(#state{recv_timer_ref = undefined} = State) ->
-    State;
-unset_recv_timer(#state{recv_timer_ref = RecvTimerRef} = State) ->
-    erlang:cancel_timer(RecvTimerRef),
-    State#state{recv_timer_ref = undefined}.
+-spec cancel_recv_timer(undefined | reference()) ->
+    undefined | false | non_neg_integer().
+cancel_recv_timer(undefined) ->
+    undefined;
+cancel_recv_timer(RecvTimerRef) ->
+    erlang:cancel_timer(RecvTimerRef).
 
 %% @doc Handles list of events.
 %% @private
@@ -650,8 +660,9 @@ apply_event(Obj, #state{master_host = MasterHost,
             HeartbeatTimeout = heartbeat_timeout(HeartbeatIntervalSeconds),
             State1 = State#state{call_subscribe = CallSubscribe1,
                                  heartbeat_timeout = HeartbeatTimeout},
-            State2 = set_heartbeat_timer(set_subscribed(State1)),
-            call(registered, EventSubscribed, State2);
+            State2 = set_heartbeat_timer(State1),
+            State3 = set_subscribed(State2),
+            call(registered, EventSubscribed, State3);
         #event{type = subscribed,
                subscribed = #event_subscribed{heartbeat_interval_seconds =
                                               HeartbeatIntervalSeconds}}
@@ -662,8 +673,9 @@ apply_event(Obj, #state{master_host = MasterHost,
                      State),
             HeartbeatTimeout = heartbeat_timeout(HeartbeatIntervalSeconds),
             State1 = State#state{heartbeat_timeout = HeartbeatTimeout},
-            State2 = set_heartbeat_timer(set_subscribed(State1)),
-            call(reregistered, State2);
+            State2 = set_heartbeat_timer(State1),
+            State3 = set_subscribed(State2),
+            call(reregistered, State3);
         #event{type = offers, offers = EventOffers} ->
             call(resource_offers, EventOffers, State);
         #event{type = rescind, rescind = EventRescind} ->
@@ -753,16 +765,19 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 handle_unsubscribe(#state{call_subscribe =
                           #call_subscribe{framework_info =
                                           #framework_info{id = undefined}},
-                          client_ref = ClientRef} = State) ->
+                          client_ref = ClientRef,
+                          recv_timer_ref = RecvTimerRef} = State) ->
     close(ClientRef),
     case subscribe(State) of
         {ok, State1} ->
+            cancel_recv_timer(RecvTimerRef),
             State2 = State1#state{subscribe_state = undefined},
             {noreply, State2};
         {error, Reason} ->
             {stop, {shutdown, {subscribe, {error, Reason}}}, State}
     end;
 handle_unsubscribe(#state{client_ref = ClientRef,
+                          recv_timer_ref = RecvTimerRef,
                           subscribe_state = subscribed} = State) ->
     close(ClientRef),
     State1 = State#state{client_ref = undefined,
@@ -770,14 +785,17 @@ handle_unsubscribe(#state{client_ref = ClientRef,
     case call(disconnected, State1) of
         {ok, #state{master_hosts = MasterHosts,
                     master_host = MasterHost} = State2} ->
+            cancel_recv_timer(RecvTimerRef),
             MasterHostsQueue = lists:delete(MasterHost, MasterHosts),
             State3 = State2#state{master_hosts_queue = MasterHostsQueue},
             start_resubscribe_timer(State3);
         {stop, State1} ->
             {stop, shutdown, State1}
     end;
-handle_unsubscribe(#state{client_ref = ClientRef} = State) ->
+handle_unsubscribe(#state{client_ref = ClientRef,
+                          recv_timer_ref = RecvTimerRef} = State) ->
     close(ClientRef),
+    cancel_recv_timer(RecvTimerRef),
     State1 = State#state{client_ref = undefined,
                          subscribe_state = undefined},
     start_resubscribe_timer(State1).
@@ -808,11 +826,13 @@ start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
                          master_host = MasterHost,
                          client_ref = undefined,
                          num_resubscribe = 1},
-    {noreply, set_resubscribe_timer(State1)};
+    State2 = set_resubscribe_timer(State1),
+    {noreply, State2};
 start_resubscribe_timer(#state{num_resubscribe = NumResubscribe} = State) ->
     State1 = State#state{client_ref = undefined,
                          num_resubscribe = NumResubscribe + 1},
-    {noreply, set_resubscribe_timer(State1)}.
+    State2 = set_resubscribe_timer(State1),
+    {noreply, State2}.
 
 %% @doc Sets resubscribe timer.
 %% @private
@@ -835,7 +855,9 @@ resubscribe(#state{master_host = MasterHost,
     SchedulerInfo = scheduler_info(State),
     case erl_mesos_scheduler_call:subscribe(SchedulerInfo, CallSubscribe) of
         {ok, ClientRef} ->
-            {noreply, State#state{client_ref = ClientRef}};
+            State1 = State#state{client_ref = ClientRef},
+            State2 = set_recv_timer(State1),
+            {noreply, State2};
         {error, Reason} ->
             log_error("** Can not resubscribe~n",
                       "** Host == ~s~n"
