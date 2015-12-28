@@ -12,6 +12,7 @@
          decline/2,
          revive/1,
          kill/2,
+         shutdown/2,
          reconcile/2]).
 
 -type version() :: v1.
@@ -100,6 +101,21 @@ kill(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
                                                   RequestOptions1},
     CallKillObj = call_kill_obj(CallKill),
     Call = #call{type = <<"KILL">>, kill = CallKillObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
+
+%% Executes shutdown call.
+-spec shutdown(erl_mesos:scheduler_info(), erl_mesos:call_shutdown()) ->
+    ok | {error, term()}.
+shutdown(#scheduler_info{subscribed = false}, _CallShutdown) ->
+    {error, not_subscribed};
+shutdown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+         CallShutdown) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    CallShutdownObj = call_shutdown_obj(CallShutdown),
+    Call = #call{type = <<"SHUTDOWN">>, shutdown = CallShutdownObj},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(request(SchedulerInfo1, CallObj)).
 
@@ -794,6 +810,17 @@ call_kill_obj(#call_kill{task_id = TaskId,
     AgentIdObj = agent_id_obj(AgentId),
     CallKill1 = CallKill#call_kill{task_id = TaskIdObj, agent_id = AgentIdObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_kill, CallKill1).
+
+%% @doc Returns call shutdown obj.
+%% @private
+-spec call_shutdown_obj(erl_mesos:call_shutdown()) -> erl_mesos_obj:data_obj().
+call_shutdown_obj(#call_shutdown{executor_id = ExecutorId,
+                                 agent_id = AgentId} = CallShutdown) ->
+    ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
+    AgentIdObj = agent_id_obj(AgentId),
+    CallShutdown1 = CallShutdown#call_shutdown{executor_id = ExecutorIdObj,
+                                               agent_id = AgentIdObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_shutdown, CallShutdown1).
 
 %% @doc Returns call reconcile obj.
 %% @private
