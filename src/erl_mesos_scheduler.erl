@@ -14,6 +14,8 @@
          revive/1,
          kill/2,
          kill/3,
+         shutdown/2,
+         shutdown/3,
          reconcile/2]).
 
 -export([init/1,
@@ -188,6 +190,19 @@ kill(SchedulerInfo, TaskId, AgentId) ->
     CallKill = #call_kill{task_id = TaskId,
                           agent_id = AgentId},
     erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
+
+%% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
+shutdown(SchedulerInfo, ExecutorId) ->
+    shutdown(SchedulerInfo, ExecutorId, undefined).
+
+%% @doc Shutdown call.
+-spec shutdown(erl_mesos:scheduler_info(), erl_mesos:executor_id(),
+               undefined | erl_mesos:agent_id()) ->
+    ok | {error, term()}.
+shutdown(SchedulerInfo, ExecutorId, AgentId) ->
+    CallShutdown = #call_shutdown{executor_id = ExecutorId,
+                                  agent_id = AgentId},
+    erl_mesos_scheduler_call:shutdown(SchedulerInfo, CallShutdown).
 
 %% @doc Reconcile call.
 -spec reconcile(erl_mesos:scheduler_info(),
