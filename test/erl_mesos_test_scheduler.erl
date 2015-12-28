@@ -102,6 +102,11 @@ handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
                                         [OfferOperation]),
     reply(TestPid, {accept, Accept}),
     {ok, State};
+handle_info(SchedulerInfo, {decline, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    Decline = erl_mesos_scheduler:decline(SchedulerInfo, [TaskId]),
+    reply(TestPid, {decline, Decline}),
+    {ok, State};
 handle_info(SchedulerInfo, {reconcile, TaskId},
             #state{test_pid = TestPid} = State) ->
     CallReconcileTask = #call_reconcile_task{task_id = TaskId},

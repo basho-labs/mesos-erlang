@@ -24,6 +24,7 @@
          error/1,
          teardown/1,
          accept/1,
+         decline/1,
          reconcile/1]).
 
 -record(state, {callback,
@@ -45,6 +46,7 @@ groups() ->
                       error,
                       teardown,
                       accept,
+                      decline,
                       reconcile]}].
 
 init_per_suite(Config) ->
@@ -453,7 +455,7 @@ error(Config) ->
 %% Calls.
 
 teardown(Config) ->
-    log("Teardown test cases test cases", Config),
+    log("Teardown test cases", Config),
     Ref = {erl_mesos_scheduler, teardown},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
@@ -467,7 +469,7 @@ teardown(Config) ->
     {terminate, SchedulerPid, _, _, _} = recv_reply().
 
 accept(Config) ->
-    log("Accept test cases test cases", Config),
+    log("Accept test cases", Config),
     Ref = {erl_mesos_scheduler, accept},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
@@ -491,8 +493,26 @@ accept(Config) ->
                  agent_id = AgentId} = Status,
     ok = stop_scheduler(Ref, Config).
 
+decline(Config) ->
+    log("Decline test cases", Config),
+    Ref = {erl_mesos_scheduler, decline},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId} = Offer,
+    SchedulerPid ! {decline, OfferId},
+    {decline, ok} = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
+
 reconcile(Config) ->
-    log("Reconcile test cases test cases", Config),
+    log("Reconcile test cases", Config),
     Ref = {erl_mesos_scheduler, reconcile},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
@@ -632,6 +652,8 @@ recv_reply() ->
             {teardown, Teardown};
         {accept, Accept} ->
             {accept, Accept};
+        {decline, Decline} ->
+            {decline, Decline};
         {reconcile, Reconcile} ->
             {reconcile, Reconcile};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
