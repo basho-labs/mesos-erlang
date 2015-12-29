@@ -27,6 +27,7 @@
          decline/1,
          revive/1,
          kill/1,
+         shutdown/1,
          reconcile/1]).
 
 -record(state, {callback,
@@ -51,6 +52,7 @@ groups() ->
                       decline,
                       revive,
                       kill,
+                      shutdown,
                       reconcile]}].
 
 init_per_suite(Config) ->
@@ -224,7 +226,7 @@ reregistered(Config) ->
                          set_test_pid(SchedulerOptions)],
     Options = ?config(options, Config),
     Options1 = [{max_num_resubscribe, 2},
-                {resubscribe_interval, 2000} |
+                {resubscribe_interval, 3000} |
                 Options],
     %% Test connection crash.
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1,
@@ -559,6 +561,30 @@ kill(Config) ->
     {kill, ok} = recv_reply(),
     ok = stop_scheduler(Ref, Config).
 
+shutdown(Config) ->
+    log("Shutdown test cases", Config),
+    Ref = {erl_mesos_scheduler, shutdown},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, _, EventUpdate} = recv_reply(),
+    #event_update{status = Status} = EventUpdate,
+    #task_status{executor_id = ExecutorId} = Status,
+    SchedulerPid ! {shutdown, ExecutorId, AgentId},
+    {shutdown, ok} = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
+
 reconcile(Config) ->
     log("Reconcile test cases", Config),
     Ref = {erl_mesos_scheduler, reconcile},
@@ -707,6 +733,8 @@ recv_reply() ->
             {reconcile, Reconcile};
         {kill, Kill} ->
             {kill, Kill};
+        {shutdown, Shutdown} ->
+            {shutdown, Shutdown};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->
