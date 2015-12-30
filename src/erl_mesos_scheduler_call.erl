@@ -16,7 +16,8 @@
          acknowledge/2,
          reconcile/2,
          message/2,
-         request/2]).
+         request/2,
+         suppress/1]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -179,6 +180,18 @@ request(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
                                                   RequestOptions1},
     CallRequestObj = call_request_obj(CallRequest),
     Call = #call{type = <<"REQUEST">>, request = CallRequestObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, CallObj)).
+
+%% Executes suppress call.
+-spec suppress(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+suppress(#scheduler_info{subscribed = false}) ->
+    {error, not_subscribed};
+suppress(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #call{type = <<"SUPPRESS">>},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(send_request(SchedulerInfo1, CallObj)).
 

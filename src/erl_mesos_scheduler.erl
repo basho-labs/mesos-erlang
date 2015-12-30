@@ -19,7 +19,8 @@
          acknowledge/4,
          reconcile/2,
          message/4,
-         request/2]).
+         request/2,
+         suppress/1]).
 
 -export([init/1,
          handle_call/3,
@@ -241,6 +242,11 @@ message(SchedulerInfo, AgentId, ExecutorId, Data) ->
 request(SchedulerInfo, Requests) ->
     CallRequest = #call_request{requests = Requests},
     erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
+
+%% @doc Suppress call.
+-spec suppress(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+suppress(SchedulerInfo) ->
+    erl_mesos_scheduler_call:suppress(SchedulerInfo).
 
 %% gen_server callback functions.
 
