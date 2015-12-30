@@ -32,6 +32,8 @@
                        erl_mesos_obj:data_obj(),
                shutdown :: undefined | erl_mesos:call_shutdown() |
                            erl_mesos_obj:data_obj(),
+               acknowledge :: erl_mesos:call_acknowledge() |
+                              erl_mesos_obj:data_obj(),
                reconcile :: undefined | erl_mesos:call_reconcile() |
                             erl_mesos_obj:data_obj()}).
 
@@ -69,6 +71,13 @@
 %% Call reconcile.
 -record(call_reconcile, {tasks :: [erl_mesos:call_reconcile_task() |
                                    erl_mesos_obj:data_obj()]}).
+
+%% Call acknowledge.
+-record(call_acknowledge, {agent_id :: erl_mesos:agent_id() |
+                                       erl_mesos_obj:data_obj(),
+                           executor_id :: erl_mesos:executor_id() |
+                                          erl_mesos_obj:data_obj(),
+                           data :: erl_mesos_obj:data_string()}).
 
 %% Call reconcile task.
 -record(call_reconcile_task, {task_id :: erl_mesos:task_id() |

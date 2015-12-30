@@ -13,6 +13,7 @@
          revive/1,
          kill/2,
          shutdown/2,
+         acknowledge/2,
          reconcile/2]).
 
 -type version() :: v1.
@@ -116,6 +117,21 @@ shutdown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
                                                   RequestOptions1},
     CallShutdownObj = call_shutdown_obj(CallShutdown),
     Call = #call{type = <<"SHUTDOWN">>, shutdown = CallShutdownObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
+
+%% Executes acknowledge call.
+-spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:call_acknowledge()) ->
+    ok | {error, term()}.
+acknowledge(#scheduler_info{subscribed = false}, _CallAcknowledge) ->
+    {error, not_subscribed};
+acknowledge(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+            CallAcknowledge) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    CallAcknowledgeObj = call_acknowledge_obj(CallAcknowledge),
+    Call = #call{type = <<"ACKNOWLEDGE">>, acknowledge = CallAcknowledgeObj},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(request(SchedulerInfo1, CallObj)).
 
@@ -821,6 +837,20 @@ call_shutdown_obj(#call_shutdown{executor_id = ExecutorId,
     CallShutdown1 = CallShutdown#call_shutdown{executor_id = ExecutorIdObj,
                                                agent_id = AgentIdObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_shutdown, CallShutdown1).
+
+%% @doc Returns call acknowledge obj.
+%% @private
+-spec call_acknowledge_obj(erl_mesos:call_acknowledge()) ->
+    erl_mesos_obj:data_obj().
+call_acknowledge_obj(#call_acknowledge{agent_id = AgentId,
+                                       executor_id = ExecutorId} =
+                     CallAcknowledge) ->
+    AgentIdObj = agent_id_obj(AgentId),
+    ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
+    CallAcknowledge1 =
+        CallAcknowledge#call_acknowledge{agent_id = AgentIdObj,
+                                         executor_id = ExecutorIdObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_acknowledge, CallAcknowledge1).
 
 %% @doc Returns call reconcile obj.
 %% @private

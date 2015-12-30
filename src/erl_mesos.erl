@@ -37,6 +37,9 @@
 -type call_shutdown() :: #call_shutdown{}.
 -export_type([call_shutdown/0]).
 
+-type call_acknowledge() :: #call_acknowledge{}.
+-export_type([call_acknowledge/0]).
+
 -type call_reconcile() :: #call_reconcile{}.
 -export_type([call_reconcile/0]).
 

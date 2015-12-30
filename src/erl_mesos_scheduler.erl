@@ -16,6 +16,7 @@
          kill/3,
          shutdown/2,
          shutdown/3,
+         acknowledge/4,
          reconcile/2]).
 
 -export([init/1,
@@ -203,6 +204,16 @@ shutdown(SchedulerInfo, ExecutorId, AgentId) ->
     CallShutdown = #call_shutdown{executor_id = ExecutorId,
                                   agent_id = AgentId},
     erl_mesos_scheduler_call:shutdown(SchedulerInfo, CallShutdown).
+
+%% @doc Acknowledge call.
+-spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
+                  erl_mesos:executor_id(), erl_mesos_obj:data_string()) ->
+    ok | {error, term()}.
+acknowledge(SchedulerInfo, AgentId, ExecutorId, Data) ->
+    CallAcknowledge = #call_acknowledge{agent_id = AgentId,
+                                        executor_id = ExecutorId,
+                                        data = Data},
+    erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
 
 %% @doc Reconcile call.
 -spec reconcile(erl_mesos:scheduler_info(),
