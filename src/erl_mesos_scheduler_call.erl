@@ -843,13 +843,11 @@ call_shutdown_obj(#call_shutdown{executor_id = ExecutorId,
 -spec call_acknowledge_obj(erl_mesos:call_acknowledge()) ->
     erl_mesos_obj:data_obj().
 call_acknowledge_obj(#call_acknowledge{agent_id = AgentId,
-                                       executor_id = ExecutorId} =
-                     CallAcknowledge) ->
+                                       task_id = TaskId} = CallAcknowledge) ->
     AgentIdObj = agent_id_obj(AgentId),
-    ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
-    CallAcknowledge1 =
-        CallAcknowledge#call_acknowledge{agent_id = AgentIdObj,
-                                         executor_id = ExecutorIdObj},
+    TaskIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(task_id, TaskId),
+    CallAcknowledge1 = CallAcknowledge#call_acknowledge{agent_id = AgentIdObj,
+                                                        task_id = TaskIdObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_acknowledge, CallAcknowledge1).
 
 %% @doc Returns call reconcile obj.

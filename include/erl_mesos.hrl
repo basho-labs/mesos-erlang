@@ -75,9 +75,9 @@
 %% Call acknowledge.
 -record(call_acknowledge, {agent_id :: erl_mesos:agent_id() |
                                        erl_mesos_obj:data_obj(),
-                           executor_id :: erl_mesos:executor_id() |
-                                          erl_mesos_obj:data_obj(),
-                           data :: erl_mesos_obj:data_string()}).
+                           task_id :: erl_mesos:task_id() |
+                                      erl_mesos_obj:data_obj(),
+                           uuid :: erl_mesos_obj:data_string()}).
 
 %% Call reconcile task.
 -record(call_reconcile_task, {task_id :: erl_mesos:task_id() |

@@ -207,12 +207,12 @@ shutdown(SchedulerInfo, ExecutorId, AgentId) ->
 
 %% @doc Acknowledge call.
 -spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
-                  erl_mesos:executor_id(), erl_mesos_obj:data_string()) ->
+                  erl_mesos:task_id(), erl_mesos_obj:data_string()) ->
     ok | {error, term()}.
-acknowledge(SchedulerInfo, AgentId, ExecutorId, Data) ->
+acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
     CallAcknowledge = #call_acknowledge{agent_id = AgentId,
-                                        executor_id = ExecutorId,
-                                        data = Data},
+                                        task_id = TaskId,
+                                        uuid = Uuid},
     erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
 
 %% @doc Reconcile call.
