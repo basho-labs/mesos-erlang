@@ -15,7 +15,8 @@
          shutdown/2,
          acknowledge/2,
          reconcile/2,
-         message/2]).
+         message/2,
+         request/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -35,7 +36,7 @@ subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallSubscribeObj = call_subscribe_obj(CallSubscribe),
     Call = #call{type = <<"SUBSCRIBE">>, subscribe = CallSubscribeObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    request(SchedulerInfo1, CallObj).
+    send_request(SchedulerInfo1, CallObj).
 
 %% Executes teardown call.
 -spec teardown(erl_mesos:scheduler_info()) -> ok | {error, term()}.
@@ -47,7 +48,7 @@ teardown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
                                                   RequestOptions1},
     Call = #call{type = <<"TEARDOWN">>},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes accept call.
 -spec accept(erl_mesos:scheduler_info(), erl_mesos:call_accept()) ->
@@ -62,7 +63,7 @@ accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallAcceptObj = call_accept_obj(CallAccept),
     Call = #call{type = <<"ACCEPT">>, accept = CallAcceptObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes decline call.
 -spec decline(erl_mesos:scheduler_info(), erl_mesos:call_decline()) ->
@@ -77,7 +78,7 @@ decline(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallDeclineObj = call_decline_obj(CallDecline),
     Call = #call{type = <<"DECLINE">>, decline = CallDeclineObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes revive call.
 -spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
@@ -89,7 +90,7 @@ revive(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
                                                   RequestOptions1},
     Call = #call{type = <<"REVIVE">>},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes kill call.
 -spec kill(erl_mesos:scheduler_info(), erl_mesos:call_kill()) ->
@@ -104,7 +105,7 @@ kill(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallKillObj = call_kill_obj(CallKill),
     Call = #call{type = <<"KILL">>, kill = CallKillObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes shutdown call.
 -spec shutdown(erl_mesos:scheduler_info(), erl_mesos:call_shutdown()) ->
@@ -119,7 +120,7 @@ shutdown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallShutdownObj = call_shutdown_obj(CallShutdown),
     Call = #call{type = <<"SHUTDOWN">>, shutdown = CallShutdownObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes acknowledge call.
 -spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:call_acknowledge()) ->
@@ -134,7 +135,7 @@ acknowledge(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallAcknowledgeObj = call_acknowledge_obj(CallAcknowledge),
     Call = #call{type = <<"ACKNOWLEDGE">>, acknowledge = CallAcknowledgeObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes reconcile call.
 -spec reconcile(erl_mesos:scheduler_info(), erl_mesos:call_reconcile()) ->
@@ -149,7 +150,7 @@ reconcile(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallReconcileObj = call_reconcile_obj(CallReconcile),
     Call = #call{type = <<"RECONCILE">>, reconcile = CallReconcileObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Executes message call.
 -spec message(erl_mesos:scheduler_info(), erl_mesos:call_message()) ->
@@ -164,7 +165,22 @@ message(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     CallMessageObj = call_message_obj(CallMessage),
     Call = #call{type = <<"MESSAGE">>, message = CallMessageObj},
     CallObj = call_obj(SchedulerInfo, Call),
-    handle_response(request(SchedulerInfo1, CallObj)).
+    handle_response(send_request(SchedulerInfo1, CallObj)).
+
+%% Executes request call.
+-spec request(erl_mesos:scheduler_info(), erl_mesos:call_request()) ->
+    ok | {error, term()}.
+request(#scheduler_info{subscribed = false}, _CallRequest) ->
+    {error, not_subscribed};
+request(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+        CallRequest) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    CallRequestObj = call_request_obj(CallRequest),
+    Call = #call{type = <<"REQUEST">>, request = CallRequestObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, CallObj)).
 
 %% Internal functions.
 
@@ -910,17 +926,35 @@ call_message_obj(#call_message{agent_id = AgentId,
                                             executor_id = ExecutorIdObj},
     ?ERL_MESOS_OBJ_FROM_RECORD(call_acknowledge, CallMessage1).
 
+%% @doc Returns call request obj.
+%% @private
+-spec call_request_obj(erl_mesos:call_request()) -> erl_mesos_obj:data_obj().
+call_request_obj(#call_request{requests = Requests} = CallRequest) ->
+    RequestObjs = [request_obj(Request) || Request <- Requests],
+    CallRequest1 = CallRequest#call_request{requests = RequestObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_request, CallRequest1).
+
+%% @doc Returns request obj.
+%% @private
+-spec request_obj(erl_mesos:request()) -> erl_mesos_obj:data_obj().
+request_obj(#request{agent_id = AgentId, resources = Resources} = Request) ->
+    AgentIdObj = agent_id_obj(AgentId),
+    ResourceObjs = resource_objs(Resources),
+    Request1 = Request#request{agent_id = AgentIdObj, resources = ResourceObjs},
+    ?ERL_MESOS_OBJ_FROM_RECORD(request, Request1).
+
+
 %% @doc Sends http request.
 %% @private
--spec request(erl_mesos:scheduler_info(), erl_mesos_obj:data_obj()) ->
+-spec send_request(erl_mesos:scheduler_info(), erl_mesos_obj:data_obj()) ->
     {ok, erl_mesos_http:client_ref()} |
     {ok, non_neg_integer(), erl_mesos_http:headers(),
      erl_mesos_http:client_ref()} |
     {error, term()}.
-request(#scheduler_info{data_format = DataFormat,
-                        api_version = ApiVersion,
-                        master_host = MasterHost,
-                        request_options = RequestOptions}, CallObj) ->
+send_request(#scheduler_info{data_format = DataFormat,
+                             api_version = ApiVersion,
+                             master_host = MasterHost,
+                             request_options = RequestOptions}, CallObj) ->
     ReqUrl = request_url(ApiVersion, MasterHost),
     ReqHeaders = request_headers(DataFormat),
     ReqBody = erl_mesos_data_format:encode(DataFormat, CallObj),

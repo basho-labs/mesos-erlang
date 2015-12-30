@@ -17,7 +17,9 @@
          shutdown/2,
          shutdown/3,
          acknowledge/4,
-         reconcile/2]).
+         reconcile/2,
+         message/4,
+         request/2]).
 
 -export([init/1,
          handle_call/3,
@@ -222,6 +224,23 @@ acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
 reconcile(SchedulerInfo, CallReconcileTasks) ->
     CallReconcile = #call_reconcile{tasks = CallReconcileTasks},
     erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
+
+%% @doc Message call.
+-spec message(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
+              erl_mesos:executor_id(), erl_mesos_obj:data_string()) ->
+    ok | {error, term()}.
+message(SchedulerInfo, AgentId, ExecutorId, Data) ->
+    CallMessage = #call_message{agent_id = AgentId,
+                                executor_id = ExecutorId,
+                                data = Data},
+    erl_mesos_scheduler_call:message(SchedulerInfo, CallMessage).
+
+%% @doc Request call.
+-spec request(erl_mesos:scheduler_info(), [erl_mesos:request()]) ->
+    ok | {error, term()}.
+request(SchedulerInfo, Requests) ->
+    CallRequest = #call_request{requests = Requests},
+    erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
 
 %% gen_server callback functions.
 

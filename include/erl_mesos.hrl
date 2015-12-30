@@ -37,6 +37,8 @@
                reconcile :: undefined | erl_mesos:call_reconcile() |
                             erl_mesos_obj:data_obj(),
                message :: undefined | erl_mesos:call_message() |
+                          erl_mesos_obj:data_obj(),
+               request :: undefined | erl_mesos:call_request() |
                           erl_mesos_obj:data_obj()}).
 
 %% Call subscribe.
@@ -93,6 +95,10 @@
                        executor_id :: erl_mesos:executor_id() |
                                       erl_mesos_obj:data_obj(),
                        data :: erl_mesos_obj:data_string()}).
+
+%% Call request.
+-record(call_request, {requests :: [erl_mesos:request() |
+                                    erl_mesos_obj:data_obj()]}).
 
 %% Command info.
 -record(command_info, {container :: undefined |
@@ -425,6 +431,12 @@
 
 %% Ports.
 -record(ports, {ports :: [erl_mesos:pt() | erl_mesos_obj:data_obj()]}).
+
+%% Request.
+-record(request, {agent_id :: undefined | erl_mesos:value_scalar() |
+                              erl_mesos_obj:data_obj(),
+                  resources :: undefined | [erl_mesos:resource() |
+                                            erl_mesos_obj:data_obj()]}).
 
 %% Resource.
 -record(resource, {name :: erl_mesos_obj:data_string(),

@@ -43,11 +43,14 @@
 -type call_reconcile() :: #call_reconcile{}.
 -export_type([call_reconcile/0]).
 
+-type call_reconcile_task() :: #call_reconcile_task{}.
+-export_type([call_reconcile_task/0]).
+
 -type call_message() :: #call_message{}.
 -export_type([call_message/0]).
 
--type call_reconcile_task() :: #call_reconcile_task{}.
--export_type([call_reconcile_task/0]).
+-type call_request() :: #call_request{}.
+-export_type([call_request/0]).
 
 -type command_info() :: #command_info{}.
 -export_type([command_info/0]).
@@ -190,6 +193,9 @@
 
 -type parameter() :: #parameter{}.
 -export_type([parameter/0]).
+
+-type request() :: #request{}.
+-export_type([request/0]).
 
 -type resource() :: #resource{}.
 -export_type([resource/0]).
