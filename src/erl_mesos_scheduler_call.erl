@@ -14,7 +14,8 @@
          kill/2,
          shutdown/2,
          acknowledge/2,
-         reconcile/2]).
+         reconcile/2,
+         message/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -147,6 +148,21 @@ reconcile(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
                                                   RequestOptions1},
     CallReconcileObj = call_reconcile_obj(CallReconcile),
     Call = #call{type = <<"RECONCILE">>, reconcile = CallReconcileObj},
+    CallObj = call_obj(SchedulerInfo, Call),
+    handle_response(request(SchedulerInfo1, CallObj)).
+
+%% Executes message call.
+-spec message(erl_mesos:scheduler_info(), erl_mesos:call_message()) ->
+    ok | {error, term()}.
+message(#scheduler_info{subscribed = false}, _CallMessage) ->
+    {error, not_subscribed};
+message(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+        CallMessage) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    CallMessageObj = call_message_obj(CallMessage),
+    Call = #call{type = <<"MESSAGE">>, message = CallMessageObj},
     CallObj = call_obj(SchedulerInfo, Call),
     handle_response(request(SchedulerInfo1, CallObj)).
 
@@ -881,6 +897,18 @@ agent_id_obj(undefined) ->
     undefined;
 agent_id_obj(AgentId) ->
     ?ERL_MESOS_OBJ_FROM_RECORD(agent_id, AgentId).
+
+%% @doc Returns call message obj.
+%% @private
+-spec call_message_obj(erl_mesos:call_message()) ->
+    erl_mesos_obj:data_obj().
+call_message_obj(#call_message{agent_id = AgentId,
+                               executor_id = ExecutorId} = CallMessage) ->
+    AgentIdObj = agent_id_obj(AgentId),
+    ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
+    CallMessage1 = CallMessage#call_message{agent_id = AgentIdObj,
+                                            executor_id = ExecutorIdObj},
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_acknowledge, CallMessage1).
 
 %% @doc Sends http request.
 %% @private

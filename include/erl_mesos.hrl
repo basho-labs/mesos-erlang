@@ -35,7 +35,9 @@
                acknowledge :: erl_mesos:call_acknowledge() |
                               erl_mesos_obj:data_obj(),
                reconcile :: undefined | erl_mesos:call_reconcile() |
-                            erl_mesos_obj:data_obj()}).
+                            erl_mesos_obj:data_obj(),
+               message :: undefined | erl_mesos:call_message() |
+                          erl_mesos_obj:data_obj()}).
 
 %% Call subscribe.
 -record(call_subscribe, {framework_info :: erl_mesos:framework_info() |
@@ -84,6 +86,13 @@
                                          erl_mesos_obj:data_obj(),
                               agent_id :: undefined | erl_mesos:agent_id() |
                                           erl_mesos_obj:data_obj()}).
+
+%% Call message.
+-record(call_message, {agent_id :: erl_mesos:agent_id() |
+                                   erl_mesos_obj:data_obj(),
+                       executor_id :: erl_mesos:executor_id() |
+                                      erl_mesos_obj:data_obj(),
+                       data :: erl_mesos_obj:data_string()}).
 
 %% Command info.
 -record(command_info, {container :: undefined |

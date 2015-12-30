@@ -43,6 +43,9 @@
 -type call_reconcile() :: #call_reconcile{}.
 -export_type([call_reconcile/0]).
 
+-type call_message() :: #call_message{}.
+-export_type([call_message/0]).
+
 -type call_reconcile_task() :: #call_reconcile_task{}.
 -export_type([call_reconcile_task/0]).
 
