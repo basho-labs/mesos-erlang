@@ -28,6 +28,7 @@
          revive/1,
          kill/1,
          shutdown/1,
+         acknowledge/1,
          reconcile/1]).
 
 -record(state, {callback,
@@ -53,6 +54,7 @@ groups() ->
                       revive,
                       kill,
                       shutdown,
+                      acknowledge,
                       reconcile]}].
 
 init_per_suite(Config) ->
@@ -585,6 +587,28 @@ shutdown(Config) ->
     {shutdown, ok} = recv_reply(),
     ok = stop_scheduler(Ref, Config).
 
+acknowledge(Config) ->
+    log("Acknowledge test cases", Config),
+    Ref = {erl_mesos_scheduler, acknowledge},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, _, _} = recv_reply(),
+    SchedulerPid ! {acknowledge, AgentId, TaskId, <<"1">>},
+    {acknowledge, ok} = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
+
 reconcile(Config) ->
     log("Reconcile test cases", Config),
     Ref = {erl_mesos_scheduler, reconcile},
@@ -729,6 +753,8 @@ recv_reply() ->
             {decline, Decline};
         {revive, Revive} ->
             {revive, Revive};
+        {acknowledge, Acknowledge} ->
+            {acknowledge, Acknowledge};
         {reconcile, Reconcile} ->
             {reconcile, Reconcile};
         {kill, Kill} ->

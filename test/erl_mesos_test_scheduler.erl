@@ -117,9 +117,15 @@ handle_info(SchedulerInfo, {kill, TaskId},
     reply(TestPid, {kill, Kill}),
     {ok, State};
 handle_info(SchedulerInfo, {shutdown, ExecutorId, AgentId},
-    #state{test_pid = TestPid} = State) ->
+            #state{test_pid = TestPid} = State) ->
     Shutdown = erl_mesos_scheduler:shutdown(SchedulerInfo, ExecutorId, AgentId),
     reply(TestPid, {shutdown, Shutdown}),
+    {ok, State};
+handle_info(SchedulerInfo, {acknowledge, AgentId, TaskId, Uuid},
+            #state{test_pid = TestPid} = State) ->
+    Acknowledge =
+        erl_mesos_scheduler:acknowledge(SchedulerInfo, AgentId, TaskId, Uuid),
+    reply(TestPid, {acknowledge, Acknowledge}),
     {ok, State};
 handle_info(SchedulerInfo, {reconcile, TaskId},
             #state{test_pid = TestPid} = State) ->
