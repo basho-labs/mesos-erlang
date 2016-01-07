@@ -29,7 +29,8 @@
          kill/1,
          shutdown/1,
          acknowledge/1,
-         reconcile/1]).
+         reconcile/1,
+         request/1]).
 
 -record(state, {callback,
                 test_pid}).
@@ -55,7 +56,8 @@ groups() ->
                       kill,
                       shutdown,
                       acknowledge,
-                      reconcile]}].
+                      reconcile,
+                      request]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -637,6 +639,25 @@ reconcile(Config) ->
                  agent_id = AgentId} = Status,
     ok = stop_scheduler(Ref, Config).
 
+request(Config) ->
+    log("Request test cases", Config),
+    Ref = {erl_mesos_scheduler, request},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{agent_id = AgentId} = Offer,
+    Requests = [#request{agent_id = AgentId}],
+    SchedulerPid ! {request, Requests},
+    {request, ok} = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
+
 %% Internal functions.
 
 start_mesos_cluster(Config) ->
@@ -753,14 +774,16 @@ recv_reply() ->
             {decline, Decline};
         {revive, Revive} ->
             {revive, Revive};
-        {acknowledge, Acknowledge} ->
-            {acknowledge, Acknowledge};
-        {reconcile, Reconcile} ->
-            {reconcile, Reconcile};
         {kill, Kill} ->
             {kill, Kill};
         {shutdown, Shutdown} ->
             {shutdown, Shutdown};
+        {acknowledge, Acknowledge} ->
+            {acknowledge, Acknowledge};
+        {reconcile, Reconcile} ->
+            {reconcile, Reconcile};
+        {request, Request} ->
+            {request, Request};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->

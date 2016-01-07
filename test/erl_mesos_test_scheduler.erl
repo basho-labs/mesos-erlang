@@ -134,6 +134,11 @@ handle_info(SchedulerInfo, {reconcile, TaskId},
                                               [CallReconcileTask]),
     reply(TestPid, {reconcile, Reconcile}),
     {ok, State};
+handle_info(SchedulerInfo, {request, Requests},
+            #state{test_pid = TestPid} = State) ->
+    Request = erl_mesos_scheduler:request(SchedulerInfo, Requests),
+    reply(TestPid, {request, Request}),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->
