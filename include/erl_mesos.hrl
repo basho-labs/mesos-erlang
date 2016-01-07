@@ -433,7 +433,7 @@
 -record(ports, {ports :: [erl_mesos:pt() | erl_mesos_obj:data_obj()]}).
 
 %% Request.
--record(request, {agent_id :: undefined | erl_mesos:value_scalar() |
+-record(request, {agent_id :: undefined | erl_mesos:agent_id() |
                               erl_mesos_obj:data_obj(),
                   resources :: undefined | [erl_mesos:resource() |
                                             erl_mesos_obj:data_obj()]}).
