@@ -30,7 +30,8 @@
          shutdown/1,
          acknowledge/1,
          reconcile/1,
-         request/1]).
+         request/1,
+         suppress/1]).
 
 -record(state, {callback,
                 test_pid}).
@@ -57,7 +58,8 @@ groups() ->
                       shutdown,
                       acknowledge,
                       reconcile,
-                      request]}].
+                      request,
+                      suppress]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -658,6 +660,20 @@ request(Config) ->
     {request, ok} = recv_reply(),
     ok = stop_scheduler(Ref, Config).
 
+suppress(Config) ->
+    log("Suppress test cases", Config),
+    Ref = {erl_mesos_scheduler, suppress},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    SchedulerPid ! suppress,
+    {suppress, ok} = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
+
 %% Internal functions.
 
 start_mesos_cluster(Config) ->
@@ -784,6 +800,8 @@ recv_reply() ->
             {reconcile, Reconcile};
         {request, Request} ->
             {request, Request};
+        {suppress, Suppress} ->
+            {suppress, Suppress};
         {terminate, SchedulerPid, SchedulerInfo, Reason, State} ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->

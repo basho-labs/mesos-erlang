@@ -139,6 +139,11 @@ handle_info(SchedulerInfo, {request, Requests},
     Request = erl_mesos_scheduler:request(SchedulerInfo, Requests),
     reply(TestPid, {request, Request}),
     {ok, State};
+handle_info(SchedulerInfo, suppress,
+            #state{test_pid = TestPid} = State) ->
+    Suppress = erl_mesos_scheduler:suppress(SchedulerInfo),
+    reply(TestPid, {suppress, Suppress}),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->
