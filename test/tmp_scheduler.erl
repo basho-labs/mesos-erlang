@@ -63,8 +63,9 @@ resource_offers(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
                  #command_info_uri{value = <<"test_executor.py">>,
                                    extract = false,
                                    executable = false}],
+            ExecutorId = #executor_id{value = TaskIdValue},
             ExecutorInfo =
-                #executor_info{executor_id = #executor_id{value = TaskIdValue},
+                #executor_info{executor_id = ExecutorId,
                                framework_id = FrameworkId,
                                command =
                                    #command_info{shell = true,
@@ -93,6 +94,8 @@ resource_offers(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
                                               launch = Launch},
             ok = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
                                             [OfferOperation]),
+            Message = <<"test_message">>,
+            erlang:send_after(1000, self(), {send_message, AgentId, ExecutorId, Message}),
             State#state{offer = decline};
         #state{offer = decline} ->
             State
@@ -139,8 +142,12 @@ error(_SchedulerInfo, #event_error{} = EventError, State) ->
              [EventError]),
     {stop, State}.
 
+handle_info(SchedulerInfo, {send_message, AgentId, ExecutorId, Message},
+            State) ->
+    Data = base64:encode(Message),
+    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId, Data),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
-
     {stop, State};
 handle_info(_SchedulerInfo, Info, State) ->
     call_log("== Info callback~n"
