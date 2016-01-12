@@ -937,7 +937,7 @@ call_message_obj(#call_message{agent_id = AgentId,
     ExecutorIdObj = ?ERL_MESOS_OBJ_FROM_RECORD(executor_id, ExecutorId),
     CallMessage1 = CallMessage#call_message{agent_id = AgentIdObj,
                                             executor_id = ExecutorIdObj},
-    ?ERL_MESOS_OBJ_FROM_RECORD(call_acknowledge, CallMessage1).
+    ?ERL_MESOS_OBJ_FROM_RECORD(call_message, CallMessage1).
 
 %% @doc Returns call request obj.
 %% @private
