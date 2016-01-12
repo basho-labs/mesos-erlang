@@ -18,7 +18,7 @@
          handle_info/3,
          terminate/3]).
 
--record(state, {offer = accept :: accept | reconcile | decline}).
+-record(state, {offer = accept :: accept | decline}).
 
 init(Options) ->
     FrameworkInfo = #framework_info{user = <<"root">>,
@@ -42,33 +42,57 @@ disconnected(_SchedulerInfo, State) ->
     call_log("== Disconnected callback~n", []),
     {ok, State}.
 
-resource_offers(SchedulerInfo, #event_offers{offers = Offers} = EventOffers,
+resource_offers(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
+                #event_offers{offers = Offers} = EventOffers,
                 State) ->
-    TaskId = #task_id{value = <<"3">>},
+    TaskIdValue = timestamp_task_id_value(),
     State1 =
     case State of
         #state{offer = accept} ->
             [#offer{id = OfferId, agent_id = AgentId} | _] = Offers,
-            CommandValue = <<"while true; sleep 1; done">>,
-            CommandInfo = #command_info{shell = true,
-                                        value = CommandValue},
-            CpuScalarValue = #value_scalar{value = 0.1},
-            ResourceCpu = #resource{name = <<"cpus">>,
-                                    type = <<"SCALAR">>,
-                                    scalar = CpuScalarValue},
+            ExecutorResources = [#resource{name = <<"cpus">>,
+                                           type = <<"SCALAR">>,
+                                           scalar = #value_scalar{value = 0.1}},
+                                 #resource{name = <<"mem">>,
+                                           type = <<"SCALAR">>,
+                                           scalar = #value_scalar{value = 128.0}}],
+            CommandInfoUris =
+                [#command_info_uri{value = <<"test_executor">>,
+                                   extract = false,
+                                   executable = true},
+                 #command_info_uri{value = <<"test_executor.py">>,
+                                   extract = false,
+                                   executable = false}],
+            ExecutorInfo =
+                #executor_info{executor_id = #executor_id{value = TaskIdValue},
+                               framework_id = FrameworkId,
+                               command =
+                                   #command_info{shell = true,
+                                                 user = <<"root">>,
+                                                 uris = CommandInfoUris,
+                                                 value = <<"./test_executor">>},
+                               resources = ExecutorResources,
+                               name = list_to_binary(binary_to_list(TaskIdValue) ++ " Executor"),
+                               source = <<"Tmp">>},
+            TaskResources = [#resource{name = <<"cpus">>,
+                                       type = <<"SCALAR">>,
+                                       scalar = #value_scalar{value = 0.1}},
+                             #resource{name = <<"mem">>,
+                                       type = <<"SCALAR">>,
+                                       scalar = #value_scalar{value = 128.0}},
+                             #resource{name = <<"disk">>,
+                                       type = <<"SCALAR">>,
+                                       scalar = #value_scalar{value = 512.0}}],
             TaskInfo = #task_info{name = <<"test_task">>,
-                                  task_id = TaskId,
+                                  task_id = #task_id{value = TaskIdValue},
                                   agent_id = AgentId,
-                                  command = CommandInfo,
-                                  resources = [ResourceCpu]},
+                                  executor = ExecutorInfo,
+                                  resources = TaskResources},
             Launch = #offer_operation_launch{task_infos = [TaskInfo]},
             OfferOperation = #offer_operation{type = <<"LAUNCH">>,
                                               launch = Launch},
             ok = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
                                             [OfferOperation]),
-            CallReconcileTask = #call_reconcile_task{task_id = TaskId},
-            ok = erl_mesos_scheduler:reconcile(SchedulerInfo,
-                                               [CallReconcileTask]),
             State#state{offer = decline};
         #state{offer = decline} ->
             State
@@ -132,3 +156,8 @@ terminate(_SchedulerInfo, Reason, State) ->
 
 call_log(Format, Data) ->
     erl_mesos_logger:info(Format, Data).
+
+timestamp_task_id_value() ->
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
+    Timestamp = (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs,
+    list_to_binary(integer_to_list(Timestamp)).
