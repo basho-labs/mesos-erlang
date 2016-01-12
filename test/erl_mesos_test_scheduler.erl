@@ -18,7 +18,8 @@
          handle_info/3,
          terminate/3]).
 
--record(state, {callback,
+-record(state, {user,
+                callback,
                 test_pid}).
 
 %% erl_mesos_scheduler callback functions.
@@ -26,7 +27,8 @@
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
-    {ok, FrameworkInfo, true, #state{callback = init,
+    {ok, FrameworkInfo, true, #state{user = FrameworkInfo#framework_info.user,
+                                     callback = init,
                                      test_pid = TestPid}}.
 
 registered(SchedulerInfo, EventSubscribed,
@@ -80,13 +82,11 @@ handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
     {stop, State};
 handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
             #state{test_pid = TestPid} = State) ->
-    CommandValue = <<"while true; sleep 1; done">>,
     CommandInfo = #command_info{shell = true,
-                                value = CommandValue},
-    CpuScalarValue = #value_scalar{value = 0.1},
+                                value = <<"while true; sleep 1; done">>},
     ResourceCpu = #resource{name = <<"cpus">>,
                             type = <<"SCALAR">>,
-                            scalar = CpuScalarValue},
+                            scalar = #value_scalar{value = 0.1}},
     Labels = #labels{labels = [#label{key = <<"task_key">>,
                                       value = <<"task_value">>}]},
     TaskInfo = #task_info{name = <<"test_task">>,
@@ -95,6 +95,43 @@ handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
                           command = CommandInfo,
                           resources = [ResourceCpu],
                           labels = Labels},
+    Launch = #offer_operation_launch{task_infos = [TaskInfo]},
+    OfferOperation = #offer_operation{type = <<"LAUNCH">>,
+                                      launch = Launch},
+    Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
+                                        [OfferOperation]),
+    reply(TestPid, {accept, Accept}),
+    {ok, State};
+handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
+            {accept_test_executor, OfferId, AgentId, TaskId},
+            #state{user = User, test_pid = TestPid} = State) ->
+    CommandInfoUris =
+        [#command_info_uri{value = <<"test_executor">>,
+                           extract = false,
+                           executable = true},
+         #command_info_uri{value = <<"test_executor.py">>,
+                           extract = false,
+                           executable = false}],
+    CommandInfo = #command_info{shell = true,
+                                user = User,
+                                uris = CommandInfoUris,
+                                value = <<"./test_executor">>},
+    ExecutorResourceCpu = #resource{name = <<"cpus">>,
+                                    type = <<"SCALAR">>,
+                                    scalar = #value_scalar{value = 0.1}},
+    ExecutorId = #executor_id{value = TaskId#task_id.value},
+    ExecutorInfo = #executor_info{executor_id = ExecutorId,
+                                  framework_id = FrameworkId,
+                                  command = CommandInfo,
+                                  resources = [ExecutorResourceCpu]},
+    TaskResourceCpu = #resource{name = <<"cpus">>,
+                                type = <<"SCALAR">>,
+                                scalar = #value_scalar{value = 0.1}},
+    TaskInfo = #task_info{name = <<"test_task">>,
+                          task_id = TaskId,
+                          agent_id = AgentId,
+                          executor = ExecutorInfo,
+                          resources = [TaskResourceCpu]},
     Launch = #offer_operation_launch{task_infos = [TaskInfo]},
     OfferOperation = #offer_operation{type = <<"LAUNCH">>,
                                       launch = Launch},
@@ -133,6 +170,12 @@ handle_info(SchedulerInfo, {reconcile, TaskId},
     Reconcile = erl_mesos_scheduler:reconcile(SchedulerInfo,
                                               [CallReconcileTask]),
     reply(TestPid, {reconcile, Reconcile}),
+    {ok, State};
+handle_info(SchedulerInfo, {message, AgentId, ExecutorId, Data},
+            #state{test_pid = TestPid} = State) ->
+    Message =
+        erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId, Data),
+    reply(TestPid, {message, Message}),
     {ok, State};
 handle_info(SchedulerInfo, {request, Requests},
             #state{test_pid = TestPid} = State) ->

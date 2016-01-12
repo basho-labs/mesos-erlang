@@ -20,6 +20,7 @@
          resource_offers/1,
          offer_rescinded/1,
          status_update/1,
+         framework_message/1,
          slave_lost/1,
          error/1,
          teardown/1,
@@ -33,7 +34,8 @@
          request/1,
          suppress/1]).
 
--record(state, {callback,
+-record(state, {user,
+                callback,
                 test_pid}).
 
 -define(LOG, false).
@@ -48,6 +50,7 @@ groups() ->
                       resource_offers,
                       offer_rescinded,
                       status_update,
+                      framework_message,
                       slave_lost,
                       error,
                       teardown,
@@ -395,6 +398,43 @@ status_update(Config) ->
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = status_update} = scheduler_state(FormatState),
+    ok = stop_scheduler(Ref, Config).
+
+framework_message(Config) ->
+    log("Framework message test cases", Config),
+    Ref = {erl_mesos_scheduler, framework_message},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _SchedulerInfo, EventOffers} =
+        recv_reply(),
+    #event_offers{offers = [Offer | _]} = EventOffers,
+    #offer{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept_test_executor, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, _SchedulerInfo, _EventUpdate} = recv_reply(),
+    ExecutorId = #executor_id{value = TaskId#task_id.value},
+    TestMessage = <<"test_message">>,
+    Data = base64:encode(TestMessage),
+    SchedulerPid ! {message, AgentId, ExecutorId, Data},
+    {message, ok} = recv_reply(),
+    {framework_message, SchedulerPid, SchedulerInfo, EventMessage} =
+        recv_reply(),
+    %% Test scheduler info.
+    #scheduler_info{subscribed = true} = SchedulerInfo,
+    %% Test event message.
+    #event_message{agent_id = AgentId,
+                   executor_id = ExecutorId,
+                   data = Data} = EventMessage,
+    %% Test scheduler state.
+    FormatState = format_state(SchedulerPid),
+    #state{callback = framework_message} = scheduler_state(FormatState),
     ok = stop_scheduler(Ref, Config).
 
 slave_lost(Config) ->
@@ -795,6 +835,8 @@ recv_reply() ->
             {acknowledge, Acknowledge};
         {reconcile, Reconcile} ->
             {reconcile, Reconcile};
+        {message, Message} ->
+            {message, Message};
         {request, Request} ->
             {request, Request};
         {suppress, Suppress} ->
@@ -803,7 +845,7 @@ recv_reply() ->
             {terminate, SchedulerPid, SchedulerInfo, Reason, State};
         Reply ->
             {error, {bad_reply, Reply}}
-    after 5000 ->
+    after 10000 ->
         {error, timeout}
     end.
 
