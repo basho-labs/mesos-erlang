@@ -1,10 +1,12 @@
+%% @private
+
 -module(erl_mesos_scheduler_manager).
 
 -behaviour(gen_server).
 
 -export([start_link/0]).
 
--export([start_scheduler/4, stop_scheduler/1]).
+-export([start_scheduler/5, stop_scheduler/1]).
 
 -export([init/1,
          handle_call/3,
@@ -28,11 +30,11 @@ start_link() ->
 
 %% @doc Starts the `erl_mesos_scheduler' process.
 -spec start_scheduler(term(), module(), term(),
-                      erl_mesos_scheduler:options()) ->
+                      erl_mesos_scheduler:options(), timeout()) ->
     {ok, pid()} | {error, term()}.
-start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
+start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Timeout) ->
     gen_server:call(?MODULE, {start_scheduler, Ref, Scheduler, SchedulerOptions,
-                              Options}).
+                              Options}, Timeout).
 
 %% @doc Stops the `erl_mesos_scheduler' process.
 -spec stop_scheduler(term()) -> ok | {error, term()}.
@@ -119,7 +121,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions.
 
-%% @doc Retruns scheduler option.
+%% @doc Returns scheduler option.
 %% @private
 -spec get_scheduler_option(term(), atom()) -> {ok, term()} | not_found.
 get_scheduler_option(Ref, Key) ->

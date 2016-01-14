@@ -81,6 +81,7 @@ case "$1" in
         start
         ;;
     stop)
+        stop_slave
         stop
         ;;
     restart)
@@ -96,6 +97,6 @@ case "$1" in
         stop_slave
         ;;
     *)
-        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|stop_slave|stop_slave}"
+        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|start_slave|stop_slave}"
         exit 1
 esac

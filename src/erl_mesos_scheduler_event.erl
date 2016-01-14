@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_scheduler_event).
 
 -include("erl_mesos.hrl").
@@ -11,7 +13,7 @@
 %% External functions.
 
 %% @doc Parses obj.
--spec parse_obj(erl_mesos_obj:data_obj()) -> event().
+-spec parse_obj(erl_mesos_obj:data_obj()) -> erl_mesos:event().
 parse_obj(EventObj) ->
     Event = ?ERL_MESOS_OBJ_TO_RECORD(event, EventObj),
     parse_event(Event).
@@ -20,22 +22,26 @@ parse_obj(EventObj) ->
 
 %% @doc Parses event.
 %% @private
--spec parse_event(event()) -> event().
+-spec parse_event(erl_mesos:event()) -> erl_mesos:event().
 parse_event(#event{type = <<"SUBSCRIBED">>,
                    subscribed = EventSubscribedObj} = Event) ->
     EventSubscribed = parse_event_subscribed_obj(EventSubscribedObj),
     Event#event{type = subscribed, subscribed = EventSubscribed};
-parse_event(#event{type = <<"OFFERS">>,
-                   offers = EventOffersObj} = Event) ->
+parse_event(#event{type = <<"OFFERS">>, offers = EventOffersObj} = Event) ->
     EventOffers = parse_event_offers_obj(EventOffersObj),
     Event#event{type = offers, offers = EventOffers};
-parse_event(#event{type = <<"RESCIND">>,
-                   rescind = EventRescindObj} = Event) ->
-    EventRescind = ?ERL_MESOS_OBJ_TO_RECORD(event_rescind, EventRescindObj),
-    OfferId = ?ERL_MESOS_OBJ_TO_RECORD(offer_id,
-                                       EventRescind#event_rescind.offer_id),
-    EventRescind1 = EventRescind#event_rescind{offer_id = OfferId},
-    Event#event{type = rescind, rescind = EventRescind1};
+parse_event(#event{type = <<"RESCIND">>, rescind = EventRescindObj} = Event) ->
+    EventRescind = parse_event_rescind_obj(EventRescindObj),
+    Event#event{type = rescind, rescind = EventRescind};
+parse_event(#event{type = <<"UPDATE">>, update = EventUpdateObj} = Event) ->
+    EventUpdate = parse_event_update_obj(EventUpdateObj),
+    Event#event{type = update, update = EventUpdate};
+parse_event(#event{type = <<"MESSAGE">>, message = EventMessageObj} = Event) ->
+    EventMessage = parse_event_message_obj(EventMessageObj),
+    Event#event{type = message, message = EventMessage};
+parse_event(#event{type = <<"FAILURE">>, failure = EventFailureObj} = Event) ->
+    EventFailure = parse_event_failure_obj(EventFailureObj),
+    Event#event{type = failure, failure = EventFailure};
 parse_event(#event{type = <<"ERROR">>, error = EventErrorObj} = Event) ->
     EventError = ?ERL_MESOS_OBJ_TO_RECORD(event_error, EventErrorObj),
     Event#event{type = error, error = EventError};
@@ -45,7 +51,7 @@ parse_event(#event{type = <<"HEARTBEAT">>} = Event) ->
 %% @doc Parses event subscribe obj.
 %% @private
 -spec parse_event_subscribed_obj(erl_mesos_obj:data_obj()) ->
-    event_subscribed().
+    erl_mesos:event_subscribed().
 parse_event_subscribed_obj(EventSubscribedObj) ->
     EventSubscribed =
         ?ERL_MESOS_OBJ_TO_RECORD(event_subscribed, EventSubscribedObj),
@@ -69,7 +75,8 @@ parse_heartbeat_interval_seconds(HeartbeatIntervalSeconds) ->
 
 %% @doc Parses event offers obj.
 %% @private
--spec parse_event_offers_obj(erl_mesos_obj:data_obj()) -> event_offers().
+-spec parse_event_offers_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:event_offers().
 parse_event_offers_obj(EventOffersObj) ->
     EventOffers = ?ERL_MESOS_OBJ_TO_RECORD(event_offers, EventOffersObj),
     Offers = parse_offer_objs(EventOffers#event_offers.offers),
@@ -81,7 +88,7 @@ parse_event_offers_obj(EventOffersObj) ->
 %% @doc Parses offer objs.
 %% @private
 -spec parse_offer_objs(undefined | [erl_mesos_obj:data_obj()]) ->
-    undefined | [offer()].
+    undefined | [erl_mesos:offer()].
 parse_offer_objs(undefined) ->
     undefined;
 parse_offer_objs(OfferObjs) ->
@@ -89,7 +96,7 @@ parse_offer_objs(OfferObjs) ->
 
 %% @doc Parses offer obj.
 %% @private
--spec parse_offer_obj(erl_mesos_obj:data_obj()) -> offer().
+-spec parse_offer_obj(erl_mesos_obj:data_obj()) -> erl_mesos:offer().
 parse_offer_obj(OfferObj) ->
     Offer = ?ERL_MESOS_OBJ_TO_RECORD(offer, OfferObj),
     Id = ?ERL_MESOS_OBJ_TO_RECORD(offer_id, Offer#offer.id),
@@ -113,7 +120,7 @@ parse_offer_obj(OfferObj) ->
 %% @doc Parses inverse offer objs.
 %% @private
 -spec parse_inverse_offer_objs(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | [inverse_offer()].
+    undefined | [erl_mesos:inverse_offer()].
 parse_inverse_offer_objs(undefined) ->
     undefined;
 parse_inverse_offer_objs(InverseOfferObjs) ->
@@ -122,7 +129,8 @@ parse_inverse_offer_objs(InverseOfferObjs) ->
 
 %% @doc Parses inverse offer obj.
 %% @private
--spec parse_inverse_offer_obj(erl_mesos_obj:data_obj()) -> inverse_offer().
+-spec parse_inverse_offer_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:inverse_offer().
 parse_inverse_offer_obj(InverseOfferObj) ->
     InverseOffer = ?ERL_MESOS_OBJ_TO_RECORD(inverse_offer, InverseOfferObj),
     Id = ?ERL_MESOS_OBJ_TO_RECORD(offer_id, InverseOffer#inverse_offer.id),
@@ -145,7 +153,7 @@ parse_inverse_offer_obj(InverseOfferObj) ->
 %% @doc Parses url obj.
 %% @private
 -spec parse_url_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | url().
+    undefined | erl_mesos:url().
 parse_url_obj(UrlObj) ->
     Url = ?ERL_MESOS_OBJ_TO_RECORD(url, UrlObj),
     Address = ?ERL_MESOS_OBJ_TO_RECORD(address, Url#url.address),
@@ -156,7 +164,7 @@ parse_url_obj(UrlObj) ->
 %% @doc Parses parameter objs.
 %% @private
 -spec parse_parameter_objs(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | [parameter()].
+    undefined | [erl_mesos:parameter()].
 parse_parameter_objs(undefined) ->
     undefined;
 parse_parameter_objs(ParameterObjs) ->
@@ -166,7 +174,7 @@ parse_parameter_objs(ParameterObjs) ->
 %% @doc Parses resource objs.
 %% @private
 -spec parse_resource_objs(undefined | [erl_mesos_obj:data_obj()]) ->
-    undefined | [resource()].
+    undefined | [erl_mesos:resource()].
 parse_resource_objs(undefined) ->
     undefined;
 parse_resource_objs(ResourceObjs) ->
@@ -174,7 +182,8 @@ parse_resource_objs(ResourceObjs) ->
 
 %% @doc Parses resource obj.
 %% @private
--spec parse_resource_obj(erl_mesos_obj:data_obj()) -> resource().
+-spec parse_resource_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:resource().
 parse_resource_obj(ResourceObj) ->
     Resource = ?ERL_MESOS_OBJ_TO_RECORD(resource, ResourceObj),
     Scalar = parse_value_scalar_obj(Resource#resource.scalar),
@@ -194,7 +203,7 @@ parse_resource_obj(ResourceObj) ->
 %% @doc Parses value scalar obj.
 %% @private
 -spec parse_value_scalar_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | value_scalar().
+    undefined | erl_mesos:value_scalar().
 parse_value_scalar_obj(undefined) ->
     undefined;
 parse_value_scalar_obj(ValueScalarObj) ->
@@ -203,7 +212,7 @@ parse_value_scalar_obj(ValueScalarObj) ->
 %% @doc Parses value ranges obj.
 %% @private
 -spec parse_value_ranges_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | value_ranges().
+    undefined | erl_mesos:value_ranges().
 parse_value_ranges_obj(undefined) ->
     undefined;
 parse_value_ranges_obj(ValueRangesObj) ->
@@ -215,7 +224,7 @@ parse_value_ranges_obj(ValueRangesObj) ->
 %% @doc Parses value set obj.
 %% @private
 -spec parse_value_set_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | value_set().
+    undefined | erl_mesos:value_set().
 parse_value_set_obj(undefined) ->
     undefined;
 parse_value_set_obj(ValueSetObj) ->
@@ -224,7 +233,7 @@ parse_value_set_obj(ValueSetObj) ->
 %% @doc Parses value text obj.
 %% @private
 -spec parse_value_text_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | value_text().
+    undefined | erl_mesos:value_text().
 parse_value_text_obj(undefined) ->
     undefined;
 parse_value_text_obj(ValueTextObj) ->
@@ -234,7 +243,7 @@ parse_value_text_obj(ValueTextObj) ->
 %% @private
 -spec parse_resource_reservation_info_obj(undefined |
                                           erl_mesos_obj:data_obj()) ->
-    undefined | resource_reservation_info().
+    undefined | erl_mesos:resource_reservation_info().
 parse_resource_reservation_info_obj(undefined) ->
     undefined;
 parse_resource_reservation_info_obj(ResourceReservationInfoObj) ->
@@ -244,7 +253,7 @@ parse_resource_reservation_info_obj(ResourceReservationInfoObj) ->
 %% @doc Parses resource reservation info obj.
 %% @private
 -spec parse_resource_disk_info_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | resource_disk_info().
+    undefined | erl_mesos:resource_disk_info().
 parse_resource_disk_info_obj(undefined) ->
     undefined;
 parse_resource_disk_info_obj(ResourceDiskInfoObj) ->
@@ -260,7 +269,7 @@ parse_resource_disk_info_obj(ResourceDiskInfoObj) ->
 %% @private
 -spec parse_resource_disk_info_persistence_obj(undefined |
                                                erl_mesos_obj:data_obj()) ->
-    undefined | resource_disk_info_persistence().
+    undefined | erl_mesos:resource_disk_info_persistence().
 parse_resource_disk_info_persistence_obj(undefined) ->
     undefined;
 parse_resource_disk_info_persistence_obj(ResourceDiskInfoPersistenceObj) ->
@@ -270,7 +279,7 @@ parse_resource_disk_info_persistence_obj(ResourceDiskInfoPersistenceObj) ->
 %% @doc Parses volume obj.
 %% @private
 -spec parse_volume_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | volume().
+    undefined | erl_mesos:volume().
 parse_volume_obj(undefined) ->
     undefined;
 parse_volume_obj(VolumeObj) ->
@@ -281,18 +290,19 @@ parse_volume_obj(VolumeObj) ->
 %% @doc Parses image obj.
 %% @private
 -spec parse_image_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | image().
+    undefined | erl_mesos:image().
 parse_image_obj(undefined) ->
     undefined;
 parse_image_obj(ImageObj) ->
     Image = ?ERL_MESOS_OBJ_TO_RECORD(image, ImageObj),
     Appc = parse_image_appc_obj(Image#image.appc),
-    Image#image{appc = Appc}.
+    Docker = parse_image_docker_obj(Image#image.docker),
+    Image#image{appc = Appc, docker = Docker}.
 
 %% @doc Parses image appc obj.
 %% @private
 -spec parse_image_appc_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | image_appc().
+    undefined | erl_mesos:image_appc().
 parse_image_appc_obj(undefined) ->
     undefined;
 parse_image_appc_obj(ImageAppcObj) ->
@@ -300,10 +310,19 @@ parse_image_appc_obj(ImageAppcObj) ->
     Labels = parse_labels_obj(ImageAppc#image_appc.labels),
     ImageAppc#image_appc{labels = Labels}.
 
+%% @doc Parses image docker obj.
+%% @private
+-spec parse_image_docker_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | erl_mesos:image_docker().
+parse_image_docker_obj(undefined) ->
+    undefined;
+parse_image_docker_obj(ImageDockerObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(image_docker, ImageDockerObj).
+
 %% @doc Parses labels obj.
 %% @private
 -spec parse_labels_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | labels().
+    undefined | erl_mesos:labels().
 parse_labels_obj(undefined) ->
     undefined;
 parse_labels_obj(LabelsObj) ->
@@ -315,7 +334,7 @@ parse_labels_obj(LabelsObj) ->
 %% @doc Parses resource revocable info obj.
 %% @private
 -spec parse_resource_revocable_info_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | resource_revocable_info().
+    undefined | erl_mesos:resource_revocable_info().
 parse_resource_revocable_info_obj(undefined) ->
     undefined;
 parse_resource_revocable_info_obj(ResourceRevocableInfoObj) ->
@@ -325,16 +344,15 @@ parse_resource_revocable_info_obj(ResourceRevocableInfoObj) ->
 %% @doc Parses attribute objs.
 %% @private
 -spec parse_attribute_objs(undefined | [erl_mesos_obj:data_obj()]) ->
-    undefined | [attribute()].
+    undefined | [erl_mesos:attribute()].
 parse_attribute_objs(undefined) ->
     undefined;
 parse_attribute_objs(AttributeObjs) ->
     [parse_attribute_obj(AttributeObj) || AttributeObj <- AttributeObjs].
 
-
 %% @doc Parses attribute obj.
 %% @private
--spec parse_attribute_obj(erl_mesos_obj:data_obj()) -> attribute().
+-spec parse_attribute_obj(erl_mesos_obj:data_obj()) -> erl_mesos:attribute().
 parse_attribute_obj(AttributeObj) ->
     Attribute = ?ERL_MESOS_OBJ_TO_RECORD(attribute, AttributeObj),
     Scalar = parse_value_scalar_obj(Attribute#attribute.scalar),
@@ -349,7 +367,7 @@ parse_attribute_obj(AttributeObj) ->
 %% @doc Parses executor id objs.
 %% @private
 -spec parse_executor_id_objs(undefined | [erl_mesos_obj:data_obj()]) ->
-    undefined | [executor_id()].
+    undefined | [erl_mesos:executor_id()].
 parse_executor_id_objs(undefined) ->
     undefined;
 parse_executor_id_objs(ExecutorIdObjs) ->
@@ -359,7 +377,7 @@ parse_executor_id_objs(ExecutorIdObjs) ->
 %% @doc Parses unavailability obj.
 %% @private
 -spec parse_unavailability_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | unavailability().
+    undefined | erl_mesos:unavailability().
 parse_unavailability_obj(undefined) ->
     undefined;
 parse_unavailability_obj(UnavailabilityObj) ->
@@ -372,7 +390,7 @@ parse_unavailability_obj(UnavailabilityObj) ->
 %% @doc Parses time info obj.
 %% @private
 -spec parse_time_info_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | time_info().
+    undefined | erl_mesos:time_info().
 parse_time_info_obj(undefined) ->
     undefined;
 parse_time_info_obj(TimeInfoObj) ->
@@ -381,8 +399,119 @@ parse_time_info_obj(TimeInfoObj) ->
 %% @doc Parses duration info obj.
 %% @private
 -spec parse_duration_info_obj(undefined | erl_mesos_obj:data_obj()) ->
-    undefined | duration_info().
+    undefined | erl_mesos:duration_info().
 parse_duration_info_obj(undefined) ->
     undefined;
 parse_duration_info_obj(DurationInfoObj) ->
     ?ERL_MESOS_OBJ_TO_RECORD(duration_info, DurationInfoObj).
+
+%% @doc Parses event update obj.
+%% @private
+-spec parse_event_update_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:event_update().
+parse_event_update_obj(EventUpdateObj) ->
+    EventUpdate = ?ERL_MESOS_OBJ_TO_RECORD(event_update, EventUpdateObj),
+    TaskStatus = parse_task_status_obj(EventUpdate#event_update.status),
+    EventUpdate#event_update{status = TaskStatus}.
+
+%% @doc Parses task status obj.
+%% @private
+-spec parse_task_status_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:task_status().
+parse_task_status_obj(TaskStatusObj) ->
+    TaskStatus = ?ERL_MESOS_OBJ_TO_RECORD(task_status, TaskStatusObj),
+    TaskId = ?ERL_MESOS_OBJ_TO_RECORD(task_id, TaskStatus#task_status.task_id),
+    AgentId = parse_agent_id_obj(TaskStatus#task_status.agent_id),
+    ExecutorId = parse_executor_id_obj(TaskStatus#task_status.executor_id),
+    Labels = parse_labels_obj(TaskStatus#task_status.labels),
+    ContainerStatus =
+        parse_container_status_obj(TaskStatus#task_status.container_status),
+    TaskStatus#task_status{task_id = TaskId,
+                           agent_id = AgentId,
+                           executor_id = ExecutorId,
+                           labels = Labels,
+                           container_status = ContainerStatus}.
+
+%% @doc Parses agent id obj.
+%% @private
+-spec parse_agent_id_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | erl_mesos:agent_id().
+parse_agent_id_obj(undefined) ->
+    undefined;
+parse_agent_id_obj(AgentIdObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(agent_id, AgentIdObj).
+
+%% @doc Parses executor id obj.
+%% @private
+-spec parse_executor_id_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | erl_mesos:executor_id().
+parse_executor_id_obj(undefined) ->
+    undefined;
+parse_executor_id_obj(ExecutorIdObj) ->
+    ?ERL_MESOS_OBJ_TO_RECORD(executor_id, ExecutorIdObj).
+
+%% @doc Parses container status obj.
+%% @private
+-spec parse_container_status_obj(undefined | erl_mesos_obj:data_obj()) ->
+    undefined | erl_mesos:container_status().
+parse_container_status_obj(undefined) ->
+    undefined;
+parse_container_status_obj(ContainerStatusObj) ->
+    ContainerStatus = ?ERL_MESOS_OBJ_TO_RECORD(container_status,
+                                               ContainerStatusObj),
+    ContainerStatus#container_status{network_infos =
+    [parse_network_info_obj(NetworkInfoObj) ||
+     NetworkInfoObj <- ContainerStatus#container_status.network_infos]}.
+
+%% @doc Parses network info obj.
+%% @private
+-spec parse_network_info_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:network_info().
+parse_network_info_obj(NetworkInfoObj) ->
+    NetworkInfo = ?ERL_MESOS_OBJ_TO_RECORD(network_info, NetworkInfoObj),
+    IpAddresses = parse_network_info_ip_address_objs(
+                      NetworkInfo#network_info.ip_addresses),
+    Labels = parse_labels_obj(NetworkInfo#network_info.labels),
+    NetworkInfo#network_info{ip_addresses = IpAddresses, labels = Labels}.
+
+%% @doc Parses network info ip address objs.
+%% @private
+-spec parse_network_info_ip_address_objs(undefined |
+                                         [erl_mesos_obj:data_obj()]) ->
+    undefined | [erl_mesos:network_info_ip_address()].
+parse_network_info_ip_address_objs(undefined) ->
+    undefined;
+parse_network_info_ip_address_objs(NetworkInfoIpAddressObjs) ->
+    [?ERL_MESOS_OBJ_TO_RECORD(network_info_ip_address,
+                              NetworkInfoIpAddressObj) ||
+     NetworkInfoIpAddressObj <- NetworkInfoIpAddressObjs].
+
+%% @doc Parses event rescind obj.
+%% @private
+-spec parse_event_rescind_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:event_rescind().
+parse_event_rescind_obj(EventRescindObj) ->
+    EventRescind = ?ERL_MESOS_OBJ_TO_RECORD(event_rescind, EventRescindObj),
+    OfferId = ?ERL_MESOS_OBJ_TO_RECORD(offer_id,
+                                       EventRescind#event_rescind.offer_id),
+    EventRescind#event_rescind{offer_id = OfferId}.
+
+%% @doc Parses event message obj.
+%% @private
+-spec parse_event_message_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:event_message().
+parse_event_message_obj(EventMessageObj) ->
+    EventMessage = ?ERL_MESOS_OBJ_TO_RECORD(event_message, EventMessageObj),
+    AgentId = parse_agent_id_obj(EventMessage#event_message.agent_id),
+    ExecutorId = parse_executor_id_obj(EventMessage#event_message.executor_id),
+    EventMessage#event_message{agent_id = AgentId, executor_id = ExecutorId}.
+
+%% @doc Parses event failure obj.
+%% @private
+-spec parse_event_failure_obj(erl_mesos_obj:data_obj()) ->
+    erl_mesos:event_failure().
+parse_event_failure_obj(EventFailureObj) ->
+    EventFailure = ?ERL_MESOS_OBJ_TO_RECORD(event_failure, EventFailureObj),
+    AgentId = parse_agent_id_obj(EventFailure#event_failure.agent_id),
+    ExecutorId = parse_executor_id_obj(EventFailure#event_failure.executor_id),
+    EventFailure#event_failure{agent_id = AgentId, executor_id = ExecutorId}.

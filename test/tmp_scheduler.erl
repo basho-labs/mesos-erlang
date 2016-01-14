@@ -9,89 +9,162 @@
          reregistered/2,
          disconnected/2,
          resource_offers/3,
+         offer_rescinded/3,
+         status_update/3,
+         framework_message/3,
+         slave_lost/3,
+         executor_lost/3,
          error/3,
          handle_info/3,
          terminate/3]).
 
+-record(state, {offer = accept :: accept | decline}).
+
 init(Options) ->
-    FrameworkInfo = #framework_info{user = <<"dima 123">>,
-                                    name = <<"test framework 123">>,
-                                    failover_timeout = 100000.0},
+    FrameworkInfo = #framework_info{user = <<"root">>,
+                                    name = <<"Erlang test framework">>},
     call_log("== Init callback~n"
              "== Options: ~p~n~n", [Options]),
-    {ok, FrameworkInfo, true, init_state}.
+    Offer = proplists:get_value(offer, Options, accept),
+    {ok, FrameworkInfo, true, #state{offer = Offer}}.
 
-registered(SchedulerInfo, #event_subscribed{} = EventSubscribed, State) ->
+registered(_SchedulerInfo, #event_subscribed{} = EventSubscribed, State) ->
     call_log("== Registered callback~n"
-             "== Scheduler info: ~p~n"
-             "== Event subscribed: ~p~n"
-             "== State: ~p~n~n",
-             [SchedulerInfo, EventSubscribed, State]),
-    {ok, registered_state}.
-
-reregistered(SchedulerInfo, State) ->
-    call_log("== Reregistered callback~n"
-             "== Scheduler info: ~p~n"
-             "== State: ~p~n~n",
-             [SchedulerInfo, State]),
-    {ok, reregistered_state}.
-
-disconnected(SchedulerInfo, State) ->
-    call_log("== Disconnected callback~n"
-             "== Scheduler info: ~p~n"
-             "== State: ~p~n~n",
-             [SchedulerInfo, State]),
-    {ok, disconnected_state}.
-
-resource_offers(SchedulerInfo, #event_offers{offers = Offers}, State) ->
-    [#offer{id = #offer_id{value = OfferIdValue},
-            agent_id = #agent_id{value = AgentIdValue}} | _] = Offers,
-
-    OfferIdObj = erl_mesos_obj:new([{<<"value">>, OfferIdValue}]),
-    AgentIdObj = erl_mesos_obj:new([{<<"value">>, AgentIdValue}]),
-    TaskIdObj = erl_mesos_obj:new([{<<"value">>, <<"1">>}]),
-
-    CommandInfoUriObj = erl_mesos_obj:new([{<<"value">>, <<"file:/test_executor">>}]),
-
-    CommandInfoObj = erl_mesos_obj:new([{<<"uris">>, [CommandInfoUriObj]}]),
-    TaskInfoObj = erl_mesos_obj:new([{<<"name">>, <<"TEST TASK">>},
-                                     {<<"task_id">>, TaskIdObj},
-                                     {<<"agent_id">>, AgentIdObj},
-                                     {<<"command">>, CommandInfoObj}]),
-    LaunchObj = erl_mesos_obj:new([{<<"task_infos">>, [TaskInfoObj]}]),
-    OfferOperationObj = erl_mesos_obj:new([{<<"type">>, <<"LAUNCH">>},
-                                           {<<"launch">>, LaunchObj}]),
-
-    CallAccept = #call_accept{offer_ids = [OfferIdObj], operations = [OfferOperationObj]},
-    Result = erl_mesos_scheduler:accept(SchedulerInfo, CallAccept),
-    io:format("~n~nResult ~p~n~n", [Result]),
-    erlang:send_after(5000, self(), stop),
+             "== Event subscribed: ~p~n",
+             [EventSubscribed]),
     {ok, State}.
 
-error(SchedulerInfo, #event_error{} = EventError, State) ->
-    call_log("== Error callback~n"
-             "== Scheduler info: ~p~n"
-             "== Event error : ~p~n"
-             "== State: ~p~n~n",
-             [SchedulerInfo, EventError, State]),
-    {ok, error_state}.
+reregistered(_SchedulerInfo, State) ->
+    call_log("== Reregistered callback~n", []),
+    {ok, State}.
 
+disconnected(_SchedulerInfo, State) ->
+    call_log("== Disconnected callback~n", []),
+    {ok, State}.
+
+resource_offers(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
+                #event_offers{offers = Offers} = EventOffers,
+                State) ->
+    TaskIdValue = timestamp_task_id_value(),
+    State1 =
+    case State of
+        #state{offer = accept} ->
+            [#offer{id = OfferId, agent_id = AgentId} | _] = Offers,
+            ExecutorResources = [#resource{name = <<"cpus">>,
+                                           type = <<"SCALAR">>,
+                                           scalar = #value_scalar{value = 0.1}},
+                                 #resource{name = <<"mem">>,
+                                           type = <<"SCALAR">>,
+                                           scalar = #value_scalar{value = 128.0}}],
+            CommandInfoUris =
+                [#command_info_uri{value = <<"test_executor">>,
+                                   extract = false,
+                                   executable = true},
+                 #command_info_uri{value = <<"test_executor.py">>,
+                                   extract = false,
+                                   executable = false}],
+            ExecutorId = #executor_id{value = TaskIdValue},
+            ExecutorInfo =
+                #executor_info{executor_id = ExecutorId,
+                               framework_id = FrameworkId,
+                               command =
+                                   #command_info{shell = true,
+                                                 user = <<"root">>,
+                                                 uris = CommandInfoUris,
+                                                 value = <<"./test_executor">>},
+                               resources = ExecutorResources,
+                               name = list_to_binary(binary_to_list(TaskIdValue) ++ " Executor"),
+                               source = <<"Tmp">>},
+            TaskResources = [#resource{name = <<"cpus">>,
+                                       type = <<"SCALAR">>,
+                                       scalar = #value_scalar{value = 0.1}},
+                             #resource{name = <<"mem">>,
+                                       type = <<"SCALAR">>,
+                                       scalar = #value_scalar{value = 128.0}},
+                             #resource{name = <<"disk">>,
+                                       type = <<"SCALAR">>,
+                                       scalar = #value_scalar{value = 512.0}}],
+            TaskInfo = #task_info{name = <<"test_task">>,
+                                  task_id = #task_id{value = TaskIdValue},
+                                  agent_id = AgentId,
+                                  executor = ExecutorInfo,
+                                  resources = TaskResources},
+            Launch = #offer_operation_launch{task_infos = [TaskInfo]},
+            OfferOperation = #offer_operation{type = <<"LAUNCH">>,
+                                              launch = Launch},
+            ok = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
+                                            [OfferOperation]),
+            Message = <<"test_message">>,
+            erlang:send_after(1000, self(), {send_message, AgentId, ExecutorId, Message}),
+            State#state{offer = decline};
+        #state{offer = decline} ->
+            State
+    end,
+    call_log("== Resource offers callback~n"
+             "== Event offers: ~p~n"
+             "== Offer: ~p~n",
+             [EventOffers, State#state.offer]),
+    {ok, State1}.
+
+offer_rescinded(_SchedulerInfo, #event_rescind{} = EventRescind, State) ->
+    call_log("== Offer rescinded callback~n"
+             "== Event rescind: ~p~n",
+             [EventRescind]),
+    {ok, State}.
+
+status_update(_SchedulerInfo, #event_update{} = EventUpdate, State) ->
+    call_log("== Update status callback~n"
+             "== Event update: ~p~n",
+             [EventUpdate]),
+    {ok, State}.
+
+framework_message(_SchedulerInfo, #event_message{} = EventMessage, State) ->
+    call_log("== Framework message callback~n"
+             "== Event message: ~p~n",
+             [EventMessage]),
+    {ok, State}.
+
+slave_lost(_SchedulerInfo, #event_failure{} = EventFailure, State) ->
+    call_log("== Slave lost callback~n"
+             "== Event failure: ~p~n",
+             [EventFailure]),
+    {ok, State}.
+
+executor_lost(_SchedulerInfo, #event_failure{} = EventFailure, State) ->
+    call_log("== Executor lost callback~n"
+             "== Event failure: ~p~n",
+             [EventFailure]),
+    {ok, State}.
+
+error(_SchedulerInfo, #event_error{} = EventError, State) ->
+    call_log("== Error callback~n"
+             "== Event error: ~p~n",
+             [EventError]),
+    {stop, State}.
+
+handle_info(SchedulerInfo, {send_message, AgentId, ExecutorId, Message},
+            State) ->
+    Data = base64:encode(Message),
+    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId, Data),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
-handle_info(SchedulerInfo, Info, State) ->
+handle_info(_SchedulerInfo, Info, State) ->
     call_log("== Info callback~n"
-             "== Scheduler info: ~p~n"
-             "== Info: ~p~n"
-             "== State: ~p~n~n",
-             [SchedulerInfo, Info, State]),
-    {ok, handle_info_state}.
+             "== Info: ~p~n",
+             [Info]),
+    {ok, State}.
 
-terminate(SchedulerInfo, Reason, State) ->
+terminate(_SchedulerInfo, Reason, State) ->
     io:format("== Terminate callback~n"
-              "== Scheduler info: ~p~n"
               "== Reason: ~p~n"
               "== State: ~p~n~n",
-              [SchedulerInfo, Reason, State]).
+              [Reason, State]).
 
 call_log(Format, Data) ->
     erl_mesos_logger:info(Format, Data).
+
+timestamp_task_id_value() ->
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
+    Timestamp = (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs,
+    list_to_binary(integer_to_list(Timestamp)).

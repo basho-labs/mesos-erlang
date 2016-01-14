@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_data_format).
 
 -export([content_type/1]).

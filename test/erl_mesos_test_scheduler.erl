@@ -10,11 +10,16 @@
          disconnected/2,
          resource_offers/3,
          offer_rescinded/3,
+         status_update/3,
+         framework_message/3,
+         slave_lost/3,
+         executor_lost/3,
          error/3,
          handle_info/3,
          terminate/3]).
 
--record(state, {callback,
+-record(state, {user,
+                callback,
                 test_pid}).
 
 %% erl_mesos_scheduler callback functions.
@@ -22,7 +27,8 @@
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
-    {ok, FrameworkInfo, true, #state{callback = init,
+    {ok, FrameworkInfo, true, #state{user = FrameworkInfo#framework_info.user,
+                                     callback = init,
                                      test_pid = TestPid}}.
 
 registered(SchedulerInfo, EventSubscribed,
@@ -48,10 +54,139 @@ offer_rescinded(SchedulerInfo, EventRescind,
     reply(TestPid, {offer_rescinded, self(), SchedulerInfo, EventRescind}),
     {ok, State#state{callback = offer_rescinded}}.
 
+status_update(SchedulerInfo, EventUpdate, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {status_update, self(), SchedulerInfo, EventUpdate}),
+    {ok, State#state{callback = status_update}}.
+
+framework_message(SchedulerInfo, EventMessage,
+                  #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {framework_message, self(), SchedulerInfo, EventMessage}),
+    {ok, State#state{callback = framework_message}}.
+
+slave_lost(SchedulerInfo, EventFailure, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {slave_lost, self(), SchedulerInfo, EventFailure}),
+    {ok, State#state{callback = slave_lost}}.
+
+executor_lost(SchedulerInfo, EventFailure,
+              #state{test_pid = TestPid} = State) ->
+    reply(TestPid, {executor_lost, self(), SchedulerInfo, EventFailure}),
+    {ok, State#state{callback = executor_lost}}.
+
 error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, EventError}),
     {stop, State#state{callback = error}}.
 
+handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
+    Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
+    reply(TestPid, {teardown, Teardown}),
+    {stop, State};
+handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    CommandInfo = #command_info{shell = true,
+                                value = <<"while true; sleep 1; done">>},
+    ResourceCpu = #resource{name = <<"cpus">>,
+                            type = <<"SCALAR">>,
+                            scalar = #value_scalar{value = 0.1}},
+    Labels = #labels{labels = [#label{key = <<"task_key">>,
+                                      value = <<"task_value">>}]},
+    TaskInfo = #task_info{name = <<"test_task">>,
+                          task_id = TaskId,
+                          agent_id = AgentId,
+                          command = CommandInfo,
+                          resources = [ResourceCpu],
+                          labels = Labels},
+    Launch = #offer_operation_launch{task_infos = [TaskInfo]},
+    OfferOperation = #offer_operation{type = <<"LAUNCH">>,
+                                      launch = Launch},
+    Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
+                                        [OfferOperation]),
+    reply(TestPid, {accept, Accept}),
+    {ok, State};
+handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
+            {accept_test_executor, OfferId, AgentId, TaskId},
+            #state{user = User, test_pid = TestPid} = State) ->
+    CommandInfoUris =
+        [#command_info_uri{value = <<"test_executor">>,
+                           extract = false,
+                           executable = true},
+         #command_info_uri{value = <<"test_executor.py">>,
+                           extract = false,
+                           executable = false}],
+    CommandInfo = #command_info{shell = true,
+                                user = User,
+                                uris = CommandInfoUris,
+                                value = <<"./test_executor">>},
+    ExecutorResourceCpu = #resource{name = <<"cpus">>,
+                                    type = <<"SCALAR">>,
+                                    scalar = #value_scalar{value = 0.1}},
+    ExecutorId = #executor_id{value = TaskId#task_id.value},
+    ExecutorInfo = #executor_info{executor_id = ExecutorId,
+                                  framework_id = FrameworkId,
+                                  command = CommandInfo,
+                                  resources = [ExecutorResourceCpu]},
+    TaskResourceCpu = #resource{name = <<"cpus">>,
+                                type = <<"SCALAR">>,
+                                scalar = #value_scalar{value = 0.1}},
+    TaskInfo = #task_info{name = <<"test_task">>,
+                          task_id = TaskId,
+                          agent_id = AgentId,
+                          executor = ExecutorInfo,
+                          resources = [TaskResourceCpu]},
+    Launch = #offer_operation_launch{task_infos = [TaskInfo]},
+    OfferOperation = #offer_operation{type = <<"LAUNCH">>,
+                                      launch = Launch},
+    Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
+                                        [OfferOperation]),
+    reply(TestPid, {accept, Accept}),
+    {ok, State};
+handle_info(SchedulerInfo, {decline, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    Decline = erl_mesos_scheduler:decline(SchedulerInfo, [TaskId]),
+    reply(TestPid, {decline, Decline}),
+    {ok, State};
+handle_info(SchedulerInfo, revive, #state{test_pid = TestPid} = State) ->
+    Revive = erl_mesos_scheduler:revive(SchedulerInfo),
+    reply(TestPid, {revive, Revive}),
+    {ok, State};
+handle_info(SchedulerInfo, {kill, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    Kill = erl_mesos_scheduler:kill(SchedulerInfo, TaskId),
+    reply(TestPid, {kill, Kill}),
+    {ok, State};
+handle_info(SchedulerInfo, {shutdown, ExecutorId, AgentId},
+            #state{test_pid = TestPid} = State) ->
+    Shutdown = erl_mesos_scheduler:shutdown(SchedulerInfo, ExecutorId, AgentId),
+    reply(TestPid, {shutdown, Shutdown}),
+    {ok, State};
+handle_info(SchedulerInfo, {acknowledge, AgentId, TaskId, Uuid},
+            #state{test_pid = TestPid} = State) ->
+    Acknowledge =
+        erl_mesos_scheduler:acknowledge(SchedulerInfo, AgentId, TaskId, Uuid),
+    reply(TestPid, {acknowledge, Acknowledge}),
+    {ok, State};
+handle_info(SchedulerInfo, {reconcile, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    CallReconcileTask = #call_reconcile_task{task_id = TaskId},
+    Reconcile = erl_mesos_scheduler:reconcile(SchedulerInfo,
+                                              [CallReconcileTask]),
+    reply(TestPid, {reconcile, Reconcile}),
+    {ok, State};
+handle_info(SchedulerInfo, {message, AgentId, ExecutorId, Data},
+            #state{test_pid = TestPid} = State) ->
+    Message =
+        erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId, Data),
+    reply(TestPid, {message, Message}),
+    {ok, State};
+handle_info(SchedulerInfo, {request, Requests},
+            #state{test_pid = TestPid} = State) ->
+    Request = erl_mesos_scheduler:request(SchedulerInfo, Requests),
+    reply(TestPid, {request, Request}),
+    {ok, State};
+handle_info(SchedulerInfo, suppress,
+            #state{test_pid = TestPid} = State) ->
+    Suppress = erl_mesos_scheduler:suppress(SchedulerInfo),
+    reply(TestPid, {suppress, Suppress}),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->
@@ -90,4 +225,3 @@ reply(undefined, _Message) ->
     undefined;
 reply(TestPid, Message) ->
     TestPid ! Message.
-

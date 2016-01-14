@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_scheduler_sup).
 
 -export([start_link/0]).

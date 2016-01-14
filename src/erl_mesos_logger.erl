@@ -1,3 +1,5 @@
+%% @private
+
 -module(erl_mesos_logger).
 
 -export([info/2, warning/2, error/2]).
