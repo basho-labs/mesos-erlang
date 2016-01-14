@@ -439,7 +439,7 @@ framework_message(Config) ->
 
 slave_lost(Config) ->
     log("Slave lost test cases", Config),
-    Ref = {erl_mesos_scheduler, status_update},
+    Ref = {erl_mesos_scheduler, slave_lost},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     SchedulerOptions1 = set_test_pid(SchedulerOptions),
