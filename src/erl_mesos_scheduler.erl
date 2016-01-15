@@ -2,25 +2,27 @@
 
 -behaviour(gen_server).
 
--include("erl_mesos.hrl").
+-include("scheduler_info.hrl").
+
+-include("scheduler_protobuf.hrl").
 
 -export([start_link/4]).
 
--export([teardown/1,
-         accept/3,
-         accept/4,
-         decline/2,
-         decline/3,
-         revive/1,
-         kill/2,
-         kill/3,
-         shutdown/2,
-         shutdown/3,
-         acknowledge/4,
-         reconcile/2,
-         message/4,
-         request/2,
-         suppress/1]).
+%% -export([teardown/1,
+%%          accept/3,
+%%          accept/4,
+%%          decline/2,
+%%          decline/3,
+%%          revive/1,
+%%          kill/2,
+%%          kill/3,
+%%          shutdown/2,
+%%          shutdown/3,
+%%          acknowledge/4,
+%%          reconcile/2,
+%%          message/4,
+%%          request/2,
+%%          suppress/1]).
 
 -export([init/1,
          handle_call/3,
@@ -39,7 +41,7 @@
                 heartbeat_timeout_window :: pos_integer(),
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
-                call_subscribe :: undefined | erl_mesos:call_subscribe(),
+                call_subscribe :: undefined | 'Call.Subscribe'(),
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
@@ -58,7 +60,36 @@
 -type options() :: [{atom(), term()}].
 -export_type([options/0]).
 
+-type scheduler_info() :: #scheduler_info{}.
+-export_type([scheduler_info/0]).
+
+-type 'FrameworkID'() :: #'FrameworkID'{}.
+-export_type(['FrameworkID'/0]).
+
+-type 'Event.Subscribed'() :: #'Event.Subscribed'{}.
+-export_type(['Event.Subscribed'/0]).
+
+-type 'Event.Offers'() :: #'Event.Offers'{}.
+-export_type(['Event.Offers'/0]).
+
+-type 'Event.Rescind'() :: #'Event.Rescind'{}.
+-export_type(['Event.Rescind'/0]).
+
+-type 'Event.Update'() :: #'Event.Update'{}.
+-export_type(['Event.Update'/0]).
+
+-type 'Event.Message'() :: #'Event.Message'{}.
+-export_type(['Event.Message'/0]).
+
+-type 'Event.Failure'() :: #'Event.Failure'{}.
+-export_type(['Event.Failure'/0]).
+
+-type 'Event.Error'() :: #'Event.Error'{}.
+-export_type(['Event.Error'/0]).
+
 -type state() :: #state{}.
+
+-type 'Call.Subscribe'() :: #'Call.Subscribe'{}.
 
 -type subscribe_response() :: subscribe_response().
 
@@ -69,47 +100,40 @@
 -callback init(term()) ->
     {ok, erl_mesos:framework_info(), boolean(), term()} | {stop, term()}.
 
--callback registered(erl_mesos:scheduler_info(),
-                     erl_mesos:event_subscribed(), term()) ->
+-callback registered(scheduler_info(), 'Event.Subscribed'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback disconnected(erl_mesos:scheduler_info(), term()) ->
+-callback disconnected(scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback reregistered(erl_mesos:scheduler_info(), term()) ->
+-callback reregistered(scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback resource_offers(erl_mesos:scheduler_info(),
-                          erl_mesos:event_offers(), term()) ->
+-callback resource_offers(scheduler_info(), 'Event.Offers'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback offer_rescinded(erl_mesos:scheduler_info(),
-                          erl_mesos:event_rescind(), term()) ->
+-callback offer_rescinded(scheduler_info(), 'Event.Rescind'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback status_update(erl_mesos:scheduler_info(),
-                        erl_mesos:event_update(), term()) ->
+-callback status_update(scheduler_info(), 'Event.Update'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback framework_message(erl_mesos:scheduler_info(),
-                            erl_mesos:event_message(), term()) ->
+-callback framework_message(scheduler_info(), 'Event.Message'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback slave_lost(erl_mesos:scheduler_info(),
-                     erl_mesos:event_failure(), term()) ->
+-callback slave_lost(scheduler_info(), 'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback executor_lost(erl_mesos:scheduler_info(),
-                        erl_mesos:event_failure(), term()) ->
+-callback executor_lost(scheduler_info(), 'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback error(erl_mesos:scheduler_info(), erl_mesos:event_error(), term()) ->
+-callback error(scheduler_info(), 'Event.Error'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback handle_info(erl_mesos:scheduler_info(), term(), term()) ->
+-callback handle_info(scheduler_info(), term(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback terminate(erl_mesos:scheduler_info(), term(), term()) -> term().
+-callback terminate(scheduler_info(), term(), term()) -> term().
 
 -define(DEFAULT_MASTER_HOSTS, [<<"localhost:5050">>]).
 
@@ -125,9 +149,11 @@
 
 -define(DEFAULT_RESUBSCRIBE_INTERVAL, 0).
 
--define(DATA_FORMAT, json).
+-define(DATA_FORMAT, protobuf).
 
 -define(API_VERSION, v1).
+
+-define(DEFAULT_HEARTBEAT_INTERVAL, 15.0).
 
 %% External functions.
 
@@ -138,115 +164,115 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
 
-%% @doc Teardown call.
--spec teardown(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-teardown(SchedulerInfo) ->
-    erl_mesos_scheduler_call:teardown(SchedulerInfo).
-
-%% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
--spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
-             [erl_mesos:offer_operation()]) ->
-    ok | {error, term()}.
-accept(SchedulerInfo, OfferIds, Operations) ->
-    accept(SchedulerInfo, OfferIds, Operations, undefined).
-
-%% @doc Accept call.
--spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
-             [erl_mesos:offer_operation()], undefined | erl_mesos:filters()) ->
-    ok | {error, term()}.
-accept(SchedulerInfo, OfferIds, Operations, Filters) ->
-    CallAccept = #call_accept{offer_ids = OfferIds,
-                              operations = Operations,
-                              filters = Filters},
-    erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
-
-%% @equiv decline(SchedulerInfo, OfferIds, undefined)
--spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()]) ->
-    ok | {error, term()}.
-decline(SchedulerInfo, OfferIds) ->
-    decline(SchedulerInfo, OfferIds, undefined).
-
-%% @doc Decline call.
--spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
-              undefined | erl_mesos:filters()) ->
-    ok | {error, term()}.
-decline(SchedulerInfo, OfferIds, Filters) ->
-    CallDecline = #call_accept{offer_ids = OfferIds,
-                               filters = Filters},
-    erl_mesos_scheduler_call:accept(SchedulerInfo, CallDecline).
-
-%% @doc Revive call.
--spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-revive(SchedulerInfo) ->
-    erl_mesos_scheduler_call:revive(SchedulerInfo).
-
-%% @equiv kill(SchedulerInfo, TaskId, undefined)
--spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id()) ->
-    ok | {error, term()}.
-kill(SchedulerInfo, TaskId) ->
-    kill(SchedulerInfo, TaskId, undefined).
-
-%% @doc Kill call.
--spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id(),
-           undefined | erl_mesos:agent_id()) ->
-    ok | {error, term()}.
-kill(SchedulerInfo, TaskId, AgentId) ->
-    CallKill = #call_kill{task_id = TaskId,
-                          agent_id = AgentId},
-    erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
-
-%% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
-shutdown(SchedulerInfo, ExecutorId) ->
-    shutdown(SchedulerInfo, ExecutorId, undefined).
-
-%% @doc Shutdown call.
--spec shutdown(erl_mesos:scheduler_info(), erl_mesos:executor_id(),
-               undefined | erl_mesos:agent_id()) ->
-    ok | {error, term()}.
-shutdown(SchedulerInfo, ExecutorId, AgentId) ->
-    CallShutdown = #call_shutdown{executor_id = ExecutorId,
-                                  agent_id = AgentId},
-    erl_mesos_scheduler_call:shutdown(SchedulerInfo, CallShutdown).
-
-%% @doc Acknowledge call.
--spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
-                  erl_mesos:task_id(), erl_mesos_obj:data_string()) ->
-    ok | {error, term()}.
-acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
-    CallAcknowledge = #call_acknowledge{agent_id = AgentId,
-                                        task_id = TaskId,
-                                        uuid = Uuid},
-    erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
-
-%% @doc Reconcile call.
--spec reconcile(erl_mesos:scheduler_info(),
-                [erl_mesos:call_reconcile_task()]) ->
-    ok | {error, term()}.
-reconcile(SchedulerInfo, CallReconcileTasks) ->
-    CallReconcile = #call_reconcile{tasks = CallReconcileTasks},
-    erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
-
-%% @doc Message call.
--spec message(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
-              erl_mesos:executor_id(), erl_mesos_obj:data_string()) ->
-    ok | {error, term()}.
-message(SchedulerInfo, AgentId, ExecutorId, Data) ->
-    CallMessage = #call_message{agent_id = AgentId,
-                                executor_id = ExecutorId,
-                                data = Data},
-    erl_mesos_scheduler_call:message(SchedulerInfo, CallMessage).
-
-%% @doc Request call.
--spec request(erl_mesos:scheduler_info(), [erl_mesos:request()]) ->
-    ok | {error, term()}.
-request(SchedulerInfo, Requests) ->
-    CallRequest = #call_request{requests = Requests},
-    erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
-
-%% @doc Suppress call.
--spec suppress(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-suppress(SchedulerInfo) ->
-    erl_mesos_scheduler_call:suppress(SchedulerInfo).
+%% %% @doc Teardown call.
+%% -spec teardown(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+%% teardown(SchedulerInfo) ->
+%%     erl_mesos_scheduler_call:teardown(SchedulerInfo).
+%%
+%% %% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
+%% -spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
+%%              [erl_mesos:offer_operation()]) ->
+%%     ok | {error, term()}.
+%% accept(SchedulerInfo, OfferIds, Operations) ->
+%%     accept(SchedulerInfo, OfferIds, Operations, undefined).
+%%
+%% %% @doc Accept call.
+%% -spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
+%%              [erl_mesos:offer_operation()], undefined | erl_mesos:filters()) ->
+%%     ok | {error, term()}.
+%% accept(SchedulerInfo, OfferIds, Operations, Filters) ->
+%%     CallAccept = #'Call.Accept'{offer_ids = OfferIds,
+%%                                 operations = Operations,
+%%                                 filters = Filters},
+%%     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
+%%
+%% %% @equiv decline(SchedulerInfo, OfferIds, undefined)
+%% -spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()]) ->
+%%     ok | {error, term()}.
+%% decline(SchedulerInfo, OfferIds) ->
+%%     decline(SchedulerInfo, OfferIds, undefined).
+%%
+%% %% @doc Decline call.
+%% -spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
+%%               undefined | erl_mesos:filters()) ->
+%%     ok | {error, term()}.
+%% decline(SchedulerInfo, OfferIds, Filters) ->
+%%     CallDecline = #'Call.Decline'{offer_ids = OfferIds,
+%%                                   filters = Filters},
+%%     erl_mesos_scheduler_call:accept(SchedulerInfo, CallDecline).
+%%
+%% %% @doc Revive call.
+%% -spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+%% revive(SchedulerInfo) ->
+%%     erl_mesos_scheduler_call:revive(SchedulerInfo).
+%%
+%% %% @equiv kill(SchedulerInfo, TaskId, undefined)
+%% -spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id()) ->
+%%     ok | {error, term()}.
+%% kill(SchedulerInfo, TaskId) ->
+%%     kill(SchedulerInfo, TaskId, undefined).
+%%
+%% %% @doc Kill call.
+%% -spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id(),
+%%            undefined | erl_mesos:agent_id()) ->
+%%     ok | {error, term()}.
+%% kill(SchedulerInfo, TaskId, AgentId) ->
+%%     CallKill = #'Call.Kill'{task_id = TaskId,
+%%                             agent_id = AgentId},
+%%     erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
+%%
+%% %% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
+%% shutdown(SchedulerInfo, ExecutorId) ->
+%%     shutdown(SchedulerInfo, ExecutorId, undefined).
+%%
+%% %% @doc Shutdown call.
+%% -spec shutdown(erl_mesos:scheduler_info(), erl_mesos:executor_id(),
+%%                undefined | erl_mesos:agent_id()) ->
+%%     ok | {error, term()}.
+%% shutdown(SchedulerInfo, ExecutorId, AgentId) ->
+%%     CallShutdown = #'Call.Shutdown'{executor_id = ExecutorId,
+%%                                     agent_id = AgentId},
+%%     erl_mesos_scheduler_call:shutdown(SchedulerInfo, CallShutdown).
+%%
+%% %% @doc Acknowledge call.
+%% -spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
+%%                   erl_mesos:task_id(), erl_mesos_obj:data_string()) ->
+%%     ok | {error, term()}.
+%% acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
+%%     CallAcknowledge = #'Call.Acknowledge'{agent_id = AgentId,
+%%                                           task_id = TaskId,
+%%                                           uuid = Uuid},
+%%     erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
+%%
+%% %% @doc Reconcile call.
+%% -spec reconcile(erl_mesos:scheduler_info(),
+%%                 [erl_mesos:call_reconcile_task()]) ->
+%%     ok | {error, term()}.
+%% reconcile(SchedulerInfo, CallReconcileTasks) ->
+%%     CallReconcile = #'Call.Reconcile'{tasks = CallReconcileTasks},
+%%     erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
+%%
+%% %% @doc Message call.
+%% -spec message(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
+%%               erl_mesos:executor_id(), erl_mesos_obj:data_string()) ->
+%%     ok | {error, term()}.
+%% message(SchedulerInfo, AgentId, ExecutorId, Data) ->
+%%     CallMessage = #'Call.Message'{agent_id = AgentId,
+%%                                   executor_id = ExecutorId,
+%%                                   data = Data},
+%%     erl_mesos_scheduler_call:message(SchedulerInfo, CallMessage).
+%%
+%% %% @doc Request call.
+%% -spec request(erl_mesos:scheduler_info(), [erl_mesos:request()]) ->
+%%     ok | {error, term()}.
+%% request(SchedulerInfo, Requests) ->
+%%     CallRequest = #'Call.Request'{requests = Requests},
+%%     erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
+%%
+%% %% @doc Suppress call.
+%% -spec suppress(erl_mesos:scheduler_info()) -> ok | {error, term()}.
+%% suppress(SchedulerInfo) ->
+%%     erl_mesos_scheduler_call:suppress(SchedulerInfo).
 
 %% gen_server callback functions.
 
@@ -527,9 +553,9 @@ init(SchedulerOptions, #state{master_hosts = MasterHosts,
                               scheduler = Scheduler} = State) ->
     case Scheduler:init(SchedulerOptions) of
         {ok, FrameworkInfo, Force, SchedulerState}
-          when is_record(FrameworkInfo, framework_info), is_boolean(Force) ->
-            CallSubscribe = #call_subscribe{framework_info = FrameworkInfo,
-                                            force = Force},
+          when is_record(FrameworkInfo, 'FrameworkInfo'), is_boolean(Force) ->
+            CallSubscribe = #'Call.Subscribe'{framework_info = FrameworkInfo,
+                                              force = Force},
             {ok, State#state{call_subscribe = CallSubscribe,
                              scheduler_state = SchedulerState,
                              master_hosts_queue = MasterHosts}};
@@ -593,8 +619,8 @@ scheduler_info(#state{data_format = DataFormat,
                       master_host = MasterHost,
                       request_options = RequestOptions,
                       call_subscribe =
-                      #call_subscribe{framework_info =
-                                      #framework_info{id = Id}},
+                      #'Call.Subscribe'{framework_info =
+                                        #'FrameworkInfo'{id = Id}},
                       subscribe_state = SubscribeState}) ->
     Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
@@ -683,8 +709,8 @@ cancel_recv_timer(RecvTimerRef) ->
 -spec handle_events(binary(), state()) ->
     {noreply, state()} | {stop, term(), state()}.
 handle_events(Events, #state{data_format = DataFormat} = State) ->
-    Objs = erl_mesos_data_format:decode_events(DataFormat, Events),
-    case apply_events(Objs, State) of
+    Messages = erl_mesos_data_format:decode_events(DataFormat, Events),
+    case apply_events(Messages, State) of
         {ok, State1} ->
             {noreply, State1};
         {stop, State1} ->
@@ -693,12 +719,12 @@ handle_events(Events, #state{data_format = DataFormat} = State) ->
 
 %% @doc Applies list of events.
 %% @private
--spec apply_events([erl_mesos_obj:data_obj()], state()) ->
+-spec apply_events([erl_mesos_data_format:message()], state()) ->
     {ok, state()} | {stop, state()}.
-apply_events([Obj | Objs], State) ->
-    case apply_event(Obj, State) of
+apply_events([Message | Messages], State) ->
+    case apply_event(Message, State) of
         {ok, State1} ->
-            apply_events(Objs, State1);
+            apply_events(Messages, State1);
         {stop, State1} ->
             {stop, State1}
     end;
@@ -707,74 +733,90 @@ apply_events([], State) ->
 
 %% @doc Applies event.
 %% @private
--spec apply_event(erl_mesos_obj:data_obj(), state()) ->
+-spec apply_event(erl_mesos_data_format:message(), state()) ->
     {ok, state()} | {stop, state()}.
-apply_event(Obj, #state{master_host = MasterHost,
-                        call_subscribe =
-                        #call_subscribe{framework_info =
-                                        #framework_info{id = Id} =
-                                        FrameworkInfo} =
-                        CallSubscribe,
-                        subscribe_state = SubscribeState} = State) ->
-    case erl_mesos_scheduler_event:parse_obj(Obj) of
-        #event{type = subscribed,
-               subscribed = #event_subscribed{framework_id = FrameworkId,
-                                              heartbeat_interval_seconds =
-                                                  HeartbeatIntervalSeconds} =
-                            EventSubscribed}
+apply_event(Message, #state{master_host = MasterHost,
+                            call_subscribe =
+                            #'Call.Subscribe'{framework_info =
+                                              #'FrameworkInfo'{id = Id} =
+                                              FrameworkInfo} =
+                            CallSubscribe,
+                            subscribe_state = SubscribeState} = State) ->
+    case Message of
+        #'Event'{type = 'SUBSCRIBED',
+                 subscribed = #'Event.Subscribed'{framework_id = FrameworkId} =
+                 EventSubscribed}
           when is_record(SubscribeState, subscribe_response),
                Id =:= undefined ->
             log_info("** Successfully subscribed~n",
                      "** Host == ~s~n",
                      [MasterHost],
                      State),
-            FrameworkInfo1 = FrameworkInfo#framework_info{id = FrameworkId},
-            CallSubscribe1 = CallSubscribe#call_subscribe{framework_info =
-                                                          FrameworkInfo1},
-            HeartbeatTimeout = heartbeat_timeout(HeartbeatIntervalSeconds),
+            FrameworkInfo1 = FrameworkInfo#'FrameworkInfo'{id = FrameworkId},
+            CallSubscribe1 = CallSubscribe#'Call.Subscribe'{framework_info =
+                                                            FrameworkInfo1},
+            EventSubscribed1 =
+                #'Event.Subscribed'{heartbeat_interval_seconds =
+                                    HeartbeatInterval} =
+                    set_default_heartbeat_interval(EventSubscribed),
+            HeartbeatTimeout = heartbeat_timeout(HeartbeatInterval),
             State1 = State#state{call_subscribe = CallSubscribe1,
                                  heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(State1),
             State3 = set_subscribed(State2),
-            call(registered, EventSubscribed, State3);
-        #event{type = subscribed,
-               subscribed = #event_subscribed{heartbeat_interval_seconds =
-                                              HeartbeatIntervalSeconds}}
+            call(registered, EventSubscribed1, State3);
+        #'Event'{type = 'SUBSCRIBED',
+                 subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response) ->
             log_info("** Successfully resubscribed~n",
                      "** Host == ~s~n",
                      [MasterHost],
                      State),
-            HeartbeatTimeout = heartbeat_timeout(HeartbeatIntervalSeconds),
+            #'Event.Subscribed'{heartbeat_interval_seconds =
+                                HeartbeatInterval} =
+                set_default_heartbeat_interval(EventSubscribed),
+            HeartbeatTimeout = heartbeat_timeout(HeartbeatInterval),
             State1 = State#state{heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(State1),
             State3 = set_subscribed(State2),
             call(reregistered, State3);
-        #event{type = offers, offers = EventOffers} ->
+        #'Event'{type = 'OFFERS', offers = EventOffers} ->
             call(resource_offers, EventOffers, State);
-        #event{type = rescind, rescind = EventRescind} ->
+        #'Event'{type = 'RESCIND', rescind = EventRescind} ->
             call(offer_rescinded, EventRescind, State);
-        #event{type = update, update = EventUpdate} ->
+        #'Event'{type = 'UPDATE', update = EventUpdate} ->
             call(status_update, EventUpdate, State);
-        #event{type = message, message = EventMessage} ->
+        #'Event'{type = 'MESSAGE', message = EventMessage} ->
             call(framework_message, EventMessage, State);
-        #event{type = failure,
-               failure = #event_failure{executor_id = undefined} =
-               EventFailure} ->
+        #'Event'{type = 'FAILURE',
+                 failure = #'Event.Failure'{executor_id = undefined} =
+                 EventFailure} ->
             call(slave_lost, EventFailure, State);
-        #event{type = failure, failure = EventFailure} ->
+        #'Event'{type = 'FAILURE', failure = EventFailure} ->
             call(executor_lost, EventFailure, State);
-        #event{type = error, error = EventError} ->
+        #'Event'{type = 'ERROR', error = EventError} ->
             call(error, EventError, State);
-        #event{type = heartbeat} ->
+        #'Event'{type = 'HEARTBEAT'} ->
             {ok, set_heartbeat_timer(State)}
     end.
+
+%% @doc Sets default heartbeat interval.
+%% @private
+-spec set_default_heartbeat_interval('Event.Subscribed()') ->
+    'Event.Subscribed()'.
+set_default_heartbeat_interval(#'Event.Subscribed'{heartbeat_interval_seconds =
+                                                   undefined} =
+                               EventSubscribed) ->
+    EventSubscribed#'Event.Subscribed'{heartbeat_interval_seconds =
+                                       ?DEFAULT_HEARTBEAT_INTERVAL};
+set_default_heartbeat_interval(EventSubscribed) ->
+    EventSubscribed.
 
 %% @doc Returns heartbeat timeout.
 %% @private
 -spec heartbeat_timeout(float()) -> pos_integer().
-heartbeat_timeout(HeartbeatIntervalSeconds) ->
-    trunc(HeartbeatIntervalSeconds * 1000).
+heartbeat_timeout(HeartbeatInterval) ->
+    trunc(HeartbeatInterval * 1000).
 
 %% @doc Sets heartbeat timer.
 %% @private
@@ -837,8 +879,8 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 -spec handle_unsubscribe(state()) ->
     {noreply, state()} | {stop, term(), state()}.
 handle_unsubscribe(#state{call_subscribe =
-                          #call_subscribe{framework_info =
-                                          #framework_info{id = undefined}},
+                          #'Call.Subscribe'{framework_info =
+                                            #'FrameworkInfo'{id = undefined}},
                           client_ref = ClientRef,
                           recv_timer_ref = RecvTimerRef} = State) ->
     close(ClientRef),
@@ -879,9 +921,9 @@ handle_unsubscribe(#state{client_ref = ClientRef,
 -spec start_resubscribe_timer(state()) ->
     {noreply, state()} | {stop, term(), state()}.
 start_resubscribe_timer(#state{call_subscribe =
-                               #call_subscribe{framework_info =
-                                   #framework_info{failover_timeout =
-                                                   FailoverTimeout}}} =
+                               #'Call.Subscribe'{framework_info =
+                                   #'FrameworkInfo'{failover_timeout =
+                                                    FailoverTimeout}}} =
                         State)
   when FailoverTimeout =:= undefined; FailoverTimeout == 0 ->
     {stop, {shutdown, {resubscribe,
@@ -949,8 +991,8 @@ handle_redirect(#state{master_hosts = MasterHosts,
                        master_hosts_queue = MasterHostsQueue,
                        master_host = MasterHost,
                        call_subscribe =
-                       #call_subscribe{framework_info =
-                                       #framework_info{id = Id}},
+                       #'Call.Subscribe'{framework_info =
+                                         #'FrameworkInfo'{id = Id}},
                        client_ref = ClientRef,
                        subscribe_state =
                        #subscribe_response{headers = Headers},
@@ -984,8 +1026,8 @@ handle_redirect(#state{master_hosts = MasterHosts,
 %% @private
 -spec redirect(state()) -> {noreply, state()} | {stop, term(), state()}.
 redirect(#state{call_subscribe =
-                #call_subscribe{framework_info =
-                                #framework_info{id = undefined}}} = State) ->
+                #'Call.Subscribe'{framework_info =
+                                  #'FrameworkInfo'{id = undefined}}} = State) ->
     case subscribe(State) of
         {ok, State1} ->
             {noreply, State1};
@@ -1024,8 +1066,7 @@ close(ClientRef) ->
 -spec log_info(string(), string(), list(), state()) -> ok.
 log_info(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
     erl_mesos_logger:info(Message ++
-                          "** Ref == ~p~n"
-                          "** Scheduler == ~p~n" ++
+                          "Ref: ~p, Scheduler: ~p" ++
                           Format,
                           [Ref, Scheduler] ++ Data).
 
@@ -1034,8 +1075,7 @@ log_info(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
 -spec log_warning(string(), string(), list(), state()) -> ok.
 log_warning(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
     erl_mesos_logger:warning(Message ++
-                             "** Ref == ~p~n"
-                             "** Scheduler == ~p~n" ++
+                             "Ref: ~p, Scheduler: ~p" ++
                              Format,
                              [Ref, Scheduler] ++ Data).
 
@@ -1044,8 +1084,7 @@ log_warning(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
 -spec log_error(string(), string(), list(), state()) -> ok.
 log_error(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
     erl_mesos_logger:error(Message ++
-                           "** Ref == ~p~n"
-                           "** Scheduler == ~p~n" ++
+                           "Ref: ~p, Scheduler: ~p" ++
                            Format,
                            [Ref, Scheduler] ++ Data).
 
