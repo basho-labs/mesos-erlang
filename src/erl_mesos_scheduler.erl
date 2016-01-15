@@ -802,8 +802,8 @@ apply_event(Message, #state{master_host = MasterHost,
 
 %% @doc Sets default heartbeat interval.
 %% @private
--spec set_default_heartbeat_interval('Event.Subscribed()') ->
-    'Event.Subscribed()'.
+-spec set_default_heartbeat_interval('Event.Subscribed'()) ->
+    'Event.Subscribed'().
 set_default_heartbeat_interval(#'Event.Subscribed'{heartbeat_interval_seconds =
                                                    undefined} =
                                EventSubscribed) ->
