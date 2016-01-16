@@ -86,14 +86,14 @@ handle_call({stop_scheduler, Ref}, _From, State) ->
     end;
 handle_call(Request, _From, State) ->
     erl_mesos_logger:warning("Scheduler manager received unexpected call "
-                             "request: ~p~n", [Request]),
+                             "request. Request: ~p.", [Request]),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
     erl_mesos_logger:warning("Scheduler manager received unexpected cast "
-                             "request: ~p~n", [Request]),
+                             "request. Request: ~p.", [Request]),
     {noreply, State}.
 
 %% @private
@@ -106,7 +106,7 @@ handle_info({'DOWN', MonitorRef, process, Pid, _Reason},
     {noreply, State#state{monitors = Monitors1}};
 handle_info(Request, State) ->
     erl_mesos_logger:warning("Scheduler manager received unexpected "
-                             "message: ~p~n", [Request]),
+                             "message. Message: ~p.", [Request]),
     {noreply, State}.
 
 %% @private
