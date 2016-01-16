@@ -76,32 +76,32 @@ error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
     reply(TestPid, {error, self(), SchedulerInfo, EventError}),
     {stop, State#state{callback = error}}.
 
-%% handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
-%%     Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
-%%     reply(TestPid, {teardown, Teardown}),
-%%     {stop, State};
-%% handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
-%%             #state{test_pid = TestPid} = State) ->
-%%     CommandInfo = #command_info{shell = true,
-%%                                 value = <<"while true; sleep 1; done">>},
-%%     ResourceCpu = #resource{name = <<"cpus">>,
-%%                             type = <<"SCALAR">>,
-%%                             scalar = #value_scalar{value = 0.1}},
-%%     Labels = #labels{labels = [#label{key = <<"task_key">>,
-%%                                       value = <<"task_value">>}]},
-%%     TaskInfo = #task_info{name = <<"test_task">>,
-%%                           task_id = TaskId,
-%%                           agent_id = AgentId,
-%%                           command = CommandInfo,
-%%                           resources = [ResourceCpu],
-%%                           labels = Labels},
-%%     Launch = #offer_operation_launch{task_infos = [TaskInfo]},
-%%     OfferOperation = #offer_operation{type = <<"LAUNCH">>,
-%%                                       launch = Launch},
-%%     Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
-%%                                         [OfferOperation]),
-%%     reply(TestPid, {accept, Accept}),
-%%     {ok, State};
+handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
+    Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
+    reply(TestPid, {teardown, Teardown}),
+    {stop, State};
+handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    CommandInfo = #'CommandInfo'{shell = true,
+                                 value = "while true; sleep 1; done"},
+    ResourceCpu = #'Resource'{name = "cpus",
+                              type = 'SCALAR',
+                              scalar = #'Value.Scalar'{value = 0.1}},
+    Labels = #'Labels'{labels = [#'Label'{key = "task_key",
+                                          value = "task_value"}]},
+    TaskInfo = #'TaskInfo'{name = "test_task",
+                           task_id = TaskId,
+                           agent_id = AgentId,
+                           command = CommandInfo,
+                           resources = [ResourceCpu],
+                           labels = Labels},
+    Launch = #'Offer.Operation.Launch'{task_infos = [TaskInfo]},
+    OfferOperation = #'Offer.Operation'{type = 'LAUNCH',
+                                        launch = Launch},
+    Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
+                                        [OfferOperation]),
+    reply(TestPid, {accept, Accept}),
+    {ok, State};
 %% handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
 %%             {accept_test_executor, OfferId, AgentId, TaskId},
 %%             #state{user = User, test_pid = TestPid} = State) ->
