@@ -11,7 +11,13 @@
          accept/2,
          decline/2,
          revive/1,
-         kill/2]).
+         kill/2,
+         shutdown/2,
+         acknowledge/2,
+         reconcile/2,
+         message/2,
+         request/2,
+         suppress/1]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -102,92 +108,92 @@ kill(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     Call1 = set_framework_id(SchedulerInfo, Call),
     handle_response(send_request(SchedulerInfo1, Call1)).
 
-%% %% @doc Executes shutdown call.
-%% -spec shutdown(erl_mesos:scheduler_info(), erl_mesos:call_shutdown()) ->
-%%     ok | {error, term()}.
-%% shutdown(#scheduler_info{subscribed = false}, _CallShutdown) ->
-%%     {error, not_subscribed};
-%% shutdown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%          CallShutdown) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallShutdownObj = call_shutdown_obj(CallShutdown),
-%%     Call = #call{type = <<"SHUTDOWN">>, shutdown = CallShutdownObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
-%% %% @doc Executes acknowledge call.
-%% -spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:call_acknowledge()) ->
-%%     ok | {error, term()}.
-%% acknowledge(#scheduler_info{subscribed = false}, _CallAcknowledge) ->
-%%     {error, not_subscribed};
-%% acknowledge(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%             CallAcknowledge) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallAcknowledgeObj = call_acknowledge_obj(CallAcknowledge),
-%%     Call = #call{type = <<"ACKNOWLEDGE">>, acknowledge = CallAcknowledgeObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
-%% %% @doc Executes reconcile call.
-%% -spec reconcile(erl_mesos:scheduler_info(), erl_mesos:call_reconcile()) ->
-%%     ok | {error, term()}.
-%% reconcile(#scheduler_info{subscribed = false}, _CallReconcile) ->
-%%     {error, not_subscribed};
-%% reconcile(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%           CallReconcile) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallReconcileObj = call_reconcile_obj(CallReconcile),
-%%     Call = #call{type = <<"RECONCILE">>, reconcile = CallReconcileObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
-%% %% @doc Executes message call.
-%% -spec message(erl_mesos:scheduler_info(), erl_mesos:call_message()) ->
-%%     ok | {error, term()}.
-%% message(#scheduler_info{subscribed = false}, _CallMessage) ->
-%%     {error, not_subscribed};
-%% message(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%         CallMessage) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallMessageObj = call_message_obj(CallMessage),
-%%     Call = #call{type = <<"MESSAGE">>, message = CallMessageObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
-%% %% @doc Executes request call.
-%% -spec request(erl_mesos:scheduler_info(), erl_mesos:call_request()) ->
-%%     ok | {error, term()}.
-%% request(#scheduler_info{subscribed = false}, _CallRequest) ->
-%%     {error, not_subscribed};
-%% request(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%         CallRequest) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallRequestObj = call_request_obj(CallRequest),
-%%     Call = #call{type = <<"REQUEST">>, request = CallRequestObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
-%% %% @doc Executes suppress call.
-%% -spec suppress(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-%% suppress(#scheduler_info{subscribed = false}) ->
-%%     {error, not_subscribed};
-%% suppress(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     Call = #call{type = <<"SUPPRESS">>},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
+%% @doc Executes shutdown call.
+-spec shutdown(erl_mesos_scheduler:scheduler_info(),
+               erl_mesos_scheduler:'Call.Shutdown'()) ->
+     ok | {error, term()}.
+shutdown(#scheduler_info{subscribed = false}, _CallShutdown) ->
+    {error, not_subscribed};
+shutdown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+         CallShutdown) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'SHUTDOWN', shutdown = CallShutdown},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
+%% @doc Executes acknowledge call.
+-spec acknowledge(erl_mesos_scheduler:scheduler_info(),
+                  erl_mesos_scheduler:'Call.Acknowledge'()) ->
+    ok | {error, term()}.
+acknowledge(#scheduler_info{subscribed = false}, _CallAcknowledge) ->
+    {error, not_subscribed};
+acknowledge(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+            CallAcknowledge) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'ACKNOWLEDGE', acknowledge = CallAcknowledge},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
+%% @doc Executes reconcile call.
+-spec reconcile(erl_mesos_scheduler:scheduler_info(),
+                erl_mesos_scheduler:'Call.Reconcile'()) ->
+    ok | {error, term()}.
+reconcile(#scheduler_info{subscribed = false}, _CallReconcile) ->
+    {error, not_subscribed};
+reconcile(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+          CallReconcile) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'RECONCILE', reconcile = CallReconcile},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
+%% @doc Executes message call.
+-spec message(erl_mesos_scheduler:scheduler_info(),
+              erl_mesos_scheduler:'Call.Message'()) ->
+    ok | {error, term()}.
+message(#scheduler_info{subscribed = false}, _CallMessage) ->
+    {error, not_subscribed};
+message(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+        CallMessage) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'MESSAGE', message = CallMessage},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
+%% @doc Executes request call.
+-spec request(erl_mesos_scheduler:scheduler_info(),
+              erl_mesos_scheduler:'Call.Request'()) ->
+    ok | {error, term()}.
+request(#scheduler_info{subscribed = false}, _CallRequest) ->
+    {error, not_subscribed};
+request(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+        CallRequest) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'REQUEST', request = CallRequest},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
+%% @doc Executes suppress call.
+-spec suppress(erl_mesos_scheduler:scheduler_info()) -> ok | {error, term()}.
+suppress(#scheduler_info{subscribed = false}) ->
+    {error, not_subscribed};
+suppress(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'SUPPRESS'},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
 
 %% Internal functions.
 

@@ -15,14 +15,14 @@
          decline/3,
          revive/1,
          kill/2,
-         kill/3]).
-%%          shutdown/2,
-%%          shutdown/3,
-%%          acknowledge/4,
-%%          reconcile/2,
-%%          message/4,
-%%          request/2,
-%%          suppress/1]).
+         kill/3,
+         shutdown/2,
+         shutdown/3,
+         acknowledge/4,
+         reconcile/2,
+         message/4,
+         request/2,
+         suppress/1]).
 
 -export([init/1,
          handle_call/3,
@@ -122,6 +122,30 @@
 
 -type 'Call.Kill'() :: #'Call.Kill'{}.
 -export_type(['Call.Kill'/0]).
+
+-type 'ExecutorID'() :: #'ExecutorID'{}.
+-export_type(['ExecutorID'/0]).
+
+-type 'Call.Shutdown'() :: #'Call.Shutdown'{}.
+-export_type(['Call.Shutdown'/0]).
+
+-type 'Call.Acknowledge'() :: #'Call.Acknowledge'{}.
+-export_type(['Call.Acknowledge'/0]).
+
+-type 'Call.Reconcile.Task'() :: #'Call.Reconcile.Task'{}.
+-export_type(['Call.Reconcile.Task'/0]).
+
+-type 'Call.Reconcile'() :: #'Call.Reconcile'{}.
+-export_type(['Call.Reconcile'/0]).
+
+-type 'Call.Message'() :: #'Call.Message'{}.
+-export_type(['Call.Message'/0]).
+
+-type 'Request'() :: #'Request'{}.
+-export_type(['Request'/0]).
+
+-type 'Call.Request'() :: #'Call.Request'{}.
+-export_type(['Call.Request'/0]).
 
 -type state() :: #state{}.
 
@@ -250,58 +274,53 @@ kill(SchedulerInfo, TaskId, AgentId) ->
                             agent_id = AgentId},
     erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
 
-%% %% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
-%% shutdown(SchedulerInfo, ExecutorId) ->
-%%     shutdown(SchedulerInfo, ExecutorId, undefined).
-%%
-%% %% @doc Shutdown call.
-%% -spec shutdown(erl_mesos:scheduler_info(), erl_mesos:executor_id(),
-%%                undefined | erl_mesos:agent_id()) ->
-%%     ok | {error, term()}.
-%% shutdown(SchedulerInfo, ExecutorId, AgentId) ->
-%%     CallShutdown = #'Call.Shutdown'{executor_id = ExecutorId,
-%%                                     agent_id = AgentId},
-%%     erl_mesos_scheduler_call:shutdown(SchedulerInfo, CallShutdown).
-%%
-%% %% @doc Acknowledge call.
-%% -spec acknowledge(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
-%%                   erl_mesos:task_id(), erl_mesos_obj:data_string()) ->
-%%     ok | {error, term()}.
-%% acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
-%%     CallAcknowledge = #'Call.Acknowledge'{agent_id = AgentId,
-%%                                           task_id = TaskId,
-%%                                           uuid = Uuid},
-%%     erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
-%%
-%% %% @doc Reconcile call.
-%% -spec reconcile(erl_mesos:scheduler_info(),
-%%                 [erl_mesos:call_reconcile_task()]) ->
-%%     ok | {error, term()}.
-%% reconcile(SchedulerInfo, CallReconcileTasks) ->
-%%     CallReconcile = #'Call.Reconcile'{tasks = CallReconcileTasks},
-%%     erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
-%%
-%% %% @doc Message call.
-%% -spec message(erl_mesos:scheduler_info(), erl_mesos:agent_id(),
-%%               erl_mesos:executor_id(), erl_mesos_obj:data_string()) ->
-%%     ok | {error, term()}.
-%% message(SchedulerInfo, AgentId, ExecutorId, Data) ->
-%%     CallMessage = #'Call.Message'{agent_id = AgentId,
-%%                                   executor_id = ExecutorId,
-%%                                   data = Data},
-%%     erl_mesos_scheduler_call:message(SchedulerInfo, CallMessage).
-%%
-%% %% @doc Request call.
-%% -spec request(erl_mesos:scheduler_info(), [erl_mesos:request()]) ->
-%%     ok | {error, term()}.
-%% request(SchedulerInfo, Requests) ->
-%%     CallRequest = #'Call.Request'{requests = Requests},
-%%     erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
-%%
-%% %% @doc Suppress call.
-%% -spec suppress(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-%% suppress(SchedulerInfo) ->
-%%     erl_mesos_scheduler_call:suppress(SchedulerInfo).
+%% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
+shutdown(SchedulerInfo, ExecutorId) ->
+    shutdown(SchedulerInfo, ExecutorId, undefined).
+
+%% @doc Shutdown call.
+-spec shutdown(scheduler_info(), 'ExecutorID'(), undefined | 'AgentID'()) ->
+    ok | {error, term()}.
+shutdown(SchedulerInfo, ExecutorId, AgentId) ->
+    CallShutdown = #'Call.Shutdown'{executor_id = ExecutorId,
+                                    agent_id = AgentId},
+    erl_mesos_scheduler_call:shutdown(SchedulerInfo, CallShutdown).
+
+%% @doc Acknowledge call.
+-spec acknowledge(scheduler_info(), 'AgentID'(), 'TaskID'(), binary()) ->
+    ok | {error, term()}.
+acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
+    CallAcknowledge = #'Call.Acknowledge'{agent_id = AgentId,
+                                          task_id = TaskId,
+                                          uuid = Uuid},
+    erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
+
+%% @doc Reconcile call.
+-spec reconcile(scheduler_info(), ['Call.Reconcile.Task'()]) ->
+    ok | {error, term()}.
+reconcile(SchedulerInfo, CallReconcileTasks) ->
+    CallReconcile = #'Call.Reconcile'{tasks = CallReconcileTasks},
+    erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
+
+%% @doc Message call.
+-spec message(scheduler_info(), 'AgentID'(), 'ExecutorID'(), binary()) ->
+    ok | {error, term()}.
+message(SchedulerInfo, AgentId, ExecutorId, Data) ->
+    CallMessage = #'Call.Message'{agent_id = AgentId,
+                                  executor_id = ExecutorId,
+                                  data = Data},
+    erl_mesos_scheduler_call:message(SchedulerInfo, CallMessage).
+
+%% @doc Request call.
+-spec request(scheduler_info(), ['Request'()]) -> ok | {error, term()}.
+request(SchedulerInfo, Requests) ->
+    CallRequest = #'Call.Request'{requests = Requests},
+    erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
+
+%% @doc Suppress call.
+-spec suppress(scheduler_info()) -> ok | {error, term()}.
+suppress(SchedulerInfo) ->
+    erl_mesos_scheduler_call:suppress(SchedulerInfo).
 
 %% gen_server callback functions.
 
