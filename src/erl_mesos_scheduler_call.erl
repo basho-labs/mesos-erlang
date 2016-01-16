@@ -170,16 +170,16 @@ message(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
 
 %% @doc Executes request call.
 -spec request(erl_mesos_scheduler:scheduler_info(),
-              erl_mesos_scheduler:'Call.Request'()) ->
+              erl_mesos_scheduler:'Call.Req'()) ->
     ok | {error, term()}.
-request(#scheduler_info{subscribed = false}, _CallRequest) ->
+request(#scheduler_info{subscribed = false}, _CallReq) ->
     {error, not_subscribed};
 request(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-        CallRequest) ->
+        CallReq) ->
     RequestOptions1 = request_options(RequestOptions),
     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
                                                   RequestOptions1},
-    Call = #'Call'{type = 'REQUEST', request = CallRequest},
+    Call = #'Call'{type = 'REQUEST', request = CallReq},
     Call1 = set_framework_id(SchedulerInfo, Call),
     handle_response(send_request(SchedulerInfo1, Call1)).
 

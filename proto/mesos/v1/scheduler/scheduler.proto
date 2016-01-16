@@ -311,7 +311,7 @@ message Call {
   //
   // NOTE: The built-in hierarchical allocator doesn't have support
   // for this call and hence simply ignores it.
-  message Request {
+  message Req {
     repeated Request requests = 1;
   }
 
@@ -335,5 +335,5 @@ message Call {
   optional Acknowledge acknowledge = 8;
   optional Reconcile reconcile = 9;
   optional Message message = 10;
-  optional Request request = 11;
+  optional Req request = 11;
 }

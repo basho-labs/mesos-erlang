@@ -144,8 +144,8 @@
 -type 'Request'() :: #'Request'{}.
 -export_type(['Request'/0]).
 
--type 'Call.Request'() :: #'Call.Request'{}.
--export_type(['Call.Request'/0]).
+-type 'Call.Req'() :: #'Call.Req'{}.
+-export_type(['Call.Req'/0]).
 
 -type state() :: #state{}.
 
@@ -314,7 +314,7 @@ message(SchedulerInfo, AgentId, ExecutorId, Data) ->
 %% @doc Request call.
 -spec request(scheduler_info(), ['Request'()]) -> ok | {error, term()}.
 request(SchedulerInfo, Requests) ->
-    CallRequest = #'Call.Request'{requests = Requests},
+    CallRequest = #'Call.Req'{requests = Requests},
     erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
 
 %% @doc Suppress call.
