@@ -10,7 +10,8 @@
          teardown/1,
          accept/2,
          decline/2,
-         revive/1]).
+         revive/1,
+         kill/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -86,21 +87,21 @@ revive(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
     Call1 = set_framework_id(SchedulerInfo, Call),
     handle_response(send_request(SchedulerInfo1, Call1)).
 
-%% %% @doc Executes kill call.
-%% -spec kill(erl_mesos:scheduler_info(), erl_mesos:call_kill()) ->
-%%     ok | {error, term()}.
-%% kill(#scheduler_info{subscribed = false}, _CallKill) ->
-%%     {error, not_subscribed};
-%% kill(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%      CallKill) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallKillObj = call_kill_obj(CallKill),
-%%     Call = #call{type = <<"KILL">>, kill = CallKillObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
+%% @doc Executes kill call.
+-spec kill(erl_mesos_scheduler:scheduler_info(),
+           erl_mesos_scheduler:'Call.Kill'()) ->
+    ok | {error, term()}.
+kill(#scheduler_info{subscribed = false}, _CallKill) ->
+    {error, not_subscribed};
+kill(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+     CallKill) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'KILL', kill = CallKill},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
 %% %% @doc Executes shutdown call.
 %% -spec shutdown(erl_mesos:scheduler_info(), erl_mesos:call_shutdown()) ->
 %%     ok | {error, term()}.

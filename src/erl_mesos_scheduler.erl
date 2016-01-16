@@ -13,9 +13,9 @@
          accept/4,
          decline/2,
          decline/3,
-         revive/1]).
-%%          kill/2,
-%%          kill/3,
+         revive/1,
+         kill/2,
+         kill/3]).
 %%          shutdown/2,
 %%          shutdown/3,
 %%          acknowledge/4,
@@ -113,6 +113,15 @@
 
 -type 'Call.Decline'() :: #'Call.Decline'{}.
 -export_type(['Call.Decline'/0]).
+
+-type 'TaskID'() :: #'TaskID'{}.
+-export_type(['TaskID'/0]).
+
+-type 'AgentID'() :: #'AgentID'{}.
+-export_type(['AgentID'/0]).
+
+-type 'Call.Kill'() :: #'Call.Kill'{}.
+-export_type(['Call.Kill'/0]).
 
 -type state() :: #state{}.
 
@@ -228,21 +237,19 @@ decline(SchedulerInfo, OfferIds, Filters) ->
 revive(SchedulerInfo) ->
     erl_mesos_scheduler_call:revive(SchedulerInfo).
 
-%% %% @equiv kill(SchedulerInfo, TaskId, undefined)
-%% -spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id()) ->
-%%     ok | {error, term()}.
-%% kill(SchedulerInfo, TaskId) ->
-%%     kill(SchedulerInfo, TaskId, undefined).
-%%
-%% %% @doc Kill call.
-%% -spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id(),
-%%            undefined | erl_mesos:agent_id()) ->
-%%     ok | {error, term()}.
-%% kill(SchedulerInfo, TaskId, AgentId) ->
-%%     CallKill = #'Call.Kill'{task_id = TaskId,
-%%                             agent_id = AgentId},
-%%     erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
-%%
+%% @equiv kill(SchedulerInfo, TaskId, undefined)
+-spec kill(scheduler_info(), 'TaskID'()) -> ok | {error, term()}.
+kill(SchedulerInfo, TaskId) ->
+    kill(SchedulerInfo, TaskId, undefined).
+
+%% @doc Kill call.
+-spec kill(scheduler_info(), 'TaskID'(), undefined | 'AgentID()') ->
+    ok | {error, term()}.
+kill(SchedulerInfo, TaskId, AgentId) ->
+    CallKill = #'Call.Kill'{task_id = TaskId,
+                            agent_id = AgentId},
+    erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
+
 %% %% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
 %% shutdown(SchedulerInfo, ExecutorId) ->
 %%     shutdown(SchedulerInfo, ExecutorId, undefined).
