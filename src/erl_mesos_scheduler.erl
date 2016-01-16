@@ -8,9 +8,9 @@
 
 -export([start_link/4]).
 
-%% -export([teardown/1,
-%%          accept/3,
-%%          accept/4,
+-export([teardown/1,
+         accept/3,
+         accept/4]).
 %%          decline/2,
 %%          decline/3,
 %%          revive/1,
@@ -63,6 +63,9 @@
 -type scheduler_info() :: #scheduler_info{}.
 -export_type([scheduler_info/0]).
 
+-type 'FrameworkInfo'() :: #'FrameworkInfo'{}.
+-export_type(['FrameworkInfo'/0]).
+
 -type 'FrameworkID'() :: #'FrameworkID'{}.
 -export_type(['FrameworkID'/0]).
 
@@ -96,6 +99,18 @@
 -type 'Call.Subscribe'() :: #'Call.Subscribe'{}.
 -export_type(['Call.Subscribe'/0]).
 
+-type 'OfferID'() :: #'OfferID'{}.
+-export_type(['OfferID'/0]).
+
+-type 'Offer.Operation'() :: #'Offer.Operation'{}.
+-export_type(['Offer.Operation'/0]).
+
+-type 'Filters'() :: #'Filters'{}.
+-export_type(['Filters'/0]).
+
+-type 'Call.Accept'() :: #'Call.Accept'{}.
+-export_type(['Call.Accept'/0]).
+
 -type state() :: #state{}.
 
 -type subscribe_response() :: subscribe_response().
@@ -105,7 +120,7 @@
 %% Callbacks.
 
 -callback init(term()) ->
-    {ok, erl_mesos:framework_info(), boolean(), term()} | {stop, term()}.
+    {ok, 'FrameworkInfo'(), boolean(), term()} | {stop, term()}.
 
 -callback registered(scheduler_info(), 'Event.Subscribed'(), term()) ->
     {ok, term()} | {stop, term()}.
@@ -171,28 +186,27 @@ start_link(Ref, Scheduler, SchedulerOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
 
-%% %% @doc Teardown call.
-%% -spec teardown(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-%% teardown(SchedulerInfo) ->
-%%     erl_mesos_scheduler_call:teardown(SchedulerInfo).
-%%
-%% %% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
-%% -spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
-%%              [erl_mesos:offer_operation()]) ->
-%%     ok | {error, term()}.
-%% accept(SchedulerInfo, OfferIds, Operations) ->
-%%     accept(SchedulerInfo, OfferIds, Operations, undefined).
-%%
-%% %% @doc Accept call.
-%% -spec accept(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
-%%              [erl_mesos:offer_operation()], undefined | erl_mesos:filters()) ->
-%%     ok | {error, term()}.
-%% accept(SchedulerInfo, OfferIds, Operations, Filters) ->
-%%     CallAccept = #'Call.Accept'{offer_ids = OfferIds,
-%%                                 operations = Operations,
-%%                                 filters = Filters},
-%%     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
-%%
+%% @doc Teardown call.
+-spec teardown(scheduler_info()) -> ok | {error, term()}.
+teardown(SchedulerInfo) ->
+    erl_mesos_scheduler_call:teardown(SchedulerInfo).
+
+%% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
+-spec accept(scheduler_info(), ['OfferID'()], ['Offer.Operation'()]) ->
+    ok | {error, term()}.
+accept(SchedulerInfo, OfferIds, Operations) ->
+    accept(SchedulerInfo, OfferIds, Operations, undefined).
+
+%% @doc Accept call.
+-spec accept(scheduler_info(), ['OfferID'()], ['Offer.Operation'()],
+             undefined | 'Filters'()) ->
+    ok | {error, term()}.
+accept(SchedulerInfo, OfferIds, Operations, Filters) ->
+    CallAccept = #'Call.Accept'{offer_ids = OfferIds,
+                                operations = Operations,
+                                filters = Filters},
+    erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
+
 %% %% @equiv decline(SchedulerInfo, OfferIds, undefined)
 %% -spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()]) ->
 %%     ok | {error, term()}.
@@ -602,7 +616,7 @@ set_recv_timer(Timeout, State) ->
 
 %% @doc Returns scheduler info.
 %% @private
--spec scheduler_info(state()) -> erl_mesos:scheduler_info().
+-spec scheduler_info(state()) -> scheduler_info().
 scheduler_info(#state{data_format = DataFormat,
                       api_version = ApiVersion,
                       master_host = MasterHost,

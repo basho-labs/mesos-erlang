@@ -6,7 +6,9 @@
 
 -include("scheduler_protobuf.hrl").
 
--export([subscribe/2]).
+-export([subscribe/2,
+         teardown/1,
+         accept/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -17,7 +19,7 @@
 
 %% @doc Executes subscribe call.
 -spec subscribe(erl_mesos_scheduler:scheduler_info(),
-                erl_mesos_scheduler:'Call.Subscribe()'()) ->
+                erl_mesos_scheduler:'Call.Subscribe'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
           CallSubscribe) ->
@@ -28,33 +30,33 @@ subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     Call1 = set_framework_id(SchedulerInfo, Call),
     send_request(SchedulerInfo1, Call1).
 
-%% %% @doc Executes teardown call.
-%% -spec teardown(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-%% teardown(#scheduler_info{subscribed = false}) ->
-%%     {error, not_subscribed};
-%% teardown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     Call = #call{type = <<"TEARDOWN">>},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
-%% %% @doc Executes accept call.
-%% -spec accept(erl_mesos:scheduler_info(), erl_mesos:call_accept()) ->
-%%     ok | {error, term()}.
-%% accept(#scheduler_info{subscribed = false}, _CallAccept) ->
-%%     {error, not_subscribed};
-%% accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%        CallAccept) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallAcceptObj = call_accept_obj(CallAccept),
-%%     Call = #call{type = <<"ACCEPT">>, accept = CallAcceptObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
+%% @doc Executes teardown call.
+-spec teardown(erl_mesos_scheduler:scheduler_info()) -> ok | {error, term()}.
+teardown(#scheduler_info{subscribed = false}) ->
+    {error, not_subscribed};
+teardown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'TEARDOWN'},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
+%% @doc Executes accept call.
+-spec accept(erl_mesos_scheduler:scheduler_info(),
+             erl_mesos_scheduler:'Call.Accept'()) ->
+    ok | {error, term()}.
+accept(#scheduler_info{subscribed = false}, _CallAccept) ->
+    {error, not_subscribed};
+accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+       CallAccept) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'ACCEPT', accept = CallAccept},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
 %% %% @doc Executes decline call.
 %% -spec decline(erl_mesos:scheduler_info(), erl_mesos:call_decline()) ->
 %%     ok | {error, term()}.
@@ -199,11 +201,11 @@ subscribe_request_options(RequestOptions) ->
     [async, {recv_timeout, infinity}, {following_redirect, false} |
      RequestOptions2].
 
-%% %% @doc Returns request options.
-%% %% @private
-%% -spec request_options(erl_mesos_http:options()) -> erl_mesos_http:options().
-%% request_options(RequestOptions) ->
-%%     proplists:delete(async, lists:delete(async, RequestOptions)).
+%% @doc Returns request options.
+%% @private
+-spec request_options(erl_mesos_http:options()) -> erl_mesos_http:options().
+request_options(RequestOptions) ->
+    proplists:delete(async, lists:delete(async, RequestOptions)).
 
 %% @doc Sets framework id.
 %% @private
@@ -246,23 +248,23 @@ request_headers(DataFormat) ->
      {<<"Accept">>, ContentType},
      {<<"Connection">>, <<"close">>}].
 
-%% %% @doc Handles response.
-%% %% @private
-%% -spec handle_response({ok, non_neg_integer(), erl_mesos_http:headers(),
-%%                       reference()} | {error, term()}) ->
-%%     ok | {error, term()} |
-%%     {error, {http_response, non_neg_integer(), binary()}}.
-%% handle_response(Response) ->
-%%     case Response of
-%%         {ok, 202, _Headers, _ClientRef} ->
-%%             ok;
-%%         {ok, Status, _Headers, ClientRef} ->
-%%             case erl_mesos_http:body(ClientRef) of
-%%                 {ok, Body} ->
-%%                     {error, {http_response, Status, Body}};
-%%                 {error, Reason} ->
-%%                     {error, Reason}
-%%             end;
-%%         {error, Reason} ->
-%%             {error, Reason}
-%%     end.
+%% @doc Handles response.
+%% @private
+-spec handle_response({ok, non_neg_integer(), erl_mesos_http:headers(),
+                       reference()} | {error, term()}) ->
+    ok | {error, term()} |
+    {error, {http_response, non_neg_integer(), binary()}}.
+handle_response(Response) ->
+    case Response of
+        {ok, 202, _Headers, _ClientRef} ->
+            ok;
+        {ok, Status, _Headers, ClientRef} ->
+            case erl_mesos_http:body(ClientRef) of
+                {ok, Body} ->
+                    {error, {http_response, Status, Body}};
+                {error, Reason} ->
+                    {error, Reason}
+            end;
+        {error, Reason} ->
+            {error, Reason}
+    end.
