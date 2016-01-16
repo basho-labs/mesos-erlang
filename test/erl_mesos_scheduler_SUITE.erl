@@ -28,8 +28,8 @@
          teardown/1,
          accept/1,
          decline/1,
-         revive/1
-%%          kill/1,
+         revive/1,
+         kill/1
 %%          shutdown/1,
 %%          acknowledge/1,
 %%          reconcile/1,
@@ -59,8 +59,8 @@ groups() ->
                       teardown,
                       accept,
                       decline,
-                      revive
-%%                       kill,
+                      revive,
+                      kill
 %%                       shutdown,
 %%                       acknowledge,
 %%                       reconcile,
@@ -571,28 +571,28 @@ revive(Config) ->
     SchedulerPid ! revive,
     {revive, ok} = recv_reply(),
     ok = stop_scheduler(Ref, Config).
-%%
-%% kill(Config) ->
-%%     log("Kill test cases", Config),
-%%     Ref = {erl_mesos_scheduler, kill},
-%%     Scheduler = ?config(scheduler, Config),
-%%     SchedulerOptions = ?config(scheduler_options, Config),
-%%     SchedulerOptions1 = set_test_pid(SchedulerOptions),
-%%     Options = ?config(options, Config),
-%%     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
-%%                               Config),
-%%     {registered, SchedulerPid, _, _} = recv_reply(),
-%%     start_mesos_slave(Config),
-%%     {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
-%%     #event_offers{offers = [Offer | _]} = EventOffers,
-%%     #offer{id = OfferId, agent_id = AgentId} = Offer,
-%%     TaskId = timestamp_task_id(),
-%%     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
-%%     {accept, ok} = recv_reply(),
-%%     {status_update, SchedulerPid, _, _} = recv_reply(),
-%%     SchedulerPid ! {kill, TaskId},
-%%     {kill, ok} = recv_reply(),
-%%     ok = stop_scheduler(Ref, Config).
+
+kill(Config) ->
+    log("Kill test cases", Config),
+    Ref = {erl_mesos_scheduler, kill},
+    Scheduler = ?config(scheduler, Config),
+    SchedulerOptions = ?config(scheduler_options, Config),
+    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    Options = ?config(options, Config),
+    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
+                              Config),
+    {registered, SchedulerPid, _, _} = recv_reply(),
+    start_mesos_slave(Config),
+    {resource_offers, SchedulerPid, _, EventOffers} = recv_reply(),
+    #'Event.Offers'{offers = [Offer | _]} = EventOffers,
+    #'Offer'{id = OfferId, agent_id = AgentId} = Offer,
+    TaskId = timestamp_task_id(),
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
+    {accept, ok} = recv_reply(),
+    {status_update, SchedulerPid, _, _} = recv_reply(),
+    SchedulerPid ! {kill, TaskId},
+    {kill, ok} = recv_reply(),
+    ok = stop_scheduler(Ref, Config).
 
 %% shutdown(Config) ->
 %%     log("Shutdown test cases", Config),
