@@ -139,15 +139,15 @@ handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
 %%                                         [OfferOperation]),
 %%     reply(TestPid, {accept, Accept}),
 %%     {ok, State};
-%% handle_info(SchedulerInfo, {decline, TaskId},
-%%             #state{test_pid = TestPid} = State) ->
-%%     Decline = erl_mesos_scheduler:decline(SchedulerInfo, [TaskId]),
-%%     reply(TestPid, {decline, Decline}),
-%%     {ok, State};
-%% handle_info(SchedulerInfo, revive, #state{test_pid = TestPid} = State) ->
-%%     Revive = erl_mesos_scheduler:revive(SchedulerInfo),
-%%     reply(TestPid, {revive, Revive}),
-%%     {ok, State};
+handle_info(SchedulerInfo, {decline, TaskId},
+            #state{test_pid = TestPid} = State) ->
+    Decline = erl_mesos_scheduler:decline(SchedulerInfo, [TaskId]),
+    reply(TestPid, {decline, Decline}),
+    {ok, State};
+handle_info(SchedulerInfo, revive, #state{test_pid = TestPid} = State) ->
+    Revive = erl_mesos_scheduler:revive(SchedulerInfo),
+    reply(TestPid, {revive, Revive}),
+    {ok, State};
 %% handle_info(SchedulerInfo, {kill, TaskId},
 %%             #state{test_pid = TestPid} = State) ->
 %%     Kill = erl_mesos_scheduler:kill(SchedulerInfo, TaskId),

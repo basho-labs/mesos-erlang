@@ -10,10 +10,10 @@
 
 -export([teardown/1,
          accept/3,
-         accept/4]).
-%%          decline/2,
-%%          decline/3,
-%%          revive/1,
+         accept/4,
+         decline/2,
+         decline/3,
+         revive/1]).
 %%          kill/2,
 %%          kill/3,
 %%          shutdown/2,
@@ -111,6 +111,9 @@
 -type 'Call.Accept'() :: #'Call.Accept'{}.
 -export_type(['Call.Accept'/0]).
 
+-type 'Call.Decline'() :: #'Call.Decline'{}.
+-export_type(['Call.Decline'/0]).
+
 -type state() :: #state{}.
 
 -type subscribe_response() :: subscribe_response().
@@ -207,26 +210,24 @@ accept(SchedulerInfo, OfferIds, Operations, Filters) ->
                                 filters = Filters},
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
 
-%% %% @equiv decline(SchedulerInfo, OfferIds, undefined)
-%% -spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()]) ->
-%%     ok | {error, term()}.
-%% decline(SchedulerInfo, OfferIds) ->
-%%     decline(SchedulerInfo, OfferIds, undefined).
-%%
-%% %% @doc Decline call.
-%% -spec decline(erl_mesos:scheduler_info(), [erl_mesos:offer_id()],
-%%               undefined | erl_mesos:filters()) ->
-%%     ok | {error, term()}.
-%% decline(SchedulerInfo, OfferIds, Filters) ->
-%%     CallDecline = #'Call.Decline'{offer_ids = OfferIds,
-%%                                   filters = Filters},
-%%     erl_mesos_scheduler_call:accept(SchedulerInfo, CallDecline).
-%%
-%% %% @doc Revive call.
-%% -spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-%% revive(SchedulerInfo) ->
-%%     erl_mesos_scheduler_call:revive(SchedulerInfo).
-%%
+%% @equiv decline(SchedulerInfo, OfferIds, undefined)
+-spec decline(scheduler_info(), ['OfferID'()]) -> ok | {error, term()}.
+decline(SchedulerInfo, OfferIds) ->
+    decline(SchedulerInfo, OfferIds, undefined).
+
+%% @doc Decline call.
+-spec decline(scheduler_info(), ['OfferID'()], undefined | 'Filters'()) ->
+    ok | {error, term()}.
+decline(SchedulerInfo, OfferIds, Filters) ->
+    CallDecline = #'Call.Decline'{offer_ids = OfferIds,
+                                  filters = Filters},
+    erl_mesos_scheduler_call:decline(SchedulerInfo, CallDecline).
+
+%% @doc Revive call.
+-spec revive(scheduler_info()) -> ok | {error, term()}.
+revive(SchedulerInfo) ->
+    erl_mesos_scheduler_call:revive(SchedulerInfo).
+
 %% %% @equiv kill(SchedulerInfo, TaskId, undefined)
 %% -spec kill(erl_mesos:scheduler_info(), erl_mesos:task_id()) ->
 %%     ok | {error, term()}.

@@ -8,7 +8,9 @@
 
 -export([subscribe/2,
          teardown/1,
-         accept/2]).
+         accept/2,
+         decline/2,
+         revive/1]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -57,33 +59,33 @@ accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     Call1 = set_framework_id(SchedulerInfo, Call),
     handle_response(send_request(SchedulerInfo1, Call1)).
 
-%% %% @doc Executes decline call.
-%% -spec decline(erl_mesos:scheduler_info(), erl_mesos:call_decline()) ->
-%%     ok | {error, term()}.
-%% decline(#scheduler_info{subscribed = false}, _CallDecline) ->
-%%     {error, not_subscribed};
-%% decline(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
-%%         CallDecline) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     CallDeclineObj = call_decline_obj(CallDecline),
-%%     Call = #call{type = <<"DECLINE">>, decline = CallDeclineObj},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
-%% %% @doc Executes revive call.
-%% -spec revive(erl_mesos:scheduler_info()) -> ok | {error, term()}.
-%% revive(#scheduler_info{subscribed = false}) ->
-%%     {error, not_subscribed};
-%% revive(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
-%%     RequestOptions1 = request_options(RequestOptions),
-%%     SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
-%%                                                   RequestOptions1},
-%%     Call = #call{type = <<"REVIVE">>},
-%%     CallObj = call_obj(SchedulerInfo, Call),
-%%     handle_response(send_request(SchedulerInfo1, CallObj)).
-%%
+%% @doc Executes decline call.
+-spec decline(erl_mesos_scheduler:scheduler_info(),
+              erl_mesos_scheduler:'Call.Decline'()) ->
+    ok | {error, term()}.
+decline(#scheduler_info{subscribed = false}, _CallDecline) ->
+    {error, not_subscribed};
+decline(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
+        CallDecline) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'DECLINE', decline = CallDecline},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
+%% @doc Executes revive call.
+-spec revive(erl_mesos_scheduler:scheduler_info()) -> ok | {error, term()}.
+revive(#scheduler_info{subscribed = false}) ->
+    {error, not_subscribed};
+revive(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
+    RequestOptions1 = request_options(RequestOptions),
+    SchedulerInfo1 = SchedulerInfo#scheduler_info{request_options =
+                                                  RequestOptions1},
+    Call = #'Call'{type = 'REVIVE'},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    handle_response(send_request(SchedulerInfo1, Call1)).
+
 %% %% @doc Executes kill call.
 %% -spec kill(erl_mesos:scheduler_info(), erl_mesos:call_kill()) ->
 %%     ok | {error, term()}.
