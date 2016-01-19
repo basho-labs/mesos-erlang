@@ -40,7 +40,7 @@
                 callback,
                 test_pid}).
 
--define(LOG, true).
+-define(LOG, false).
 
 all() ->
     [bad_options, {group, mesos_cluster, [sequence]}].
@@ -730,8 +730,8 @@ start_mesos_slave(Config) ->
     timer:sleep(SlaveStartTimeout).
 
 stop_mesos_slave(Config) ->
-    erl_mesos_cluster:stop_slave(Config),
-    log("Stop test mesos slave.", Config).
+    log("Stop test mesos slave.", Config),
+    erl_mesos_cluster:stop_slave(Config).
 
 start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Config) ->
     log("Start scheduler. Ref: ~p, Scheduler: ~p.", [Ref, Scheduler], Config),
