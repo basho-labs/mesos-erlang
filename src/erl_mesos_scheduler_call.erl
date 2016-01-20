@@ -28,7 +28,7 @@
 
 %% @doc Executes subscribe call.
 -spec subscribe(erl_mesos_scheduler:scheduler_info(),
-                erl_mesos_scheduler:'Call.Subscribe'()) ->
+                erl_mesos:'Call.Subscribe'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 subscribe(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
           CallSubscribe) ->
@@ -52,8 +52,7 @@ teardown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
     handle_response(send_request(SchedulerInfo1, Call1)).
 
 %% @doc Executes accept call.
--spec accept(erl_mesos_scheduler:scheduler_info(),
-             erl_mesos_scheduler:'Call.Accept'()) ->
+-spec accept(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call.Accept'()) ->
     ok | {error, term()}.
 accept(#scheduler_info{subscribed = false}, _CallAccept) ->
     {error, not_subscribed};
@@ -68,7 +67,7 @@ accept(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
 
 %% @doc Executes decline call.
 -spec decline(erl_mesos_scheduler:scheduler_info(),
-              erl_mesos_scheduler:'Call.Decline'()) ->
+              erl_mesos:'Call.Decline'()) ->
     ok | {error, term()}.
 decline(#scheduler_info{subscribed = false}, _CallDecline) ->
     {error, not_subscribed};
@@ -94,8 +93,7 @@ revive(#scheduler_info{request_options = RequestOptions} = SchedulerInfo) ->
     handle_response(send_request(SchedulerInfo1, Call1)).
 
 %% @doc Executes kill call.
--spec kill(erl_mesos_scheduler:scheduler_info(),
-           erl_mesos_scheduler:'Call.Kill'()) ->
+-spec kill(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call.Kill'()) ->
     ok | {error, term()}.
 kill(#scheduler_info{subscribed = false}, _CallKill) ->
     {error, not_subscribed};
@@ -110,7 +108,7 @@ kill(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
 
 %% @doc Executes shutdown call.
 -spec shutdown(erl_mesos_scheduler:scheduler_info(),
-               erl_mesos_scheduler:'Call.Shutdown'()) ->
+               erl_mesos:'Call.Shutdown'()) ->
      ok | {error, term()}.
 shutdown(#scheduler_info{subscribed = false}, _CallShutdown) ->
     {error, not_subscribed};
@@ -125,7 +123,7 @@ shutdown(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
 
 %% @doc Executes acknowledge call.
 -spec acknowledge(erl_mesos_scheduler:scheduler_info(),
-                  erl_mesos_scheduler:'Call.Acknowledge'()) ->
+                  erl_mesos:'Call.Acknowledge'()) ->
     ok | {error, term()}.
 acknowledge(#scheduler_info{subscribed = false}, _CallAcknowledge) ->
     {error, not_subscribed};
@@ -140,7 +138,7 @@ acknowledge(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
 
 %% @doc Executes reconcile call.
 -spec reconcile(erl_mesos_scheduler:scheduler_info(),
-                erl_mesos_scheduler:'Call.Reconcile'()) ->
+                erl_mesos:'Call.Reconcile'()) ->
     ok | {error, term()}.
 reconcile(#scheduler_info{subscribed = false}, _CallReconcile) ->
     {error, not_subscribed};
@@ -155,7 +153,7 @@ reconcile(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
 
 %% @doc Executes message call.
 -spec message(erl_mesos_scheduler:scheduler_info(),
-              erl_mesos_scheduler:'Call.Message'()) ->
+              erl_mesos:'Call.Message'()) ->
     ok | {error, term()}.
 message(#scheduler_info{subscribed = false}, _CallMessage) ->
     {error, not_subscribed};
@@ -169,8 +167,7 @@ message(#scheduler_info{request_options = RequestOptions} = SchedulerInfo,
     handle_response(send_request(SchedulerInfo1, Call1)).
 
 %% @doc Executes request call.
--spec request(erl_mesos_scheduler:scheduler_info(),
-              erl_mesos_scheduler:'Call.Req'()) ->
+-spec request(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call.Req'()) ->
     ok | {error, term()}.
 request(#scheduler_info{subscribed = false}, _CallReq) ->
     {error, not_subscribed};
@@ -219,15 +216,14 @@ request_options(RequestOptions) ->
 %% @doc Sets framework id.
 %% @private
 -spec set_framework_id(erl_mesos_scheduler:scheduler_info(),
-                       erl_mesos_scheduler:'Call'()) ->
-    erl_mesos_scheduler:'Call'().
+                       erl_mesos:'Call'()) ->
+    erl_mesos:'Call'().
 set_framework_id(#scheduler_info{framework_id = FrameworkId}, Call) ->
     Call#'Call'{framework_id = FrameworkId}.
 
 %% @doc Sends http request.
 %% @private
--spec send_request(erl_mesos_scheduler:scheduler_info(),
-                   erl_mesos_scheduler:'Call'()) ->
+-spec send_request(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call'()) ->
     {ok, erl_mesos_http:client_ref()} |
     {ok, non_neg_integer(), erl_mesos_http:headers(),
      erl_mesos_http:client_ref()} |

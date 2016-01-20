@@ -41,7 +41,7 @@
                 heartbeat_timeout_window :: pos_integer(),
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
-                call_subscribe :: undefined | 'Call.Subscribe'(),
+                call_subscribe :: undefined | erl_mesos:'Call.Subscribe'(),
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
@@ -63,90 +63,6 @@
 -type scheduler_info() :: #scheduler_info{}.
 -export_type([scheduler_info/0]).
 
--type 'FrameworkInfo'() :: #'FrameworkInfo'{}.
--export_type(['FrameworkInfo'/0]).
-
--type 'FrameworkID'() :: #'FrameworkID'{}.
--export_type(['FrameworkID'/0]).
-
--type 'Event'() :: #'Event'{}.
--export_type(['Event'/0]).
-
--type 'Event.Subscribed'() :: #'Event.Subscribed'{}.
--export_type(['Event.Subscribed'/0]).
-
--type 'Event.Offers'() :: #'Event.Offers'{}.
--export_type(['Event.Offers'/0]).
-
--type 'Event.Rescind'() :: #'Event.Rescind'{}.
--export_type(['Event.Rescind'/0]).
-
--type 'Event.Update'() :: #'Event.Update'{}.
--export_type(['Event.Update'/0]).
-
--type 'Event.Message'() :: #'Event.Message'{}.
--export_type(['Event.Message'/0]).
-
--type 'Event.Failure'() :: #'Event.Failure'{}.
--export_type(['Event.Failure'/0]).
-
--type 'Event.Error'() :: #'Event.Error'{}.
--export_type(['Event.Error'/0]).
-
--type 'Call'() :: #'Call'{}.
--export_type(['Call'/0]).
-
--type 'Call.Subscribe'() :: #'Call.Subscribe'{}.
--export_type(['Call.Subscribe'/0]).
-
--type 'OfferID'() :: #'OfferID'{}.
--export_type(['OfferID'/0]).
-
--type 'Offer.Operation'() :: #'Offer.Operation'{}.
--export_type(['Offer.Operation'/0]).
-
--type 'Filters'() :: #'Filters'{}.
--export_type(['Filters'/0]).
-
--type 'Call.Accept'() :: #'Call.Accept'{}.
--export_type(['Call.Accept'/0]).
-
--type 'Call.Decline'() :: #'Call.Decline'{}.
--export_type(['Call.Decline'/0]).
-
--type 'TaskID'() :: #'TaskID'{}.
--export_type(['TaskID'/0]).
-
--type 'AgentID'() :: #'AgentID'{}.
--export_type(['AgentID'/0]).
-
--type 'Call.Kill'() :: #'Call.Kill'{}.
--export_type(['Call.Kill'/0]).
-
--type 'ExecutorID'() :: #'ExecutorID'{}.
--export_type(['ExecutorID'/0]).
-
--type 'Call.Shutdown'() :: #'Call.Shutdown'{}.
--export_type(['Call.Shutdown'/0]).
-
--type 'Call.Acknowledge'() :: #'Call.Acknowledge'{}.
--export_type(['Call.Acknowledge'/0]).
-
--type 'Call.Reconcile.Task'() :: #'Call.Reconcile.Task'{}.
--export_type(['Call.Reconcile.Task'/0]).
-
--type 'Call.Reconcile'() :: #'Call.Reconcile'{}.
--export_type(['Call.Reconcile'/0]).
-
--type 'Call.Message'() :: #'Call.Message'{}.
--export_type(['Call.Message'/0]).
-
--type 'Request'() :: #'Request'{}.
--export_type(['Request'/0]).
-
--type 'Call.Req'() :: #'Call.Req'{}.
--export_type(['Call.Req'/0]).
-
 -type state() :: #state{}.
 
 -type subscribe_response() :: subscribe_response().
@@ -156,9 +72,10 @@
 %% Callbacks.
 
 -callback init(term()) ->
-    {ok, 'FrameworkInfo'(), boolean(), term()} | {stop, term()}.
+    {ok, erl_mesos:'FrameworkInfo'(), boolean(), term()} | {stop, term()}.
 
--callback registered(scheduler_info(), 'Event.Subscribed'(), term()) ->
+-callback registered(scheduler_info(), erl_mesos:'Event.Subscribed'(),
+                     term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback disconnected(scheduler_info(), term()) ->
@@ -167,25 +84,29 @@
 -callback reregistered(scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback resource_offers(scheduler_info(), 'Event.Offers'(), term()) ->
+-callback resource_offers(scheduler_info(), erl_mesos:'Event.Offers'(),
+                          term()) ->
     {ok, term()} | {stop, term()}.
 
--callback offer_rescinded(scheduler_info(), 'Event.Rescind'(), term()) ->
+-callback offer_rescinded(scheduler_info(), erl_mesos:'Event.Rescind'(),
+                          term()) ->
     {ok, term()} | {stop, term()}.
 
--callback status_update(scheduler_info(), 'Event.Update'(), term()) ->
+-callback status_update(scheduler_info(), erl_mesos:'Event.Update'(),
+                        term()) ->
     {ok, term()} | {stop, term()}.
 
--callback framework_message(scheduler_info(), 'Event.Message'(), term()) ->
+-callback framework_message(scheduler_info(), erl_mesos:'Event.Message'(),
+                            term()) ->
     {ok, term()} | {stop, term()}.
 
--callback slave_lost(scheduler_info(), 'Event.Failure'(), term()) ->
+-callback slave_lost(scheduler_info(), erl_mesos:'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback executor_lost(scheduler_info(), 'Event.Failure'(), term()) ->
+-callback executor_lost(scheduler_info(), erl_mesos:'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback error(scheduler_info(), 'Event.Error'(), term()) ->
+-callback error(scheduler_info(), erl_mesos:'Event.Error'(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback handle_info(scheduler_info(), term(), term()) ->
@@ -228,14 +149,16 @@ teardown(SchedulerInfo) ->
     erl_mesos_scheduler_call:teardown(SchedulerInfo).
 
 %% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
--spec accept(scheduler_info(), ['OfferID'()], ['Offer.Operation'()]) ->
+-spec accept(scheduler_info(), [erl_mesos:'OfferID'()],
+             [erl_mesos:'Offer.Operation'()]) ->
     ok | {error, term()}.
 accept(SchedulerInfo, OfferIds, Operations) ->
     accept(SchedulerInfo, OfferIds, Operations, undefined).
 
 %% @doc Accept call.
--spec accept(scheduler_info(), ['OfferID'()], ['Offer.Operation'()],
-             undefined | 'Filters'()) ->
+-spec accept(scheduler_info(), [erl_mesos:'OfferID'()],
+             [erl_mesos:'Offer.Operation'()],
+             undefined | erl_mesos:'Filters'()) ->
     ok | {error, term()}.
 accept(SchedulerInfo, OfferIds, Operations, Filters) ->
     CallAccept = #'Call.Accept'{offer_ids = OfferIds,
@@ -244,12 +167,14 @@ accept(SchedulerInfo, OfferIds, Operations, Filters) ->
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
 
 %% @equiv decline(SchedulerInfo, OfferIds, undefined)
--spec decline(scheduler_info(), ['OfferID'()]) -> ok | {error, term()}.
+-spec decline(scheduler_info(), [erl_mesos:'OfferID'()]) ->
+    ok | {error, term()}.
 decline(SchedulerInfo, OfferIds) ->
     decline(SchedulerInfo, OfferIds, undefined).
 
 %% @doc Decline call.
--spec decline(scheduler_info(), ['OfferID'()], undefined | 'Filters'()) ->
+-spec decline(scheduler_info(), [erl_mesos:'OfferID'()],
+              undefined | erl_mesos:'Filters'()) ->
     ok | {error, term()}.
 decline(SchedulerInfo, OfferIds, Filters) ->
     CallDecline = #'Call.Decline'{offer_ids = OfferIds,
@@ -262,12 +187,12 @@ revive(SchedulerInfo) ->
     erl_mesos_scheduler_call:revive(SchedulerInfo).
 
 %% @equiv kill(SchedulerInfo, TaskId, undefined)
--spec kill(scheduler_info(), 'TaskID'()) -> ok | {error, term()}.
+-spec kill(scheduler_info(), erl_mesos:'TaskID'()) -> ok | {error, term()}.
 kill(SchedulerInfo, TaskId) ->
     kill(SchedulerInfo, TaskId, undefined).
 
 %% @doc Kill call.
--spec kill(scheduler_info(), 'TaskID'(), undefined | 'AgentID()') ->
+-spec kill(scheduler_info(), erl_mesos:'TaskID'(), undefined | 'AgentID()') ->
     ok | {error, term()}.
 kill(SchedulerInfo, TaskId, AgentId) ->
     CallKill = #'Call.Kill'{task_id = TaskId,
@@ -279,7 +204,8 @@ shutdown(SchedulerInfo, ExecutorId) ->
     shutdown(SchedulerInfo, ExecutorId, undefined).
 
 %% @doc Shutdown call.
--spec shutdown(scheduler_info(), 'ExecutorID'(), undefined | 'AgentID'()) ->
+-spec shutdown(scheduler_info(), erl_mesos:'ExecutorID'(),
+               undefined | erl_mesos:'AgentID'()) ->
     ok | {error, term()}.
 shutdown(SchedulerInfo, ExecutorId, AgentId) ->
     CallShutdown = #'Call.Shutdown'{executor_id = ExecutorId,
@@ -287,7 +213,8 @@ shutdown(SchedulerInfo, ExecutorId, AgentId) ->
     erl_mesos_scheduler_call:shutdown(SchedulerInfo, CallShutdown).
 
 %% @doc Acknowledge call.
--spec acknowledge(scheduler_info(), 'AgentID'(), 'TaskID'(), binary()) ->
+-spec acknowledge(scheduler_info(), erl_mesos:'AgentID'(), erl_mesos:'TaskID'(),
+                  binary()) ->
     ok | {error, term()}.
 acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
     CallAcknowledge = #'Call.Acknowledge'{agent_id = AgentId,
@@ -296,14 +223,15 @@ acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
     erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
 
 %% @doc Reconcile call.
--spec reconcile(scheduler_info(), ['Call.Reconcile.Task'()]) ->
+-spec reconcile(scheduler_info(), [erl_mesos:'Call.Reconcile.Task'()]) ->
     ok | {error, term()}.
 reconcile(SchedulerInfo, CallReconcileTasks) ->
     CallReconcile = #'Call.Reconcile'{tasks = CallReconcileTasks},
     erl_mesos_scheduler_call:reconcile(SchedulerInfo, CallReconcile).
 
 %% @doc Message call.
--spec message(scheduler_info(), 'AgentID'(), 'ExecutorID'(), binary()) ->
+-spec message(scheduler_info(), erl_mesos:'AgentID'(), erl_mesos:'ExecutorID'(),
+              binary()) ->
     ok | {error, term()}.
 message(SchedulerInfo, AgentId, ExecutorId, Data) ->
     CallMessage = #'Call.Message'{agent_id = AgentId,
@@ -312,7 +240,7 @@ message(SchedulerInfo, AgentId, ExecutorId, Data) ->
     erl_mesos_scheduler_call:message(SchedulerInfo, CallMessage).
 
 %% @doc Request call.
--spec request(scheduler_info(), ['Request'()]) -> ok | {error, term()}.
+-spec request(scheduler_info(), [erl_mesos:'Request'()]) -> ok | {error, term()}.
 request(SchedulerInfo, Requests) ->
     CallRequest = #'Call.Req'{requests = Requests},
     erl_mesos_scheduler_call:request(SchedulerInfo, CallRequest).
@@ -817,8 +745,8 @@ apply_event(Message, #state{master_host = MasterHost,
 
 %% @doc Sets default heartbeat interval.
 %% @private
--spec set_default_heartbeat_interval('Event.Subscribed'()) ->
-    'Event.Subscribed'().
+-spec set_default_heartbeat_interval(erl_mesos:'Event.Subscribed'()) ->
+    erl_mesos:'Event.Subscribed'().
 set_default_heartbeat_interval(#'Event.Subscribed'{heartbeat_interval_seconds =
                                                    undefined} =
                                EventSubscribed) ->

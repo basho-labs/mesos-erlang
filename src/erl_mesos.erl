@@ -2,11 +2,97 @@
 
 -behaviour(application).
 
+-include("scheduler_protobuf.hrl").
+
 -export([start/0]).
 
 -export([start_scheduler/4, start_scheduler/5, stop_scheduler/1]).
 
 -export([start/2, stop/1]).
+
+-type 'FrameworkInfo'() :: #'FrameworkInfo'{}.
+-export_type(['FrameworkInfo'/0]).
+
+-type 'FrameworkID'() :: #'FrameworkID'{}.
+-export_type(['FrameworkID'/0]).
+
+-type 'Event'() :: #'Event'{}.
+-export_type(['Event'/0]).
+
+-type 'Event.Subscribed'() :: #'Event.Subscribed'{}.
+-export_type(['Event.Subscribed'/0]).
+
+-type 'Event.Offers'() :: #'Event.Offers'{}.
+-export_type(['Event.Offers'/0]).
+
+-type 'Event.Rescind'() :: #'Event.Rescind'{}.
+-export_type(['Event.Rescind'/0]).
+
+-type 'Event.Update'() :: #'Event.Update'{}.
+-export_type(['Event.Update'/0]).
+
+-type 'Event.Message'() :: #'Event.Message'{}.
+-export_type(['Event.Message'/0]).
+
+-type 'Event.Failure'() :: #'Event.Failure'{}.
+-export_type(['Event.Failure'/0]).
+
+-type 'Event.Error'() :: #'Event.Error'{}.
+-export_type(['Event.Error'/0]).
+
+-type 'Call'() :: #'Call'{}.
+-export_type(['Call'/0]).
+
+-type 'Call.Subscribe'() :: #'Call.Subscribe'{}.
+-export_type(['Call.Subscribe'/0]).
+
+-type 'OfferID'() :: #'OfferID'{}.
+-export_type(['OfferID'/0]).
+
+-type 'Offer.Operation'() :: #'Offer.Operation'{}.
+-export_type(['Offer.Operation'/0]).
+
+-type 'Filters'() :: #'Filters'{}.
+-export_type(['Filters'/0]).
+
+-type 'Call.Accept'() :: #'Call.Accept'{}.
+-export_type(['Call.Accept'/0]).
+
+-type 'Call.Decline'() :: #'Call.Decline'{}.
+-export_type(['Call.Decline'/0]).
+
+-type 'TaskID'() :: #'TaskID'{}.
+-export_type(['TaskID'/0]).
+
+-type 'AgentID'() :: #'AgentID'{}.
+-export_type(['AgentID'/0]).
+
+-type 'Call.Kill'() :: #'Call.Kill'{}.
+-export_type(['Call.Kill'/0]).
+
+-type 'ExecutorID'() :: #'ExecutorID'{}.
+-export_type(['ExecutorID'/0]).
+
+-type 'Call.Shutdown'() :: #'Call.Shutdown'{}.
+-export_type(['Call.Shutdown'/0]).
+
+-type 'Call.Acknowledge'() :: #'Call.Acknowledge'{}.
+-export_type(['Call.Acknowledge'/0]).
+
+-type 'Call.Reconcile.Task'() :: #'Call.Reconcile.Task'{}.
+-export_type(['Call.Reconcile.Task'/0]).
+
+-type 'Call.Reconcile'() :: #'Call.Reconcile'{}.
+-export_type(['Call.Reconcile'/0]).
+
+-type 'Call.Message'() :: #'Call.Message'{}.
+-export_type(['Call.Message'/0]).
+
+-type 'Request'() :: #'Request'{}.
+-export_type(['Request'/0]).
+
+-type 'Call.Req'() :: #'Call.Req'{}.
+-export_type(['Call.Req'/0]).
 
 %% @doc Starts app with deps.
 -spec start() -> ok.

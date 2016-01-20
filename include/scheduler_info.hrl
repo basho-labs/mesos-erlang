@@ -3,4 +3,4 @@
                          master_host :: binary(),
                          request_options :: erl_mesos_http:options(),
                          subscribed :: boolean(),
-                         framework_id :: erl_mesos_scheduler:'FrameworkID'()}).
+                         framework_id :: erl_mesos:'FrameworkID'()}).
