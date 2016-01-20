@@ -46,6 +46,9 @@
 -type 'Call.Req'() :: #'Call.Req'{}.
 -export_type(['Call.Req'/0]).
 
+-type 'CommandInfo'() :: #'CommandInfo'{}.
+-export_type(['CommandInfo'/0]).
+
 -type 'CommandInfo.URI'() :: #'CommandInfo.URI'{}.
 -export_type(['CommandInfo.URI'/0]).
 
@@ -94,11 +97,16 @@
 -type 'OfferID'() :: #'OfferID'{}.
 -export_type(['OfferID'/0]).
 
+-type 'Resource'() :: #'Resource'{}.
+-export_type(['Resource'/0]).
+
 -type 'Request'() :: #'Request'{}.
 -export_type(['Request'/0]).
 
 -type 'TaskID'() :: #'TaskID'{}.
 -export_type(['TaskID'/0]).
+
+%% External functions.
 
 %% @doc Starts app with deps.
 -spec start() -> ok.
