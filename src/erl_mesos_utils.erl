@@ -18,6 +18,10 @@
 
 -export([executor_id/1]).
 
+-export([executor_info/2, executor_info/3, executor_info/4]).
+
+-export([framework_id/1]).
+
 -type resources() :: #resources{}.
 -export_type([resources/0]).
 
@@ -66,12 +70,31 @@ command_info_uri(Value, Executable, Extract) ->
                        executable = Executable,
                        extract = Extract}.
 
+%% @equiv command_info(Value, [], true)
+-spec command_info(string()) -> erl_mesos:'CommandInfo'().
+command_info(Value) ->
+    command_info(Value, [], true).
+
+%% @equiv command_info(Value, Uris, true)
+-spec command_info(string(), [erl_mesos:'CommandInfo.URI'()]) ->
+    erl_mesos:'CommandInfo'().
+command_info(Value, Uris) ->
+    command_info(Value, Uris, true).
+
+%% @doc Returns command info.
+-spec command_info(string(), [erl_mesos:'CommandInfo.URI'()], boolean()) ->
+    erl_mesos:'CommandInfo'().
+command_info(Value, Uris, Shell) ->
+    #'CommandInfo'{uris = Uris,
+                   shell = Shell,
+                   value = Value}.
+
 %% @doc Returns scalar resource.
 -spec scalar_resource(string(), float()) -> erl_mesos:'Resource'().
 scalar_resource(Name, Value) ->
     #'Resource'{name = Name,
-                type = 'SCALAR',
-                scalar = #'Value.Scalar'{value = Value}}.
+        type = 'SCALAR',
+        scalar = #'Value.Scalar'{value = Value}}.
 
 %% @doc Returns ranges resource.
 -spec ranges_resource(string(), [{non_neg_integer(), non_neg_integer()}]) ->
@@ -96,24 +119,34 @@ set_resource(Name, Items) ->
 executor_id(Value) ->
     #'ExecutorID'{value = Value}.
 
-%% @equiv command_info(Value, [], true)
--spec command_info(string()) -> erl_mesos:'CommandInfo'().
-command_info(Value) ->
-    command_info(Value, [], true).
+%% @equiv executor_info(Id, Command, [], undefined)
+-spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'()) ->
+    erl_mesos:'ExecutorInfo'().
+executor_info(Id, Command) ->
+    executor_info(Id, Command, [], undefined).
 
-%% @equiv command_info(Value, Uris, true)
--spec command_info(string(), [erl_mesos:'CommandInfo.URI'()]) ->
-    erl_mesos:'CommandInfo'().
-command_info(Value, Uris) ->
-    command_info(Value, Uris, true).
+%% @equiv executor_info(Id, Command, Resources, undefined)
+-spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'(),
+                    [erl_mesos:'Resource'()]) ->
+    erl_mesos:'ExecutorInfo'().
+executor_info(Id, Command, Resources) ->
+    executor_info(Id, Command, Resources, undefined).
 
-%% @doc Returns command info.
--spec command_info(string(), [erl_mesos:'CommandInfo.URI'()], boolean()) ->
-    erl_mesos:'CommandInfo'().
-command_info(Value, Uris, Shell) ->
-    #'CommandInfo'{uris = Uris,
-                   shell = Shell,
-                   value = Value}.
+%% @doc Returns executor info.
+-spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'(),
+                    [erl_mesos:'Resource'()],
+                    undefined | erl_mesos:'FrameworkID'()) ->
+    erl_mesos:'ExecutorInfo'().
+executor_info(Id, Command, Resources, FrameworkId) ->
+    #'ExecutorInfo'{executor_id = Id,
+                    framework_id = FrameworkId,
+                    command = Command,
+                    resources = Resources}.
+
+%% @doc Returns framework id.
+-spec framework_id(string()) -> erl_mesos:'FrameworkID'().
+framework_id(Value) ->
+    #'FrameworkID'{value = Value}.
 
 %% Internal functions.
 

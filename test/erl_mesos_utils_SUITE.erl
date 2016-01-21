@@ -9,13 +9,15 @@
 -export([extract_resources/1,
          command_info_uri/1,
          command_info/1,
-         resource/1]).
+         resource/1,
+         executor_info/1]).
 
 all() ->
     [extract_resources,
      command_info_uri,
      command_info,
-     resource].
+     resource,
+     executor_info].
 
 %% Test functions.
 
@@ -103,6 +105,8 @@ resource(_Config) ->
     ScalarValue = 0.1,
     RangesName = "ports",
     Ranges = [{1, 3}, {4, 6}],
+    SetName = "set",
+    SetItems = ["frist", "second"],
     ValueRanges = [#'Value.Range'{'begin' = Begin, 'end' = End} ||
                    {Begin, End} <- Ranges],
     #'Resource'{name = ScalarName,
@@ -113,4 +117,29 @@ resource(_Config) ->
                 type = 'RANGES',
                 ranges = #'Value.Ranges'{range = ValueRanges}} =
             erl_mesos_utils:ranges_resource(RangesName, Ranges),
-    ok.
+    #'Resource'{name = SetName,
+                type = 'SET',
+                set = #'Value.Set'{item = SetItems}} =
+        erl_mesos_utils:set_resource(SetName, SetItems).
+
+executor_info(_Config) ->
+    Id = erl_mesos_utils:executor_id("executor_id"),
+    CommandInfoUri = erl_mesos_utils:command_info_uri("uri"),
+    CommandInfo = erl_mesos_utils:command_info("command", [CommandInfoUri]),
+    Resources = [erl_mesos_utils:scalar_resource("cpus", 0.1)],
+    FrameworkId = erl_mesos_utils:framework_id("framework_id"),
+    #'ExecutorInfo'{executor_id = Id,
+                    framework_id = undefined,
+                    command = CommandInfo,
+                    resources = []} =
+        erl_mesos_utils:executor_info(Id, CommandInfo),
+    #'ExecutorInfo'{executor_id = Id,
+                    framework_id = undefined,
+                    command = CommandInfo,
+                    resources = Resources} =
+        erl_mesos_utils:executor_info(Id, CommandInfo, Resources),
+    #'ExecutorInfo'{executor_id = Id,
+                    framework_id = FrameworkId,
+                    command = CommandInfo,
+                    resources = Resources} =
+        erl_mesos_utils:executor_info(Id, CommandInfo, Resources, FrameworkId).
