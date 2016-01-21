@@ -8,12 +8,14 @@
 
 -export([extract_resources/1,
          command_info_uri/1,
-         command_info/1]).
+         command_info/1,
+         resource/1]).
 
 all() ->
     [extract_resources,
      command_info_uri,
-     command_info].
+     command_info,
+     resource].
 
 %% Test functions.
 
@@ -95,3 +97,20 @@ command_info(_Config) ->
                    shell = false,
                    value = Value} =
         erl_mesos_utils:command_info(Value, [CommandInfoUri], false).
+
+resource(_Config) ->
+    ScalarName = "cpus",
+    ScalarValue = 0.1,
+    RangesName = "ports",
+    Ranges = [{1, 3}, {4, 6}],
+    ValueRanges = [#'Value.Range'{'begin' = Begin, 'end' = End} ||
+                   {Begin, End} <- Ranges],
+    #'Resource'{name = ScalarName,
+                type = 'SCALAR',
+                scalar = #'Value.Scalar'{value = ScalarValue}} =
+        erl_mesos_utils:scalar_resource(ScalarName, ScalarValue),
+    #'Resource'{name = RangesName,
+                type = 'RANGES',
+                ranges = #'Value.Ranges'{range = ValueRanges}} =
+            erl_mesos_utils:ranges_resource(RangesName, Ranges),
+    ok.

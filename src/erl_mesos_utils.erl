@@ -14,6 +14,10 @@
 
 -export([command_info/1, command_info/2, command_info/3]).
 
+-export([scalar_resource/2, ranges_resource/2, set_resource/2]).
+
+-export([executor_id/1]).
+
 -type resources() :: #resources{}.
 -export_type([resources/0]).
 
@@ -61,6 +65,36 @@ command_info_uri(Value, Executable, Extract) ->
     #'CommandInfo.URI'{value = Value,
                        executable = Executable,
                        extract = Extract}.
+
+%% @doc Returns scalar resource.
+-spec scalar_resource(string(), float()) -> erl_mesos:'Resource'().
+scalar_resource(Name, Value) ->
+    #'Resource'{name = Name,
+                type = 'SCALAR',
+                scalar = #'Value.Scalar'{value = Value}}.
+
+%% @doc Returns ranges resource.
+-spec ranges_resource(string(), [{non_neg_integer(), non_neg_integer()}]) ->
+    erl_mesos:'Resource'().
+ranges_resource(Name, Ranges) ->
+    #'Resource'{name = Name,
+                type = 'RANGES',
+                ranges = #'Value.Ranges'{range =
+                              [#'Value.Range'{'begin' = Begin,
+                                              'end' = End} ||
+                               {Begin, End} <- Ranges]}}.
+
+%% @doc Returns ranges resource.
+-spec set_resource(string(), [string()]) -> erl_mesos:'Resource'().
+set_resource(Name, Items) ->
+    #'Resource'{name = Name,
+                type = 'SET',
+                set = #'Value.Set'{item = Items}}.
+
+%% @doc Returns executor id.
+-spec executor_id(string()) -> erl_mesos:'ExecutorID'().
+executor_id(Value) ->
+    #'ExecutorID'{value = Value}.
 
 %% @equiv command_info(Value, [], true)
 -spec command_info(string()) -> erl_mesos:'CommandInfo'().
