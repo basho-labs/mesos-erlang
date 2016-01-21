@@ -106,6 +106,24 @@
 -type 'TaskID'() :: #'TaskID'{}.
 -export_type(['TaskID'/0]).
 
+-type 'Value'() :: #'Value'{}.
+-export_type(['Value'/0]).
+
+-type 'Value.Scalar'() :: #'Value.Scalar'{}.
+-export_type(['Value.Scalar'/0]).
+
+-type 'Value.Ranges'() :: #'Value.Ranges'{}.
+-export_type(['Value.Ranges'/0]).
+
+-type 'Value.Range'() :: #'Value.Range'{}.
+-export_type(['Value.Range'/0]).
+
+-type 'Value.Set'() :: #'Value.Set'{}.
+-export_type(['Value.Set'/0]).
+
+-type 'Value.Text'() :: #'Value.Text'{}.
+-export_type(['Value.Text'/0]).
+
 %% External functions.
 
 %% @doc Starts app with deps.
