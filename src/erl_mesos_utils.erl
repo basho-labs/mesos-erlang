@@ -10,7 +10,8 @@
          resources_ports/1,
          extract_resources/1]).
 
--export([command_info/1,
+-export([command_info_uri/1,
+         command_info_uri/2,
          command_info_uri/3]).
 
 -type resources() :: #resources{}.
@@ -43,18 +44,23 @@ resources_ports(#resources{ports = Ports}) ->
 extract_resources(Resources) ->
     extract_resources(Resources, #resources{}).
 
+%% @equiv command_info_uri(Value, true, false)
+-spec command_info_uri(string()) -> erl_mesos:'CommandInfo.URI'().
+command_info_uri(Value) ->
+    command_info_uri(Value, true, false).
+
+%% @equiv command_info_uri(Value, Executable, false)
+-spec command_info_uri(string(), boolean()) -> erl_mesos:'CommandInfo.URI'().
+command_info_uri(Value, Executable) ->
+    command_info_uri(Value, Executable, false).
+
 %% @doc Returns command info uri.
 -spec command_info_uri(string(), boolean(), boolean()) ->
     erl_mesos:'CommandInfo.URI'().
-command_info_uri(Value, Extract, Executable) ->
+command_info_uri(Value, Executable, Extract) ->
     #'CommandInfo.URI'{value = Value,
-                       extract = Extract,
-                       executable = Executable}.
-
-%% @doc Returns command info.
--spec command_info(string()) -> erl_mesos:'CommandInfo'().
-command_info(Value) ->
-    #'CommandInfo'{value = Value}.
+                       executable = Executable,
+                       extract = Extract}.
 
 %% Internal functions.
 

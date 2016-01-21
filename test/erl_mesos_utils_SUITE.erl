@@ -6,11 +6,12 @@
 
 -export([all/0]).
 
--export([extract_resources/1]).
+-export([extract_resources/1,
+         command_info_uri/1]).
 
 all() ->
-    [extract_resources].
-
+    [extract_resources,
+     command_info_uri].
 
 %% Test functions.
 
@@ -62,3 +63,18 @@ extract_resources(_Config) ->
     Mem = MemValue1 + MemValue2,
     Disk = DiskValue1 + DiskValue2,
     Ports = lists:seq(0, 9).
+
+command_info_uri(_Config) ->
+    Value = "uri",
+    #'CommandInfo.URI'{value = Value,
+                       executable = true,
+                       extract = false} =
+        erl_mesos_utils:command_info_uri(Value),
+    #'CommandInfo.URI'{value = Value,
+                       executable = false,
+                       extract = false} =
+        erl_mesos_utils:command_info_uri(Value, false),
+    #'CommandInfo.URI'{value = Value,
+                       executable = true,
+                       extract = false} =
+        erl_mesos_utils:command_info_uri(Value, true, false).
