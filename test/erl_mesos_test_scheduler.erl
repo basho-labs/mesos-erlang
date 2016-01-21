@@ -173,7 +173,7 @@ handle_info(SchedulerInfo, suppress,
     reply(TestPid, {suppress, Suppress}),
     {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
-     {stop, State};
+    {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->
     {ok, State}.
 
