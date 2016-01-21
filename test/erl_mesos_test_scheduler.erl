@@ -183,12 +183,10 @@ terminate(SchedulerInfo, Reason, #state{test_pid = TestPid} = State) ->
 %% Internal functions.
 
 framework_info(Options) ->
-    User = proplists:get_value(user, Options, <<>>),
-    Name = proplists:get_value(name, Options, <<>>),
-    FailoverTimeout = proplists:get_value(failover_timeout, Options, undefined),
-    #'FrameworkInfo'{user = User,
-                     name = Name,
-                     failover_timeout = FailoverTimeout}.
+    Name = proplists:get_value(name, Options, ""),
+    User = proplists:get_value(user, Options, ""),
+    FailoverTimeout = proplists:get_value(failover_timeout, Options, 0.0),
+    erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
 
 reply(undefined, _Message) ->
     undefined;
