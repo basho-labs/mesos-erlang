@@ -10,9 +10,9 @@
          resources_ports/1,
          extract_resources/1]).
 
--export([command_info_uri/1,
-         command_info_uri/2,
-         command_info_uri/3]).
+-export([command_info_uri/1, command_info_uri/2, command_info_uri/3]).
+
+-export([command_info/1, command_info/2, command_info/3]).
 
 -type resources() :: #resources{}.
 -export_type([resources/0]).
@@ -35,7 +35,7 @@ resources_disk(#resources{disk = Disk}) ->
     Disk.
 
 %% @doc Returns resources ports.
--spec resources_ports(resources()) -> [[non_neg_integer()]].
+-spec resources_ports(resources()) -> [non_neg_integer()].
 resources_ports(#resources{ports = Ports}) ->
     Ports.
 
@@ -62,6 +62,25 @@ command_info_uri(Value, Executable, Extract) ->
                        executable = Executable,
                        extract = Extract}.
 
+%% @equiv command_info(Value, [], true)
+-spec command_info(string()) -> erl_mesos:'CommandInfo'().
+command_info(Value) ->
+    command_info(Value, [], true).
+
+%% @equiv command_info(Value, Uris, true)
+-spec command_info(string(), [erl_mesos:'CommandInfo.URI'()]) ->
+    erl_mesos:'CommandInfo'().
+command_info(Value, Uris) ->
+    command_info(Value, Uris, true).
+
+%% @doc Returns command info.
+-spec command_info(string(), [erl_mesos:'CommandInfo.URI'()], boolean()) ->
+    erl_mesos:'CommandInfo'().
+command_info(Value, Uris, Shell) ->
+    #'CommandInfo'{uris = Uris,
+                   shell = Shell,
+                   value = Value}.
+
 %% Internal functions.
 
 %% @doc Returns extracted resources.
@@ -86,10 +105,10 @@ extract_resources([#'Resource'{name = "ports",
                                type = 'RANGES',
                                ranges = #'Value.Ranges'{range = Ranges}} |
                    Resources], #resources{ports = Ports} = Res) ->
-    Ports1 = Ports ++ lists:foldl(fun(#'Value.Range'{'begin' = Begin,
-                                                     'end' = End}, Acc) ->
-                                      Acc ++ lists:seq(Begin, End)
-                                  end, [], Ranges),
+    Ports1 = lists:foldl(fun(#'Value.Range'{'begin' = Begin,
+                                            'end' = End}, Acc) ->
+                             Acc ++ lists:seq(Begin, End)
+                         end, Ports, Ranges),
     extract_resources(Resources, Res#resources{ports = Ports1});
 extract_resources([_Resource | Resources], Res) ->
     extract_resources(Resources, Res);
