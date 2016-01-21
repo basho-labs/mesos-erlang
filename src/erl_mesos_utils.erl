@@ -28,6 +28,12 @@
 
 -export([task_info/4, task_info/5, task_info/6]).
 
+-export([launch_offer_operation/1,
+         reserve_offer_operation/1,
+         unreserve_offer_operation/1,
+         create_offer_operation/1,
+         destroy_offer_operation/1]).
+
 -type resources() :: #resources{}.
 -export_type([resources/0]).
 
@@ -208,6 +214,46 @@ task_info(Name, Id, AgentId, Resources, Executor, Command) ->
                 resources = Resources,
                 executor = Executor,
                 command = Command}.
+
+%% @doc Returns launch offer operation.
+-spec launch_offer_operation([erl_mesos:'TaskInfo'()]) ->
+    erl_mesos:'Offer.Operation'().
+launch_offer_operation(TaskInfos) ->
+    #'Offer.Operation'{type = 'LAUNCH',
+                       launch =
+                           #'Offer.Operation.Launch'{task_infos = TaskInfos}}.
+
+%% @doc Returns reserve offer operation.
+-spec reserve_offer_operation([erl_mesos:'Resource'()]) ->
+    erl_mesos:'Offer.Operation'().
+reserve_offer_operation(Resources) ->
+    #'Offer.Operation'{type = 'RESERVE',
+                       reserve =
+                           #'Offer.Operation.Reserve'{resources = Resources}}.
+
+%% @doc Returns unreserve offer operation.
+-spec unreserve_offer_operation([erl_mesos:'Resource'()]) ->
+    erl_mesos:'Offer.Operation'().
+unreserve_offer_operation(Resources) ->
+    #'Offer.Operation'{type = 'UNRESERVE',
+                       unreserve =
+                           #'Offer.Operation.Unreserve'{resources = Resources}}.
+
+%% @doc Returns create offer operation.
+-spec create_offer_operation([erl_mesos:'Resource'()]) ->
+    erl_mesos:'Offer.Operation'().
+create_offer_operation(Resources) ->
+    #'Offer.Operation'{type = 'CREATE',
+                       create =
+                           #'Offer.Operation.Create'{volumes = Resources}}.
+
+%% @doc Returns destroy offer operation.
+-spec destroy_offer_operation([erl_mesos:'Resource'()]) ->
+    erl_mesos:'Offer.Operation'().
+destroy_offer_operation(Resources) ->
+    #'Offer.Operation'{type = 'DESTROY',
+                       destroy =
+                           #'Offer.Operation.Destroy'{volumes = Resources}}.
 
 %% Internal functions.
 
