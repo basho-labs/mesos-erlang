@@ -24,6 +24,10 @@
 
 -export([framework_info/2, framework_info/3]).
 
+-export([task_id/1]).
+
+-export([task_info/4, task_info/5, task_info/6]).
+
 -type resources() :: #resources{}.
 -export_type([resources/0]).
 
@@ -103,8 +107,8 @@ command_info(Value, Uris, Shell, User) ->
 -spec scalar_resource(string(), float()) -> erl_mesos:'Resource'().
 scalar_resource(Name, Value) ->
     #'Resource'{name = Name,
-        type = 'SCALAR',
-        scalar = #'Value.Scalar'{value = Value}}.
+                type = 'SCALAR',
+                scalar = #'Value.Scalar'{value = Value}}.
 
 %% @doc Returns ranges resource.
 -spec ranges_resource(string(), [{non_neg_integer(), non_neg_integer()}]) ->
@@ -170,6 +174,40 @@ framework_info(Name, User, FailoverTimeout) ->
     #'FrameworkInfo'{name = Name,
                      user = User,
                      failover_timeout = FailoverTimeout}.
+
+%% @doc Returns task id.
+-spec task_id(string()) -> erl_mesos:'TaskID'().
+task_id(Value) ->
+    #'TaskID'{value = Value}.
+
+%% @equiv task_info(Name, Id, AgentId, Resources, undefined, undefined)
+-spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
+                [erl_mesos:'Resource'()]) ->
+    erl_mesos:'TaskInfo'().
+task_info(Name, Id, AgentId, Resources) ->
+    task_info(Name, Id, AgentId, Resources, undefined, undefined).
+
+%% @equiv task_info(Name, Id, AgentId, Resources, Executor, undefined)
+-spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
+                [erl_mesos:'Resource'()],
+                undefined | erl_mesos:'ExecutorInfo'()) ->
+                erl_mesos:'TaskInfo'().
+task_info(Name, Id, AgentId, Resources, Executor) ->
+    task_info(Name, Id, AgentId, Resources, Executor, undefined).
+
+%% @doc Returns task info.
+-spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
+                [erl_mesos:'Resource'()],
+                undefined | erl_mesos:'ExecutorInfo'(),
+                undefined | erl_mesos:'CommandInfo'()) ->
+    erl_mesos:'TaskInfo'().
+task_info(Name, Id, AgentId, Resources, Executor, Command) ->
+    #'TaskInfo'{name = Name,
+                task_id = Id,
+                agent_id = AgentId,
+                resources = Resources,
+                executor = Executor,
+                command = Command}.
 
 %% Internal functions.
 
