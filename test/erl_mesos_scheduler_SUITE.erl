@@ -322,6 +322,15 @@ resource_offers(Config) ->
                         end
                   end,
     lists:map(ResourceFun, Resources),
+    Res = erl_mesos_utils:extract_resources(Resources),
+    Cpus = erl_mesos_utils:resources_cpus(Res),
+    Mem = erl_mesos_utils:resources_mem(Res),
+    Disk = erl_mesos_utils:resources_disk(Res),
+    Ports = erl_mesos_utils:resources_ports(Res),
+    true = is_float(Cpus),
+    true = is_float(Mem),
+    true = is_float(Disk),
+    true = is_list(Ports),
     %% Test scheduler state.
     FormatState = format_state(SchedulerPid),
     #state{callback = resource_offers} = scheduler_state(FormatState),
