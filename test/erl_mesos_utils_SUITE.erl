@@ -87,18 +87,27 @@ command_info_uri(_Config) ->
 
 command_info(_Config) ->
     Value = "value",
-    CommandInfoUri = erl_mesos_utils:command_info_uri(Value),
+    User = "user",
+    CommandInfoUri = erl_mesos_utils:command_info_uri("uri"),
     #'CommandInfo'{uris = [],
                    shell = true,
-                   value = Value} = erl_mesos_utils:command_info(Value),
+                   value = Value,
+                   user = undefined} = erl_mesos_utils:command_info(Value),
     #'CommandInfo'{uris = [CommandInfoUri],
                    shell = true,
-                   value = Value} =
+                   value = Value,
+                   user = undefined} =
         erl_mesos_utils:command_info(Value, [CommandInfoUri]),
     #'CommandInfo'{uris = [CommandInfoUri],
                    shell = false,
-                   value = Value} =
-        erl_mesos_utils:command_info(Value, [CommandInfoUri], false).
+                   value = Value,
+                   user = undefined} =
+        erl_mesos_utils:command_info(Value, [CommandInfoUri], false),
+    #'CommandInfo'{uris = [CommandInfoUri],
+                   shell = false,
+                   value = Value,
+                   user = User} =
+        erl_mesos_utils:command_info(Value, [CommandInfoUri], false, User).
 
 resource(_Config) ->
     ScalarName = "cpus",
