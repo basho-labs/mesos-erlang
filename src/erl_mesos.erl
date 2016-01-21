@@ -109,6 +109,9 @@
 -type 'TaskID'() :: #'TaskID'{}.
 -export_type(['TaskID'/0]).
 
+-type 'TaskInfo'() :: #'TaskInfo'{}.
+-export_type(['TaskInfo'/0]).
+
 -type 'Value'() :: #'Value'{}.
 -export_type(['Value'/0]).
 
