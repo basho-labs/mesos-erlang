@@ -4,7 +4,11 @@
 
 -include("utils.hrl").
 
--export([extract_resources/1]).
+-export([resources_cpus/1,
+         resources_mem/1,
+         resources_disk/1,
+         resources_ports/1,
+         extract_resources/1]).
 
 -export([command_info/1,
          command_info_uri/3]).
@@ -13,6 +17,26 @@
 -export_type([resources/0]).
 
 %% External functions.
+
+%% @doc Returns resources cpus.
+-spec resources_cpus(resources()) -> float().
+resources_cpus(#resources{cpus = Cpus}) ->
+    Cpus.
+
+%% @doc Returns resources mem.
+-spec resources_mem(resources()) -> float().
+resources_mem(#resources{mem = Mem}) ->
+    Mem.
+
+%% @doc Returns resources disk.
+-spec resources_disk(resources()) -> float().
+resources_disk(#resources{disk = Disk}) ->
+    Disk.
+
+%% @doc Returns resources ports.
+-spec resources_ports(resources()) -> [[non_neg_integer()]].
+resources_ports(#resources{ports = Ports}) ->
+    Ports.
 
 %% @doc Returns extracted resources.
 -spec extract_resources([erl_mesos:'Resource'()]) -> resources().
@@ -35,6 +59,7 @@ command_info(Value) ->
 %% Internal functions.
 
 %% @doc Returns extracted resources.
+%% @private
 -spec extract_resources([erl_mesos:'Resource'()], resources()) -> resources().
 extract_resources([#'Resource'{name = "cpus",
                                type = 'SCALAR',
@@ -55,13 +80,13 @@ extract_resources([#'Resource'{name = "ports",
                                type = 'RANGES',
                                ranges = #'Value.Ranges'{range = Ranges}} |
                    Resources], #resources{ports = Ports} = Res) ->
-    Ports1 = Ports ++ value_ranges_to_list(Ranges, []),
+    Ports1 = Ports ++ lists:foldl(fun(#'Value.Range'{'begin' = Begin,
+                                                     'end' = End}, Acc) ->
+                                      Acc ++ lists:seq(Begin, End)
+                                  end, [], Ranges),
     extract_resources(Resources, Res#resources{ports = Ports1});
+extract_resources([_Resource | Resources], Res) ->
+    extract_resources(Resources, Res);
 extract_resources([], Res) ->
     Res.
 
-value_ranges_to_list([#'Value.Range'{'begin' = Begin, 'end' = End} | Ranges],
-                     Values) ->
-    value_ranges_to_list(Ranges, Values ++ lists:seq(Begin, End));
-value_ranges_to_list([], Values) ->
-    Values.
