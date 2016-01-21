@@ -22,6 +22,8 @@
 
 -export([framework_id/1]).
 
+-export([framework_info/2, framework_info/3]).
+
 -type resources() :: #resources{}.
 -export_type([resources/0]).
 
@@ -155,6 +157,19 @@ executor_info(Id, Command, Resources, FrameworkId) ->
 -spec framework_id(string()) -> erl_mesos:'FrameworkID'().
 framework_id(Value) ->
     #'FrameworkID'{value = Value}.
+
+%% @equiv framework_info(Name, User, 0.0)
+-spec framework_info(string(), string()) -> erl_mesos:'FrameworkInfo'().
+framework_info(Name, User) ->
+    framework_info(Name, User, 0.0).
+
+%% @doc Returns framework info.
+-spec framework_info(string(), string(), float()) ->
+    erl_mesos:'FrameworkInfo'().
+framework_info(Name, User, FailoverTimeout) ->
+    #'FrameworkInfo'{name = Name,
+                     user = User,
+                     failover_timeout = FailoverTimeout}.
 
 %% Internal functions.
 

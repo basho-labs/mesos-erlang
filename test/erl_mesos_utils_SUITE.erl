@@ -10,14 +10,16 @@
          command_info_uri/1,
          command_info/1,
          resource/1,
-         executor_info/1]).
+         executor_info/1,
+         framework_info/1]).
 
 all() ->
     [extract_resources,
      command_info_uri,
      command_info,
      resource,
-     executor_info].
+     executor_info,
+     framework_info].
 
 %% Test functions.
 
@@ -152,3 +154,16 @@ executor_info(_Config) ->
                     command = CommandInfo,
                     resources = Resources} =
         erl_mesos_utils:executor_info(Id, CommandInfo, Resources, FrameworkId).
+
+framework_info(_Config) ->
+    Name = "name",
+    User = "user",
+    FailoverTimeout = 1.0,
+    #'FrameworkInfo'{name = Name,
+                     user = User,
+                     failover_timeout = 0.0} =
+        erl_mesos_utils:framework_info(Name, User),
+    #'FrameworkInfo'{name = Name,
+                     user = User,
+                     failover_timeout = FailoverTimeout} =
+        erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
