@@ -79,6 +79,9 @@
 -type 'ExecutorID'() :: #'ExecutorID'{}.
 -export_type(['ExecutorID'/0]).
 
+-type 'ExecutorInfo'() :: #'ExecutorInfo'{}.
+-export_type(['ExecutorInfo'/0]).
+
 -type 'Filters'() :: #'Filters'{}.
 -export_type(['Filters'/0]).
 
