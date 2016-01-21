@@ -4,8 +4,6 @@
 
 -include_lib("scheduler_protobuf.hrl").
 
--include_lib("utils.hrl").
-
 -export([all/0]).
 
 -export([extract_resources/1]).
@@ -17,15 +15,20 @@ all() ->
 %% Test functions.
 
 extract_resources(_Config) ->
+    Res = erl_mesos_utils:extract_resources([]),
+    0.0 = erl_mesos_utils:resources_cpus(Res),
+    0.0 = erl_mesos_utils:resources_mem(Res),
+    0.0 = erl_mesos_utils:resources_disk(Res),
+    [] = erl_mesos_utils:resources_ports(Res),
     CpusValue1 = 0.1,
     CpusValue2 = 0.2,
     MemValue1 = 0.3,
     MemValue2= 0.4,
     DiskValue1 = 128.0,
     DiskValue2 = 256.0,
-    PortRanges1 = [#'Value.Range'{'begin' = 1, 'end' = 3},
-                   #'Value.Range'{'begin' = 5, 'end' = 7}],
-    PortRanges2 = [#'Value.Range'{'begin' = 9, 'end' = 12}],
+    PortRanges1 = [#'Value.Range'{'begin' = 0, 'end' = 3},
+                   #'Value.Range'{'begin' = 4, 'end' = 6}],
+    PortRanges2 = [#'Value.Range'{'begin' = 7, 'end' = 9}],
     Resourses = [#'Resource'{name = "cpus",
                              type = 'SCALAR',
                              scalar = #'Value.Scalar'{value = CpusValue1}},
@@ -50,11 +53,12 @@ extract_resources(_Config) ->
                  #'Resource'{name = "ports",
                              type = 'RANGES',
                              ranges = #'Value.Ranges'{range = PortRanges2}}],
-    #resources{cpus = Cpus,
-               mem = Mem,
-               disk = Disk,
-               ports = Ports} = erl_mesos_utils:extract_resources(Resourses),
+    Res1 = erl_mesos_utils:extract_resources(Resourses),
+    Cpus = erl_mesos_utils:resources_cpus(Res1),
+    Mem = erl_mesos_utils:resources_mem(Res1),
+    Disk = erl_mesos_utils:resources_disk(Res1),
+    Ports = erl_mesos_utils:resources_ports(Res1),
     Cpus = CpusValue1 + CpusValue2,
     Mem = MemValue1 + MemValue2,
     Disk = DiskValue1 + DiskValue2,
-    ct:pal("Res ~p~n", [Ports]).
+    Ports = lists:seq(0, 9).
