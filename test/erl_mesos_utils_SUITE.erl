@@ -12,7 +12,8 @@
          resource/1,
          executor_info/1,
          framework_info/1,
-         task_info/1]).
+         task_info/1,
+         offer_operation/1]).
 
 all() ->
     [extract_resources,
@@ -21,7 +22,8 @@ all() ->
      resource,
      executor_info,
      framework_info,
-     task_info].
+     task_info,
+     offer_operation].
 
 %% Test functions.
 
@@ -195,3 +197,36 @@ task_info(_Config) ->
                 command = CommandInfo} =
         erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources, undefined,
                                   CommandInfo).
+
+offer_operation(_Config) ->
+    Name = "name",
+    TaskId = erl_mesos_utils:task_id("task_id"),
+    AgentId = erl_mesos_utils:agent_id("agent_id"),
+    Resources = [erl_mesos_utils:scalar_resource("cpus", 0.1)],
+    CommandInfo = erl_mesos_utils:command_info("command"),
+    ExecutorId = erl_mesos_utils:executor_id("executor_id"),
+    ExecutorInfo = erl_mesos_utils:executor_info(ExecutorId, CommandInfo),
+    TaskInfo = erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources,
+                                         ExecutorInfo),
+    #'Offer.Operation'{type = 'LAUNCH',
+                       launch =
+                           #'Offer.Operation.Launch'{task_infos = [TaskInfo]}} =
+        erl_mesos_utils:launch_offer_operation([TaskInfo]),
+    #'Offer.Operation'{type = 'RESERVE',
+                       reserve =
+                           #'Offer.Operation.Reserve'{resources =
+                                                      [Resources]}} =
+        erl_mesos_utils:reserve_offer_operation([Resources]),
+    #'Offer.Operation'{type = 'UNRESERVE',
+                       unreserve =
+                           #'Offer.Operation.Unreserve'{resources =
+                                                        [Resources]}} =
+        erl_mesos_utils:unreserve_offer_operation([Resources]),
+    #'Offer.Operation'{type = 'CREATE',
+                       create =
+                           #'Offer.Operation.Create'{volumes = [Resources]}} =
+        erl_mesos_utils:create_offer_operation([Resources]),
+    #'Offer.Operation'{type = 'DESTROY',
+                       destroy =
+                           #'Offer.Operation.Destroy'{volumes = [Resources]}} =
+    erl_mesos_utils:destroy_offer_operation([Resources]).
