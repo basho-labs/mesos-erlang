@@ -710,19 +710,19 @@ suppress(Config) ->
 %% Internal functions.
 
 start_mesos_cluster(Config) ->
-    erl_mesos_cluster:start(Config),
     log("Start test mesos cluster.", Config),
+    erl_mesos_cluster:start(Config),
     {ok, StartTimeout} = erl_mesos_cluster:config(start_timeout, Config),
     timer:sleep(StartTimeout).
 
 stop_mesos_cluster(Config) ->
-    erl_mesos_cluster:stop(Config),
-    log("Stop test mesos cluster.", Config).
+    log("Stop test mesos cluster.", Config),
+    erl_mesos_cluster:stop(Config).
 
 stop_mesos_master(MasterContainer, Config) ->
-    erl_mesos_cluster:stop_master(MasterContainer, Config),
     log("Stop test mesos master. Master container: ~s.", [MasterContainer],
         Config),
+    erl_mesos_cluster:stop_master(MasterContainer, Config),
     {ok, LeaderElectionTimeout} =
         erl_mesos_cluster:config(leader_election_timeout, Config),
     timer:sleep(LeaderElectionTimeout).
@@ -732,8 +732,8 @@ master_container(MasterHost, Config) ->
     proplists:get_value(binary_to_list(MasterHost), Masters).
 
 start_mesos_slave(Config) ->
-    erl_mesos_cluster:start_slave(Config),
     log("Start test mesos slave.", Config),
+    erl_mesos_cluster:start_slave(Config),
     {ok, SlaveStartTimeout} = erl_mesos_cluster:config(slave_start_timeout,
                                                        Config),
     timer:sleep(SlaveStartTimeout).
