@@ -11,7 +11,8 @@
          command_info/1,
          resource/1,
          executor_info/1,
-         framework_info/1]).
+         framework_info/1,
+         task_info/1]).
 
 all() ->
     [extract_resources,
@@ -19,7 +20,8 @@ all() ->
      command_info,
      resource,
      executor_info,
-     framework_info].
+     framework_info,
+     task_info].
 
 %% Test functions.
 
@@ -134,26 +136,27 @@ resource(_Config) ->
         erl_mesos_utils:set_resource(SetName, SetItems).
 
 executor_info(_Config) ->
-    Id = erl_mesos_utils:executor_id("executor_id"),
+    ExecutorId = erl_mesos_utils:executor_id("executor_id"),
     CommandInfoUri = erl_mesos_utils:command_info_uri("uri"),
     CommandInfo = erl_mesos_utils:command_info("command", [CommandInfoUri]),
     Resources = [erl_mesos_utils:scalar_resource("cpus", 0.1)],
     FrameworkId = erl_mesos_utils:framework_id("framework_id"),
-    #'ExecutorInfo'{executor_id = Id,
+    #'ExecutorInfo'{executor_id = ExecutorId,
                     framework_id = undefined,
                     command = CommandInfo,
                     resources = []} =
-        erl_mesos_utils:executor_info(Id, CommandInfo),
-    #'ExecutorInfo'{executor_id = Id,
+        erl_mesos_utils:executor_info(ExecutorId, CommandInfo),
+    #'ExecutorInfo'{executor_id = ExecutorId,
                     framework_id = undefined,
                     command = CommandInfo,
                     resources = Resources} =
-        erl_mesos_utils:executor_info(Id, CommandInfo, Resources),
-    #'ExecutorInfo'{executor_id = Id,
+        erl_mesos_utils:executor_info(ExecutorId, CommandInfo, Resources),
+    #'ExecutorInfo'{executor_id = ExecutorId,
                     framework_id = FrameworkId,
                     command = CommandInfo,
                     resources = Resources} =
-        erl_mesos_utils:executor_info(Id, CommandInfo, Resources, FrameworkId).
+        erl_mesos_utils:executor_info(ExecutorId, CommandInfo, Resources,
+                                      FrameworkId).
 
 framework_info(_Config) ->
     Name = "name",
@@ -167,3 +170,28 @@ framework_info(_Config) ->
                      user = User,
                      failover_timeout = FailoverTimeout} =
         erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
+
+task_info(_Config) ->
+    Name = "name",
+    TaskId = erl_mesos_utils:task_id("task_id"),
+    AgentId = erl_mesos_utils:agent_id("agent_id"),
+    Resources = [erl_mesos_utils:scalar_resource("cpus", 0.1)],
+    CommandInfo = erl_mesos_utils:command_info("command"),
+    ExecutorId = erl_mesos_utils:executor_id("executor_id"),
+    ExecutorInfo = erl_mesos_utils:executor_info(ExecutorId, CommandInfo),
+    #'TaskInfo'{name = Name,
+                task_id = TaskId,
+                agent_id = AgentId,
+                resources = Resources,
+                executor = ExecutorInfo,
+                command = undefined} =
+        erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources,
+                                  ExecutorInfo),
+    #'TaskInfo'{name = Name,
+                task_id = TaskId,
+                agent_id = AgentId,
+                resources = Resources,
+                executor = undefined,
+                command = CommandInfo} =
+        erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources, undefined,
+                                  CommandInfo).
