@@ -91,6 +91,9 @@
 -type 'FrameworkInfo'() :: #'FrameworkInfo'{}.
 -export_type(['FrameworkInfo'/0]).
 
+-type 'MasterInfo'() :: #'MasterInfo'{}.
+-export_type(['MasterInfo'/0]).
+
 -type 'Offer'() :: #'Offer'{}.
 -export_type(['Offer'/0]).
 
@@ -111,6 +114,9 @@
 
 -type 'TaskInfo'() :: #'TaskInfo'{}.
 -export_type(['TaskInfo'/0]).
+
+-type 'TaskStatus'() :: #'TaskStatus'{}.
+-export_type(['TaskStatus'/0]).
 
 -type 'Value'() :: #'Value'{}.
 -export_type(['Value'/0]).

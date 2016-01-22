@@ -10,9 +10,9 @@
          resources_ports/1,
          extract_resources/1]).
 
--export([framework_id/1]).
+-export([master_info/3]).
 
--export([framework_info/2, framework_info/3]).
+-export([framework_id/1, framework_info/2, framework_info/3]).
 
 -export([command_info_uri/1, command_info_uri/2, command_info_uri/3]).
 
@@ -28,13 +28,11 @@
          set_resource_reservation/4,
          volume_resource_reservation/6]).
 
--export([executor_id/1]).
+-export([executor_id/1, executor_info/2, executor_info/3, executor_info/4]).
 
--export([executor_info/2, executor_info/3, executor_info/4]).
+-export([agent_id/1]).
 
--export([task_id/1, agent_id/1]).
-
--export([task_info/4, task_info/5, task_info/6]).
+-export([task_id/1, task_info/4, task_info/5, task_info/6]).
 
 -export([launch_offer_operation/1,
          reserve_offer_operation/1,
@@ -71,6 +69,14 @@ resources_ports(#resources{ports = Ports}) ->
 -spec extract_resources([erl_mesos:'Resource'()]) -> resources().
 extract_resources(Resources) ->
     extract_resources(Resources, #resources{}).
+
+%% @doc Returns master info.
+-spec master_info(string(), non_neg_integer(), non_neg_integer()) ->
+    erl_mesos:'MasterInfo'().
+master_info(Id, Ip, Port) ->
+    #'MasterInfo'{id = Id,
+                  ip = Ip,
+                  port = Port}.
 
 %% @doc Returns framework id.
 -spec framework_id(string()) -> erl_mesos:'FrameworkID'().
@@ -239,15 +245,15 @@ executor_info(ExecutorId, CommandInfo, Resources, FrameworkId) ->
                     command = CommandInfo,
                     resources = Resources}.
 
-%% @doc Returns task id.
--spec task_id(string()) -> erl_mesos:'TaskID'().
-task_id(Value) ->
-    #'TaskID'{value = Value}.
-
 %% @doc Returns agent id.
 -spec agent_id(string()) -> erl_mesos:'AgentID'().
 agent_id(Value) ->
     #'AgentID'{value = Value}.
+
+%% @doc Returns task id.
+-spec task_id(string()) -> erl_mesos:'TaskID'().
+task_id(Value) ->
+    #'TaskID'{value = Value}.
 
 %% @equiv task_info(Name, TaskId, AgentId, Resources, undefined, undefined)
 -spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
