@@ -10,19 +10,23 @@
          resources_ports/1,
          extract_resources/1]).
 
+-export([framework_id/1]).
+
+-export([framework_info/2, framework_info/3]).
+
 -export([command_info_uri/1, command_info_uri/2, command_info_uri/3]).
 
 -export([command_info/1, command_info/2, command_info/3, command_info/4]).
 
--export([scalar_resource/2, ranges_resource/2, set_resource/2]).
+-export([scalar_resource/2,
+         ranges_resource/2,
+         set_resource/2,
+         volume_resource/4,
+         add_resource_reservation/3]).
 
 -export([executor_id/1]).
 
 -export([executor_info/2, executor_info/3, executor_info/4]).
-
--export([framework_id/1]).
-
--export([framework_info/2, framework_info/3]).
 
 -export([task_id/1, agent_id/1]).
 
@@ -63,6 +67,24 @@ resources_ports(#resources{ports = Ports}) ->
 -spec extract_resources([erl_mesos:'Resource'()]) -> resources().
 extract_resources(Resources) ->
     extract_resources(Resources, #resources{}).
+
+%% @doc Returns framework id.
+-spec framework_id(string()) -> erl_mesos:'FrameworkID'().
+framework_id(Value) ->
+    #'FrameworkID'{value = Value}.
+
+%% @equiv framework_info(Name, User, 0.0)
+-spec framework_info(string(), string()) -> erl_mesos:'FrameworkInfo'().
+framework_info(Name, User) ->
+    framework_info(Name, User, 0.0).
+
+%% @doc Returns framework info.
+-spec framework_info(string(), string(), float()) ->
+    erl_mesos:'FrameworkInfo'().
+framework_info(Name, User, FailoverTimeout) ->
+    #'FrameworkInfo'{name = Name,
+                     user = User,
+                     failover_timeout = FailoverTimeout}.
 
 %% @equiv command_info_uri(Value, true, false)
 -spec command_info_uri(string()) -> erl_mesos:'CommandInfo.URI'().
@@ -134,6 +156,26 @@ set_resource(Name, Items) ->
                 type = 'SET',
                 set = #'Value.Set'{item = Items}}.
 
+%% @doc Returns ranges resource.
+-spec volume_resource(float(), string(), string(), atom()) ->
+    erl_mesos:'Resource'().
+volume_resource(Value, PersistenceId, ContainerPath, Mode) ->
+    Resource = scalar_resource("disk", Value),
+    Persistence = #'Resource.DiskInfo.Persistence'{id = PersistenceId},
+    Volume = #'Volume'{container_path = ContainerPath,
+                       mode = Mode},
+    ResourceDiskInfo = #'Resource.DiskInfo'{persistence = Persistence,
+                                            volume = Volume},
+    Resource#'Resource'{disk = ResourceDiskInfo}.
+
+%% @doc Addes role and reservation info to the resource.
+-spec add_resource_reservation(erl_mesos:'Resource'(), string(), string()) ->
+    erl_mesos:'Resource'().
+add_resource_reservation(Resource, Role, Principal) ->
+    Resource#'Resource'{role = Role,
+                        reservation =
+                            #'Resource.ReservationInfo'{principal = Principal}}.
+
 %% @doc Returns executor id.
 -spec executor_id(string()) -> erl_mesos:'ExecutorID'().
 executor_id(Value) ->
@@ -162,24 +204,6 @@ executor_info(ExecutorId, CommandInfo, Resources, FrameworkId) ->
                     framework_id = FrameworkId,
                     command = CommandInfo,
                     resources = Resources}.
-
-%% @doc Returns framework id.
--spec framework_id(string()) -> erl_mesos:'FrameworkID'().
-framework_id(Value) ->
-    #'FrameworkID'{value = Value}.
-
-%% @equiv framework_info(Name, User, 0.0)
--spec framework_info(string(), string()) -> erl_mesos:'FrameworkInfo'().
-framework_info(Name, User) ->
-    framework_info(Name, User, 0.0).
-
-%% @doc Returns framework info.
--spec framework_info(string(), string(), float()) ->
-    erl_mesos:'FrameworkInfo'().
-framework_info(Name, User, FailoverTimeout) ->
-    #'FrameworkInfo'{name = Name,
-                     user = User,
-                     failover_timeout = FailoverTimeout}.
 
 %% @doc Returns task id.
 -spec task_id(string()) -> erl_mesos:'TaskID'().

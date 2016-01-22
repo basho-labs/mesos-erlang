@@ -6,22 +6,22 @@
 
 -export([all/0]).
 
--export([extract_resources/1,
+-export([framework_info/1,
+         extract_resources/1,
          command_info_uri/1,
          command_info/1,
          resource/1,
          executor_info/1,
-         framework_info/1,
          task_info/1,
          offer_operation/1]).
 
 all() ->
-    [extract_resources,
+    [framework_info,
+     extract_resources,
      command_info_uri,
      command_info,
      resource,
      executor_info,
-     framework_info,
      task_info,
      offer_operation].
 
@@ -76,6 +76,19 @@ extract_resources(_Config) ->
     Disk = DiskValue1 + DiskValue2,
     Ports = lists:seq(0, 9).
 
+framework_info(_Config) ->
+    Name = "name",
+    User = "user",
+    FailoverTimeout = 1.0,
+    #'FrameworkInfo'{name = Name,
+                     user = User,
+                     failover_timeout = 0.0} =
+        erl_mesos_utils:framework_info(Name, User),
+    #'FrameworkInfo'{name = Name,
+                     user = User,
+                     failover_timeout = FailoverTimeout} =
+        erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
+
 command_info_uri(_Config) ->
     Value = "value",
     #'CommandInfo.URI'{value = Value,
@@ -122,6 +135,10 @@ resource(_Config) ->
     Ranges = [{1, 3}, {4, 6}],
     SetName = "set",
     SetItems = ["frist", "second"],
+    VolumeValue = 0.2,
+    VolumePersistenceId = "persistence_id",
+    VolumeContainerPath = "container_path",
+    VolumeMode = 'RW',
     ValueRanges = [#'Value.Range'{'begin' = Begin, 'end' = End} ||
                    {Begin, End} <- Ranges],
     #'Resource'{name = ScalarName,
@@ -131,11 +148,24 @@ resource(_Config) ->
     #'Resource'{name = RangesName,
                 type = 'RANGES',
                 ranges = #'Value.Ranges'{range = ValueRanges}} =
-            erl_mesos_utils:ranges_resource(RangesName, Ranges),
+        erl_mesos_utils:ranges_resource(RangesName, Ranges),
     #'Resource'{name = SetName,
                 type = 'SET',
                 set = #'Value.Set'{item = SetItems}} =
-        erl_mesos_utils:set_resource(SetName, SetItems).
+        erl_mesos_utils:set_resource(SetName, SetItems),
+    #'Resource'{name = "disk",
+                type = 'SCALAR',
+                scalar = #'Value.Scalar'{value = VolumeValue},
+                disk =
+                    #'Resource.DiskInfo'{persistence = VolumePersistence,
+                                         volume = Volume}} =
+        erl_mesos_utils:volume_resource(VolumeValue, VolumePersistenceId,
+                                        VolumeContainerPath, VolumeMode),
+    VolumePersistence = #'Resource.DiskInfo.Persistence'{id =
+                                                         VolumePersistenceId},
+    Volume = #'Volume'{container_path = VolumeContainerPath,
+                       mode = VolumeMode},
+    ok.
 
 executor_info(_Config) ->
     ExecutorId = erl_mesos_utils:executor_id("executor_id"),
@@ -159,19 +189,6 @@ executor_info(_Config) ->
                     resources = Resources} =
         erl_mesos_utils:executor_info(ExecutorId, CommandInfo, Resources,
                                       FrameworkId).
-
-framework_info(_Config) ->
-    Name = "name",
-    User = "user",
-    FailoverTimeout = 1.0,
-    #'FrameworkInfo'{name = Name,
-                     user = User,
-                     failover_timeout = 0.0} =
-        erl_mesos_utils:framework_info(Name, User),
-    #'FrameworkInfo'{name = Name,
-                     user = User,
-                     failover_timeout = FailoverTimeout} =
-        erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
 
 task_info(_Config) ->
     Name = "name",
