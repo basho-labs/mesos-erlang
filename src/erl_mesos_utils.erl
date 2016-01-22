@@ -24,7 +24,7 @@
 
 -export([framework_info/2, framework_info/3]).
 
--export([task_id/1]).
+-export([task_id/1, agent_id/1]).
 
 -export([task_info/4, task_info/5, task_info/6]).
 
@@ -87,24 +87,24 @@ command_info_uri(Value, Executable, Extract) ->
 command_info(Value) ->
     command_info(Value, [], true, undefined).
 
-%% @equiv command_info(Value, Uris, true, undefined)
+%% @equiv command_info(Value, CommandInfoUris, true, undefined)
 -spec command_info(string(), [erl_mesos:'CommandInfo.URI'()]) ->
     erl_mesos:'CommandInfo'().
-command_info(Value, Uris) ->
-    command_info(Value, Uris, true, undefined).
+command_info(Value, CommandInfoUris) ->
+    command_info(Value, CommandInfoUris, true, undefined).
 
-%% @equiv command_info(Value, Uris, Shell, undefined)
+%% @equiv command_info(Value, CommandInfoUris, Shell, undefined)
 -spec command_info(string(), [erl_mesos:'CommandInfo.URI'()], boolean()) ->
     erl_mesos:'CommandInfo'().
-command_info(Value, Uris, Shell) ->
-    command_info(Value, Uris, Shell, undefined).
+command_info(Value, CommandInfoUris, Shell) ->
+    command_info(Value, CommandInfoUris, Shell, undefined).
 
 %% @doc Returns command info.
 -spec command_info(string(), [erl_mesos:'CommandInfo.URI'()], boolean(),
                    undefined | string()) ->
     erl_mesos:'CommandInfo'().
-command_info(Value, Uris, Shell, User) ->
-    #'CommandInfo'{uris = Uris,
+command_info(Value, CommandInfoUris, Shell, User) ->
+    #'CommandInfo'{uris = CommandInfoUris,
                    shell = Shell,
                    value = Value,
                    user = User}.
@@ -139,28 +139,28 @@ set_resource(Name, Items) ->
 executor_id(Value) ->
     #'ExecutorID'{value = Value}.
 
-%% @equiv executor_info(Id, Command, [], undefined)
+%% @equiv executor_info(ExecutorId, CommandInfo, [], undefined)
 -spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'()) ->
     erl_mesos:'ExecutorInfo'().
-executor_info(Id, Command) ->
-    executor_info(Id, Command, [], undefined).
+executor_info(ExecutorId, CommandInfo) ->
+    executor_info(ExecutorId, CommandInfo, [], undefined).
 
-%% @equiv executor_info(Id, Command, Resources, undefined)
+%% @equiv executor_info(ExecutorId, CommandInfo, Resources, undefined)
 -spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'(),
                     [erl_mesos:'Resource'()]) ->
     erl_mesos:'ExecutorInfo'().
-executor_info(Id, Command, Resources) ->
-    executor_info(Id, Command, Resources, undefined).
+executor_info(ExecutorId, CommandInfo, Resources) ->
+    executor_info(ExecutorId, CommandInfo, Resources, undefined).
 
 %% @doc Returns executor info.
 -spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'(),
                     [erl_mesos:'Resource'()],
                     undefined | erl_mesos:'FrameworkID'()) ->
     erl_mesos:'ExecutorInfo'().
-executor_info(Id, Command, Resources, FrameworkId) ->
-    #'ExecutorInfo'{executor_id = Id,
+executor_info(ExecutorId, CommandInfo, Resources, FrameworkId) ->
+    #'ExecutorInfo'{executor_id = ExecutorId,
                     framework_id = FrameworkId,
-                    command = Command,
+                    command = CommandInfo,
                     resources = Resources}.
 
 %% @doc Returns framework id.
@@ -186,20 +186,25 @@ framework_info(Name, User, FailoverTimeout) ->
 task_id(Value) ->
     #'TaskID'{value = Value}.
 
-%% @equiv task_info(Name, Id, AgentId, Resources, undefined, undefined)
+%% @doc Returns agent id.
+-spec agent_id(string()) -> erl_mesos:'AgentID'().
+agent_id(Value) ->
+    #'AgentID'{value = Value}.
+
+%% @equiv task_info(Name, TaskId, AgentId, Resources, undefined, undefined)
 -spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
                 [erl_mesos:'Resource'()]) ->
     erl_mesos:'TaskInfo'().
-task_info(Name, Id, AgentId, Resources) ->
-    task_info(Name, Id, AgentId, Resources, undefined, undefined).
+task_info(Name, TaskId, AgentId, Resources) ->
+    task_info(Name, TaskId, AgentId, Resources, undefined, undefined).
 
-%% @equiv task_info(Name, Id, AgentId, Resources, Executor, undefined)
+%% @equiv task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, undefined)
 -spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
                 [erl_mesos:'Resource'()],
                 undefined | erl_mesos:'ExecutorInfo'()) ->
                 erl_mesos:'TaskInfo'().
-task_info(Name, Id, AgentId, Resources, Executor) ->
-    task_info(Name, Id, AgentId, Resources, Executor, undefined).
+task_info(Name, TaskId, AgentId, Resources, ExecutorInfo) ->
+    task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, undefined).
 
 %% @doc Returns task info.
 -spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
@@ -207,13 +212,13 @@ task_info(Name, Id, AgentId, Resources, Executor) ->
                 undefined | erl_mesos:'ExecutorInfo'(),
                 undefined | erl_mesos:'CommandInfo'()) ->
     erl_mesos:'TaskInfo'().
-task_info(Name, Id, AgentId, Resources, Executor, Command) ->
+task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, CommandInfo) ->
     #'TaskInfo'{name = Name,
-                task_id = Id,
+                task_id = TaskId,
                 agent_id = AgentId,
                 resources = Resources,
-                executor = Executor,
-                command = Command}.
+                executor = ExecutorInfo,
+                command = CommandInfo}.
 
 %% @doc Returns launch offer operation.
 -spec launch_offer_operation([erl_mesos:'TaskInfo'()]) ->
