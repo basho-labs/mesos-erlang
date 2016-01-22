@@ -22,7 +22,11 @@
          ranges_resource/2,
          set_resource/2,
          volume_resource/4,
-         add_resource_reservation/3]).
+         add_resource_reservation/3,
+         scalar_resource_reservation/4,
+         ranges_resource_reservation/4,
+         set_resource_reservation/4,
+         volume_resource_reservation/6]).
 
 -export([executor_id/1]).
 
@@ -175,6 +179,36 @@ add_resource_reservation(Resource, Role, Principal) ->
     Resource#'Resource'{role = Role,
                         reservation =
                             #'Resource.ReservationInfo'{principal = Principal}}.
+
+%% @doc Returns scalar resource with reservation.
+-spec scalar_resource_reservation(string(), float(), string(), string()) ->
+    erl_mesos:'Resource'().
+scalar_resource_reservation(Name, Value, Role, Principal) ->
+    add_resource_reservation(scalar_resource(Name, Value), Role, Principal).
+
+%% @doc Returns ranges resource with reservation.
+-spec ranges_resource_reservation(string(),
+                                  [{non_neg_integer(), non_neg_integer()}],
+                                  string(), string()) ->
+    erl_mesos:'Resource'().
+ranges_resource_reservation(Name, Ranges, Role, Principal) ->
+    add_resource_reservation(ranges_resource(Name, Ranges), Role, Principal).
+
+%% @doc Returns set resource with reservation.
+-spec set_resource_reservation(string(), [string()], string(), string()) ->
+    erl_mesos:'Resource'().
+set_resource_reservation(Name, Items, Role, Principal) ->
+    add_resource_reservation(set_resource(Name, Items), Role, Principal).
+
+%% @doc Returns volume resource with reservation.
+-spec volume_resource_reservation(float(), string(), string(), atom(), string(),
+                                  string()) ->
+    erl_mesos:'Resource'().
+volume_resource_reservation(Value, PersistenceId, ContainerPath, Mode, Role,
+                            Principal) ->
+    add_resource_reservation(volume_resource(Value, PersistenceId,
+                                             ContainerPath, Mode),
+                             Role, Principal).
 
 %% @doc Returns executor id.
 -spec executor_id(string()) -> erl_mesos:'ExecutorID'().

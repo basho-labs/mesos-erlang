@@ -139,6 +139,8 @@ resource(_Config) ->
     VolumePersistenceId = "persistence_id",
     VolumeContainerPath = "container_path",
     VolumeMode = 'RW',
+    Role = "*",
+    Principal = "principal",
     ValueRanges = [#'Value.Range'{'begin' = Begin, 'end' = End} ||
                    {Begin, End} <- Ranges],
     #'Resource'{name = ScalarName,
@@ -165,7 +167,44 @@ resource(_Config) ->
                                                          VolumePersistenceId},
     Volume = #'Volume'{container_path = VolumeContainerPath,
                        mode = VolumeMode},
-    ok.
+    #'Resource'{name = ScalarName,
+                type = 'SCALAR',
+                scalar = #'Value.Scalar'{value = ScalarValue},
+                role = Role,
+                reservation = #'Resource.ReservationInfo'{principal =
+                                                              Principal}} =
+        erl_mesos_utils:scalar_resource_reservation(ScalarName, ScalarValue,
+                                                    Role, Principal),
+    #'Resource'{name = RangesName,
+                type = 'RANGES',
+                ranges = #'Value.Ranges'{range = ValueRanges},
+                role = Role,
+                reservation = #'Resource.ReservationInfo'{principal =
+                                                              Principal}} =
+        erl_mesos_utils:ranges_resource_reservation(RangesName, Ranges, Role,
+                                                    Principal),
+    #'Resource'{name = SetName,
+                type = 'SET',
+                set = #'Value.Set'{item = SetItems},
+                role = Role,
+                reservation = #'Resource.ReservationInfo'{principal =
+                                                              Principal}} =
+        erl_mesos_utils:set_resource_reservation(SetName, SetItems, Role,
+                                                 Principal),
+    #'Resource'{name = "disk",
+                type = 'SCALAR',
+                scalar = #'Value.Scalar'{value = VolumeValue},
+                role = Role,
+                reservation = #'Resource.ReservationInfo'{principal =
+                                                              Principal},
+                disk =
+                    #'Resource.DiskInfo'{persistence = VolumePersistence,
+                                         volume = Volume}} =
+        erl_mesos_utils:volume_resource_reservation(VolumeValue,
+                                                    VolumePersistenceId,
+                                                    VolumeContainerPath,
+                                                    VolumeMode, Role,
+                                                    Principal).
 
 executor_info(_Config) ->
     ExecutorId = erl_mesos_utils:executor_id("executor_id"),
