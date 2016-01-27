@@ -1,3 +1,23 @@
+%% -------------------------------------------------------------------
+%%
+%% Copyright (c) 2016 Basho Technologies Inc. All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%% http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
+
 %% @private
 
 -module(erl_mesos_scheduler_manager).
@@ -86,14 +106,14 @@ handle_call({stop_scheduler, Ref}, _From, State) ->
     end;
 handle_call(Request, _From, State) ->
     erl_mesos_logger:warning("Scheduler manager received unexpected call "
-                             "request: ~p~n", [Request]),
+                             "request. Request: ~p.", [Request]),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
     erl_mesos_logger:warning("Scheduler manager received unexpected cast "
-                             "request: ~p~n", [Request]),
+                             "request. Request: ~p.", [Request]),
     {noreply, State}.
 
 %% @private
@@ -106,7 +126,7 @@ handle_info({'DOWN', MonitorRef, process, Pid, _Reason},
     {noreply, State#state{monitors = Monitors1}};
 handle_info(Request, State) ->
     erl_mesos_logger:warning("Scheduler manager received unexpected "
-                             "message: ~p~n", [Request]),
+                             "message. Message: ~p.", [Request]),
     {noreply, State}.
 
 %% @private

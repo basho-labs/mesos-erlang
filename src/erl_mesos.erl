@@ -1,8 +1,28 @@
+%% -------------------------------------------------------------------
+%%
+%% Copyright (c) 2016 Basho Technologies Inc. All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%% http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
+
 -module(erl_mesos).
 
 -behaviour(application).
 
--include("erl_mesos.hrl").
+-include("scheduler_protobuf.hrl").
 
 -export([start/0]).
 
@@ -10,252 +30,133 @@
 
 -export([start/2, stop/1]).
 
--type address() :: #address{}.
--export_type([address/0]).
+-type 'AgentID'() :: #'AgentID'{}.
+-export_type(['AgentID'/0]).
 
--type agent_id() :: #agent_id{}.
--export_type([agent_id/0]).
+-type 'Call'() :: #'Call'{}.
+-export_type(['Call'/0]).
 
--type attribute() :: #attribute{}.
--export_type([attribute/0]).
+-type 'Call.Subscribe'() :: #'Call.Subscribe'{}.
+-export_type(['Call.Subscribe'/0]).
 
--type call() :: #call{}.
--export_type([call/0]).
+-type 'Call.Accept'() :: #'Call.Accept'{}.
+-export_type(['Call.Accept'/0]).
 
--type call_subscribe() :: #call_subscribe{}.
--export_type([call_subscribe/0]).
+-type 'Call.Decline'() :: #'Call.Decline'{}.
+-export_type(['Call.Decline'/0]).
 
--type call_accept() :: #call_accept{}.
--export_type([call_accept/0]).
+-type 'Call.Kill'() :: #'Call.Kill'{}.
+-export_type(['Call.Kill'/0]).
 
--type call_decline() :: #call_decline{}.
--export_type([call_decline/0]).
+-type 'Call.Shutdown'() :: #'Call.Shutdown'{}.
+-export_type(['Call.Shutdown'/0]).
 
--type call_kill() :: #call_kill{}.
--export_type([call_kill/0]).
+-type 'Call.Acknowledge'() :: #'Call.Acknowledge'{}.
+-export_type(['Call.Acknowledge'/0]).
 
--type call_shutdown() :: #call_shutdown{}.
--export_type([call_shutdown/0]).
+-type 'Call.Reconcile.Task'() :: #'Call.Reconcile.Task'{}.
+-export_type(['Call.Reconcile.Task'/0]).
 
--type call_acknowledge() :: #call_acknowledge{}.
--export_type([call_acknowledge/0]).
+-type 'Call.Reconcile'() :: #'Call.Reconcile'{}.
+-export_type(['Call.Reconcile'/0]).
 
--type call_reconcile() :: #call_reconcile{}.
--export_type([call_reconcile/0]).
+-type 'Call.Message'() :: #'Call.Message'{}.
+-export_type(['Call.Message'/0]).
 
--type call_reconcile_task() :: #call_reconcile_task{}.
--export_type([call_reconcile_task/0]).
+-type 'Call.Req'() :: #'Call.Req'{}.
+-export_type(['Call.Req'/0]).
 
--type call_message() :: #call_message{}.
--export_type([call_message/0]).
+-type 'CommandInfo'() :: #'CommandInfo'{}.
+-export_type(['CommandInfo'/0]).
 
--type call_request() :: #call_request{}.
--export_type([call_request/0]).
+-type 'CommandInfo.URI'() :: #'CommandInfo.URI'{}.
+-export_type(['CommandInfo.URI'/0]).
 
--type command_info() :: #command_info{}.
--export_type([command_info/0]).
+-type 'Event'() :: #'Event'{}.
+-export_type(['Event'/0]).
 
--type command_info_uri() :: #command_info_uri{}.
--export_type([command_info_uri/0]).
+-type 'Event.Subscribed'() :: #'Event.Subscribed'{}.
+-export_type(['Event.Subscribed'/0]).
 
--type command_info_container_info() :: #command_info_container_info{}.
--export_type([command_info_container_info/0]).
+-type 'Event.Offers'() :: #'Event.Offers'{}.
+-export_type(['Event.Offers'/0]).
 
--type container_info() :: #container_info{}.
--export_type([container_info/0]).
+-type 'Event.Rescind'() :: #'Event.Rescind'{}.
+-export_type(['Event.Rescind'/0]).
 
--type container_info_docker_info() :: #container_info_docker_info{}.
--export_type([container_info_docker_info/0]).
+-type 'Event.Update'() :: #'Event.Update'{}.
+-export_type(['Event.Update'/0]).
 
--type container_info_docker_info_port_mapping() ::
-    #container_info_docker_info_port_mapping{}.
--export_type([container_info_docker_info_port_mapping/0]).
+-type 'Event.Message'() :: #'Event.Message'{}.
+-export_type(['Event.Message'/0]).
 
--type container_info_mesos_info() :: #container_info_mesos_info{}.
--export_type([container_info_mesos_info/0]).
+-type 'Event.Failure'() :: #'Event.Failure'{}.
+-export_type(['Event.Failure'/0]).
 
--type container_status() :: #container_status{}.
--export_type([container_status/0]).
+-type 'Event.Error'() :: #'Event.Error'{}.
+-export_type(['Event.Error'/0]).
 
--type discovery_info() :: #discovery_info{}.
--export_type([discovery_info/0]).
+-type 'ExecutorID'() :: #'ExecutorID'{}.
+-export_type(['ExecutorID'/0]).
 
--type duration_info() :: #duration_info{}.
--export_type([duration_info/0]).
+-type 'ExecutorInfo'() :: #'ExecutorInfo'{}.
+-export_type(['ExecutorInfo'/0]).
 
--type environment() :: #environment{}.
--export_type([environment/0]).
+-type 'Filters'() :: #'Filters'{}.
+-export_type(['Filters'/0]).
 
--type environment_variable() :: #environment_variable{}.
--export_type([environment_variable/0]).
+-type 'FrameworkID'() :: #'FrameworkID'{}.
+-export_type(['FrameworkID'/0]).
 
--type event() :: #event{}.
--export_type([event/0]).
+-type 'FrameworkInfo'() :: #'FrameworkInfo'{}.
+-export_type(['FrameworkInfo'/0]).
 
--type event_subscribed() :: #event_subscribed{}.
--export_type([event_subscribed/0]).
+-type 'MasterInfo'() :: #'MasterInfo'{}.
+-export_type(['MasterInfo'/0]).
 
--type event_offers() :: #event_offers{}.
--export_type([event_offers/0]).
+-type 'Offer'() :: #'Offer'{}.
+-export_type(['Offer'/0]).
 
--type event_rescind() :: #event_rescind{}.
--export_type([event_rescind/0]).
+-type 'Offer.Operation'() :: #'Offer.Operation'{}.
+-export_type(['Offer.Operation'/0]).
 
--type event_update() :: #event_update{}.
--export_type([event_update/0]).
+-type 'OfferID'() :: #'OfferID'{}.
+-export_type(['OfferID'/0]).
 
--type event_message() :: #event_message{}.
--export_type([event_message/0]).
+-type 'Resource'() :: #'Resource'{}.
+-export_type(['Resource'/0]).
 
--type event_failure() :: #event_failure{}.
--export_type([event_failure/0]).
+-type 'Request'() :: #'Request'{}.
+-export_type(['Request'/0]).
 
--type event_error() :: #event_error{}.
--export_type([event_error/0]).
+-type 'TaskID'() :: #'TaskID'{}.
+-export_type(['TaskID'/0]).
 
--type executor_id() :: #executor_id{}.
--export_type([executor_id/0]).
+-type 'TaskInfo'() :: #'TaskInfo'{}.
+-export_type(['TaskInfo'/0]).
 
--type executor_info() :: #executor_info{}.
--export_type([executor_info/0]).
+-type 'TaskStatus'() :: #'TaskStatus'{}.
+-export_type(['TaskStatus'/0]).
 
--type filters() :: #filters{}.
--export_type([filters/0]).
+-type 'Value'() :: #'Value'{}.
+-export_type(['Value'/0]).
 
--type framework_id() :: #framework_id{}.
--export_type([framework_id/0]).
+-type 'Value.Scalar'() :: #'Value.Scalar'{}.
+-export_type(['Value.Scalar'/0]).
 
--type framework_info() :: #framework_info{}.
--export_type([framework_info/0]).
+-type 'Value.Ranges'() :: #'Value.Ranges'{}.
+-export_type(['Value.Ranges'/0]).
 
--type framework_info_capabilitie() :: #framework_info_capabilitie{}.
--export_type([framework_info_capabilitie/0]).
+-type 'Value.Range'() :: #'Value.Range'{}.
+-export_type(['Value.Range'/0]).
 
--type health_check() :: #health_check{}.
--export_type([health_check/0]).
+-type 'Value.Set'() :: #'Value.Set'{}.
+-export_type(['Value.Set'/0]).
 
--type health_check_http() :: #health_check_http{}.
--export_type([health_check_http/0]).
+-type 'Value.Text'() :: #'Value.Text'{}.
+-export_type(['Value.Text'/0]).
 
--type image() :: #image{}.
--export_type([image/0]).
-
--type image_appc() :: #image_appc{}.
--export_type([image_appc/0]).
-
--type image_docker() :: #image_docker{}.
--export_type([image_docker/0]).
-
--type inverse_offer() :: #inverse_offer{}.
--export_type([inverse_offer/0]).
-
--type label() :: #label{}.
--export_type([label/0]).
-
--type labels() :: #labels{}.
--export_type([labels/0]).
-
--type network_info() :: #network_info{}.
--export_type([network_info/0]).
-
--type network_info_ip_address() :: #network_info_ip_address{}.
--export_type([network_info_ip_address/0]).
-
--type offer() :: #offer{}.
--export_type([offer/0]).
-
--type offer_operation() :: #offer_operation{}.
--export_type([offer_operation/0]).
-
--type offer_operation_launch() :: #offer_operation_launch{}.
--export_type([offer_operation_launch/0]).
-
--type offer_operation_reserve() :: #offer_operation_reserve{}.
--export_type([offer_operation_reserve/0]).
-
--type offer_operation_unreserve() :: #offer_operation_unreserve{}.
--export_type([offer_operation_unreserve/0]).
-
--type offer_operation_create() :: #offer_operation_create{}.
--export_type([offer_operation_create/0]).
-
--type offer_operation_destroy() :: #offer_operation_destroy{}.
--export_type([offer_operation_destroy/0]).
-
--type offer_id() :: #offer_id{}.
--export_type([offer_id/0]).
-
--type pt() :: #port{}.
--export_type([pt/0]).
-
--type pts() :: #ports{}.
--export_type([pts/0]).
-
--type parameter() :: #parameter{}.
--export_type([parameter/0]).
-
--type request() :: #request{}.
--export_type([request/0]).
-
--type resource() :: #resource{}.
--export_type([resource/0]).
-
--type resource_reservation_info() :: #resource_reservation_info{}.
--export_type([resource_reservation_info/0]).
-
--type resource_disk_info() :: #resource_disk_info{}.
--export_type([resource_disk_info/0]).
-
--type resource_disk_info_persistence() :: #resource_disk_info_persistence{}.
--export_type([resource_disk_info_persistence/0]).
-
--type resource_revocable_info() :: #resource_revocable_info{}.
--export_type([resource_revocable_info/0]).
-
--type scheduler_info() :: #scheduler_info{}.
--export_type([scheduler_info/0]).
-
--type task_id() :: #task_id{}.
--export_type([task_id/0]).
-
--type task_info() :: #task_info{}.
--export_type([task_info/0]).
-
--type task_status() :: #task_status{}.
--export_type([task_status/0]).
-
--type time_info() :: #time_info{}.
--export_type([time_info/0]).
-
--type unavailability() :: #unavailability{}.
--export_type([unavailability/0]).
-
--type url() :: #url{}.
--export_type([url/0]).
-
--type value() :: #value{}.
--export_type([value/0]).
-
--type value_type() :: #value_type{}.
--export_type([value_type/0]).
-
--type value_scalar() :: #value_scalar{}.
--export_type([value_scalar/0]).
-
--type value_range() :: #value_range{}.
--export_type([value_range/0]).
-
--type value_ranges() :: #value_ranges{}.
--export_type([value_ranges/0]).
-
--type value_set() :: #value_set{}.
--export_type([value_set/0]).
-
--type value_text() :: #value_text{}.
--export_type([value_text/0]).
-
--type volume() :: #volume{}.
--export_type([volume/0]).
+%% External functions.
 
 %% @doc Starts app with deps.
 -spec start() -> ok.

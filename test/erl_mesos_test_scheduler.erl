@@ -1,8 +1,30 @@
+%% -------------------------------------------------------------------
+%%
+%% Copyright (c) 2016 Basho Technologies Inc. All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%% http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
+
 -module(erl_mesos_test_scheduler).
 
 -behaviour(erl_mesos_scheduler).
 
--include_lib("erl_mesos.hrl").
+-include_lib("scheduler_info.hrl").
+
+-include_lib("scheduler_protobuf.hrl").
 
 -export([init/1,
          registered/3,
@@ -27,7 +49,7 @@
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
-    {ok, FrameworkInfo, true, #state{user = FrameworkInfo#framework_info.user,
+    {ok, FrameworkInfo, true, #state{user = FrameworkInfo#'FrameworkInfo'.user,
                                      callback = init,
                                      test_pid = TestPid}}.
 
@@ -82,22 +104,12 @@ handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
     {stop, State};
 handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
             #state{test_pid = TestPid} = State) ->
-    CommandInfo = #command_info{shell = true,
-                                value = <<"while true; sleep 1; done">>},
-    ResourceCpu = #resource{name = <<"cpus">>,
-                            type = <<"SCALAR">>,
-                            scalar = #value_scalar{value = 0.1}},
-    Labels = #labels{labels = [#label{key = <<"task_key">>,
-                                      value = <<"task_value">>}]},
-    TaskInfo = #task_info{name = <<"test_task">>,
-                          task_id = TaskId,
-                          agent_id = AgentId,
-                          command = CommandInfo,
-                          resources = [ResourceCpu],
-                          labels = Labels},
-    Launch = #offer_operation_launch{task_infos = [TaskInfo]},
-    OfferOperation = #offer_operation{type = <<"LAUNCH">>,
-                                      launch = Launch},
+    CommandInfo = erl_mesos_utils:command_info("while true; sleep 1; done"),
+    ResourceCpu = erl_mesos_utils:scalar_resource("cpus", 0.1),
+    TaskInfo = erl_mesos_utils:task_info("test_task", TaskId, AgentId,
+                                         [ResourceCpu], undefined,
+                                         CommandInfo),
+    OfferOperation = erl_mesos_utils:launch_offer_operation([TaskInfo]),
     Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
                                         [OfferOperation]),
     reply(TestPid, {accept, Accept}),
@@ -106,35 +118,19 @@ handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
             {accept_test_executor, OfferId, AgentId, TaskId},
             #state{user = User, test_pid = TestPid} = State) ->
     CommandInfoUris =
-        [#command_info_uri{value = <<"test_executor">>,
-                           extract = false,
-                           executable = true},
-         #command_info_uri{value = <<"test_executor.py">>,
-                           extract = false,
-                           executable = false}],
-    CommandInfo = #command_info{shell = true,
-                                user = User,
-                                uris = CommandInfoUris,
-                                value = <<"./test_executor">>},
-    ExecutorResourceCpu = #resource{name = <<"cpus">>,
-                                    type = <<"SCALAR">>,
-                                    scalar = #value_scalar{value = 0.1}},
-    ExecutorId = #executor_id{value = TaskId#task_id.value},
-    ExecutorInfo = #executor_info{executor_id = ExecutorId,
-                                  framework_id = FrameworkId,
-                                  command = CommandInfo,
-                                  resources = [ExecutorResourceCpu]},
-    TaskResourceCpu = #resource{name = <<"cpus">>,
-                                type = <<"SCALAR">>,
-                                scalar = #value_scalar{value = 0.1}},
-    TaskInfo = #task_info{name = <<"test_task">>,
-                          task_id = TaskId,
-                          agent_id = AgentId,
-                          executor = ExecutorInfo,
-                          resources = [TaskResourceCpu]},
-    Launch = #offer_operation_launch{task_infos = [TaskInfo]},
-    OfferOperation = #offer_operation{type = <<"LAUNCH">>,
-                                      launch = Launch},
+        [erl_mesos_utils:command_info_uri("test_executor"),
+         erl_mesos_utils:command_info_uri("test_executor.py", false)],
+    CommandInfo = erl_mesos_utils:command_info("./test_executor",
+                                               CommandInfoUris, true, User),
+    ExecutorResourceCpus = erl_mesos_utils:scalar_resource("cpus", 0.1),
+    ExecutorId = erl_mesos_utils:executor_id(TaskId#'TaskID'.value),
+    ExecutorInfo = erl_mesos_utils:executor_info(ExecutorId, CommandInfo,
+                                                 [ExecutorResourceCpus],
+                                                 FrameworkId),
+    TaskResourceCpu = erl_mesos_utils:scalar_resource("cpus", 0.1),
+    TaskInfo = erl_mesos_utils:task_info("test_task", TaskId, AgentId,
+                                         [TaskResourceCpu], ExecutorInfo),
+    OfferOperation = erl_mesos_utils:launch_offer_operation([TaskInfo]),
     Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
                                         [OfferOperation]),
     reply(TestPid, {accept, Accept}),
@@ -166,7 +162,7 @@ handle_info(SchedulerInfo, {acknowledge, AgentId, TaskId, Uuid},
     {ok, State};
 handle_info(SchedulerInfo, {reconcile, TaskId},
             #state{test_pid = TestPid} = State) ->
-    CallReconcileTask = #call_reconcile_task{task_id = TaskId},
+    CallReconcileTask = #'Call.Reconcile.Task'{task_id = TaskId},
     Reconcile = erl_mesos_scheduler:reconcile(SchedulerInfo,
                                               [CallReconcileTask]),
     reply(TestPid, {reconcile, Reconcile}),
@@ -198,28 +194,10 @@ terminate(SchedulerInfo, Reason, #state{test_pid = TestPid} = State) ->
 %% Internal functions.
 
 framework_info(Options) ->
-    User = proplists:get_value(user, Options, <<>>),
-    Name = proplists:get_value(name, Options, <<>>),
-    Id = proplists:get_value(id, Options, undefined),
-    FailoverTimeout = proplists:get_value(failover_timeout, Options, undefined),
-    Checkpoint = proplists:get_value(checkpoint, Options, undefined),
-    Role = proplists:get_value(role, Options, undefined),
-    Hostname = proplists:get_value(hostname, Options, undefined),
-    Principal = proplists:get_value(principal, Options, undefined),
-    WebuiUrl = proplists:get_value(webui_url, Options, undefined),
-    Capabilities = proplists:get_value(capabilities, Options, undefined),
-    Labels = proplists:get_value(labels, Options, undefined),
-    #framework_info{user = User,
-                    name = Name,
-                    id = Id,
-                    failover_timeout = FailoverTimeout,
-                    checkpoint = Checkpoint,
-                    role = Role,
-                    hostname = Hostname,
-                    principal = Principal,
-                    webui_url = WebuiUrl,
-                    capabilities = Capabilities,
-                    labels = Labels}.
+    Name = proplists:get_value(name, Options, ""),
+    User = proplists:get_value(user, Options, ""),
+    FailoverTimeout = proplists:get_value(failover_timeout, Options, 0.0),
+    erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
 
 reply(undefined, _Message) ->
     undefined;
