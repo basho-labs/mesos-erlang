@@ -58,7 +58,8 @@
 
 -record(state, {user,
                 callback,
-                test_pid}).
+                test_pid,
+                handle_resource_offers}).
 
 -define(LOG, false).
 
@@ -293,7 +294,8 @@ resource_offers(Config) ->
     Ref = {erl_mesos_scheduler, resource_offers},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -361,7 +363,8 @@ offer_rescinded(Config) ->
     Ref = {erl_mesos_scheduler, offer_rescinded},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -386,7 +389,8 @@ status_update(Config) ->
     Ref = {erl_mesos_scheduler, status_update},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -424,7 +428,8 @@ framework_message(Config) ->
     Ref = {erl_mesos_scheduler, framework_message},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -460,7 +465,8 @@ slave_lost(Config) ->
     Ref = {erl_mesos_scheduler, slave_lost},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -539,7 +545,8 @@ accept(Config) ->
     Ref = {erl_mesos_scheduler, accept},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -563,7 +570,8 @@ decline(Config) ->
     Ref = {erl_mesos_scheduler, decline},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -581,7 +589,8 @@ revive(Config) ->
     Ref = {erl_mesos_scheduler, revive},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -603,7 +612,8 @@ kill(Config) ->
     Ref = {erl_mesos_scheduler, kill},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -625,7 +635,8 @@ shutdown(Config) ->
     Ref = {erl_mesos_scheduler, shutdown},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -649,7 +660,8 @@ acknowledge(Config) ->
     Ref = {erl_mesos_scheduler, acknowledge},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -671,7 +683,8 @@ reconcile(Config) ->
     Ref = {erl_mesos_scheduler, reconcile},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -699,7 +712,8 @@ request(Config) ->
     Ref = {erl_mesos_scheduler, request},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
+    SchedulerOptions1 =
+        set_handle_resource_offers(set_test_pid(SchedulerOptions)),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
@@ -769,6 +783,9 @@ start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Config) ->
 stop_scheduler(Ref, Config) ->
     log("Stop scheduler. Ref: ~p.", [Ref], Config),
     erl_mesos:stop_scheduler(Ref).
+
+set_handle_resource_offers(SchedulerOptions) ->
+    [{handle_resource_offers, true} | SchedulerOptions].
 
 set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].
