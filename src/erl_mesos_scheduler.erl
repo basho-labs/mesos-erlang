@@ -26,7 +26,8 @@
 
 -include("scheduler_protobuf.hrl").
 
--export([start_link/4]).
+-export([start_link/4,
+         get_scheduler_info/0]).
 
 -export([teardown/1,
          accept/3,
@@ -160,8 +161,12 @@
 -spec start_link(term(), module(), term(), options()) ->
     {ok, pid()} | {error, term()}.
 start_link(Ref, Scheduler, SchedulerOptions, Options) ->
-    gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
+    gen_server:start_link({local, ?MODULE}, ?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
+
+-spec get_scheduler_info() -> scheduler_info().
+get_scheduler_info() ->
+    gen_server:call(?MODULE, get_scheduler_info).
 
 %% @doc Teardown call.
 -spec teardown(scheduler_info()) -> ok | {error, term()}.
@@ -284,7 +289,8 @@ init({Ref, Scheduler, SchedulerOptions, Options}) ->
     end.
 
 %% @private
--spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
+handle_call(get_scheduler_info, _From, State) ->
+    {reply, scheduler_info(State), State};
 handle_call(Request, _From, State) ->
     log_warning("Scheduler received unexpected call request.", "Request: ~p.",
                 [Request], State),
