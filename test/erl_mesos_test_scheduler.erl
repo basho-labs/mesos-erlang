@@ -42,16 +42,21 @@
 
 -record(state, {user,
                 callback,
-                test_pid}).
+                test_pid,
+                handle_resource_offers}).
 
 %% erl_mesos_scheduler callback functions.
 
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
+    HandleResourceOffers =
+        proplists:get_value(handle_resource_offers, Options, false),
     {ok, FrameworkInfo, true, #state{user = FrameworkInfo#'FrameworkInfo'.user,
                                      callback = init,
-                                     test_pid = TestPid}}.
+                                     test_pid = TestPid,
+                                     handle_resource_offers =
+                                         HandleResourceOffers}}.
 
 registered(SchedulerInfo, EventSubscribed,
            #state{test_pid = TestPid} = State) ->
@@ -67,9 +72,13 @@ reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
     {ok, State#state{callback = reregistered}}.
 
 resource_offers(SchedulerInfo, EventOffers,
-                #state{test_pid = TestPid} = State) ->
+                #state{test_pid = TestPid,
+                       handle_resource_offers = true} = State) ->
     reply(TestPid, {resource_offers, self(), SchedulerInfo, EventOffers}),
-    {ok, State#state{callback = resource_offers}}.
+    {ok, State#state{callback = resource_offers,
+                     handle_resource_offers = false}};
+resource_offers(_SchedulerInfo, _EventOffers, State) ->
+    {ok, State}.
 
 offer_rescinded(SchedulerInfo, EventRescind,
                 #state{test_pid = TestPid} = State) ->
