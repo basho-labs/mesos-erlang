@@ -481,6 +481,7 @@ slave_lost(Config) ->
     {status_update, SchedulerPid, _, _} = recv_reply(),
     stop_mesos_slave(Config),
     start_mesos_slave(Config),
+    {offer_rescinded, SchedulerPid, _, _} = recv_reply(),
     {status_update, SchedulerPid, _, EventUpdate} = recv_reply(),
     #'Event.Update'{status = Status} = EventUpdate,
     #'TaskStatus'{task_id = TaskId,
