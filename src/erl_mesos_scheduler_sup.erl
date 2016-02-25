@@ -22,6 +22,8 @@
 
 -module(erl_mesos_scheduler_sup).
 
+-behaviour(supervisor).
+
 -export([start_link/0]).
 
 -export([start_scheduler/4, stop_scheduler/1]).
