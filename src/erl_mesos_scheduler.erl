@@ -160,9 +160,7 @@
 -spec start_link(term(), module(), term(), options()) ->
     {ok, pid()} | {error, term()}.
 start_link(Ref, Scheduler, SchedulerOptions, Options) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, {Ref, Scheduler,
-                                                      SchedulerOptions,
-                                                      Options},
+    gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
                           []).
 
 %% @doc Teardown call.
