@@ -61,6 +61,7 @@
                 heartbeat_timeout_window :: pos_integer(),
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
+                registered = false :: boolean(),
                 call_subscribe :: undefined | erl_mesos:'Call.Subscribe'(),
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
@@ -702,20 +703,16 @@ apply_events([], State) ->
 -spec apply_event(erl_mesos_data_format:message(), state()) ->
     {ok, state()} | {stop, state()}.
 apply_event(Message, #state{master_host = MasterHost,
+                            registered = Registered,
                             call_subscribe =
-                            #'Call.Subscribe'{framework_info =
-                                              #'FrameworkInfo'{id = Id} =
-                                              FrameworkInfo} =
+                            #'Call.Subscribe'{framework_info = FrameworkInfo} =
                             CallSubscribe,
                             subscribe_state = SubscribeState} = State) ->
     case Message of
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = #'Event.Subscribed'{framework_id = FrameworkId} =
                  EventSubscribed}
-          when is_record(SubscribeState, subscribe_response),
-               Id =:= undefined ->
-            log_info("Successfully subscribed.", "Host: ~s.", [MasterHost],
-                     State),
+          when is_record(SubscribeState, subscribe_response) ->
             FrameworkInfo1 = FrameworkInfo#'FrameworkInfo'{id = FrameworkId},
             CallSubscribe1 = CallSubscribe#'Call.Subscribe'{framework_info =
                                                             FrameworkInfo1},
@@ -728,20 +725,17 @@ apply_event(Message, #state{master_host = MasterHost,
                                  heartbeat_timeout = HeartbeatTimeout},
             State2 = set_heartbeat_timer(State1),
             State3 = set_subscribed(State2),
-            call(registered, EventSubscribed1, State3);
-        #'Event'{type = 'SUBSCRIBED',
-                 subscribed = EventSubscribed}
-          when is_record(SubscribeState, subscribe_response) ->
-            log_info("Successfully resubscribed.", "Host: ~s.", [MasterHost],
-                     State),
-            #'Event.Subscribed'{heartbeat_interval_seconds =
-                                HeartbeatInterval} =
-                set_default_heartbeat_interval(EventSubscribed),
-            HeartbeatTimeout = heartbeat_timeout(HeartbeatInterval),
-            State1 = State#state{heartbeat_timeout = HeartbeatTimeout},
-            State2 = set_heartbeat_timer(State1),
-            State3 = set_subscribed(State2),
-            call(reregistered, State3);
+            case not Registered of
+                true ->
+                    State4 = State3#state{registered = true},
+                    log_info("Successfully subscribed.", "Host: ~s.",
+                             [MasterHost], State4),
+                    call(registered, EventSubscribed1, State4);
+                false ->
+                    log_info("Successfully resubscribed.", "Host: ~s.",
+                             [MasterHost], State),
+                    call(reregistered, State3)
+            end;
         #'Event'{type = 'OFFERS', offers = EventOffers} ->
             call(resource_offers, EventOffers, State);
         #'Event'{type = 'RESCIND', rescind = EventRescind} ->
@@ -801,7 +795,7 @@ cancel_heartbeat_timer(undefined) ->
 cancel_heartbeat_timer(HeartbeatTimerRef) ->
     erlang:cancel_timer(HeartbeatTimerRef).
 
-%% @doc Sets subscribe state.
+%% @doc Sets subscribed state.
 %% @private
 -spec set_subscribed(state()) -> state().
 set_subscribed(State) ->
@@ -840,9 +834,7 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 %% @private
 -spec handle_unsubscribe(state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_unsubscribe(#state{call_subscribe =
-                          #'Call.Subscribe'{framework_info =
-                                            #'FrameworkInfo'{id = undefined}},
+handle_unsubscribe(#state{registered = false,
                           client_ref = ClientRef,
                           recv_timer_ref = RecvTimerRef} = State) ->
     close(ClientRef),
@@ -946,16 +938,14 @@ handle_redirect(#state{master_hosts = MasterHosts,
                        request_options = RequestOptions,
                        master_hosts_queue = MasterHostsQueue,
                        master_host = MasterHost,
-                       call_subscribe =
-                       #'Call.Subscribe'{framework_info =
-                                         #'FrameworkInfo'{id = Id}},
+                       registered = Registered,
                        client_ref = ClientRef,
                        subscribe_state =
                        #subscribe_response{headers = Headers},
                        num_redirect = NumRedirect} = State) ->
     case proplists:get_value(max_redirect, RequestOptions,
                              ?DEFAULT_MAX_REDIRECT) of
-        NumRedirect when Id =:= undefined ->
+        NumRedirect when not Registered ->
             {stop, {shutdown, {subscribe, {error, max_redirect}}}, State};
         NumRedirect ->
             {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
@@ -978,9 +968,7 @@ handle_redirect(#state{master_hosts = MasterHosts,
 %% @doc Calls subscribe/1 or resubscribe/1.
 %% @private
 -spec redirect(state()) -> {noreply, state()} | {stop, term(), state()}.
-redirect(#state{call_subscribe =
-                #'Call.Subscribe'{framework_info =
-                                  #'FrameworkInfo'{id = undefined}}} = State) ->
+redirect(#state{registered = false} = State) ->
     case subscribe(State) of
         {ok, State1} ->
             {noreply, State1};
@@ -1054,6 +1042,7 @@ format_state(#state{ref = Ref,
                     heartbeat_timeout_window = HeartbeatTimeoutWindow,
                     max_num_resubscribe = MaxNumResubscribe,
                     resubscribe_interval = ResubscribeInterval,
+                    registered = Registered,
                     call_subscribe = CallSubscribe,
                     scheduler_state = SchedulerState,
                     master_hosts_queue = MasterHostsQueue,
@@ -1073,6 +1062,7 @@ format_state(#state{ref = Ref,
              {heartbeat_timeout_window, HeartbeatTimeoutWindow},
              {max_num_resubscribe, MaxNumResubscribe},
              {resubscribe_interval, ResubscribeInterval},
+             {registered, Registered},
              {call_subscribe, CallSubscribe},
              {master_hosts_queue, MasterHostsQueue},
              {master_host, MasterHost},
