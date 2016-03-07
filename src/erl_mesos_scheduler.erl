@@ -704,38 +704,23 @@ apply_events([], State) ->
     {ok, state()} | {stop, state()}.
 apply_event(Message, #state{master_host = MasterHost,
                             registered = Registered,
-                            call_subscribe =
-                            #'Call.Subscribe'{framework_info = FrameworkInfo} =
-                            CallSubscribe,
                             subscribe_state = SubscribeState} = State) ->
     case Message of
         #'Event'{type = 'SUBSCRIBED',
-                 subscribed = #'Event.Subscribed'{framework_id = FrameworkId} =
-                 EventSubscribed}
+                 subscribed = EventSubscribed}
+          when is_record(SubscribeState, subscribe_response), not Registered ->
+            {EventSubscribed1, State1} = set_subscribed(EventSubscribed, State),
+            State2 = State1#state{registered = true},
+            log_info("Successfully subscribed.", "Host: ~s.", [MasterHost],
+                     State2),
+            call(registered, EventSubscribed1, State2);
+        #'Event'{type = 'SUBSCRIBED',
+                 subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response) ->
-            FrameworkInfo1 = FrameworkInfo#'FrameworkInfo'{id = FrameworkId},
-            CallSubscribe1 = CallSubscribe#'Call.Subscribe'{framework_info =
-                                                            FrameworkInfo1},
-            EventSubscribed1 =
-                #'Event.Subscribed'{heartbeat_interval_seconds =
-                                    HeartbeatInterval} =
-                    set_default_heartbeat_interval(EventSubscribed),
-            HeartbeatTimeout = heartbeat_timeout(HeartbeatInterval),
-            State1 = State#state{call_subscribe = CallSubscribe1,
-                                 heartbeat_timeout = HeartbeatTimeout},
-            State2 = set_heartbeat_timer(State1),
-            State3 = set_subscribed(State2),
-            case not Registered of
-                true ->
-                    State4 = State3#state{registered = true},
-                    log_info("Successfully subscribed.", "Host: ~s.",
-                             [MasterHost], State4),
-                    call(registered, EventSubscribed1, State4);
-                false ->
-                    log_info("Successfully resubscribed.", "Host: ~s.",
-                             [MasterHost], State),
-                    call(reregistered, State3)
-            end;
+            {_EventSubscribed, State1} = set_subscribed(EventSubscribed, State),
+            log_info("Successfully resubscribed.", "Host: ~s.", [MasterHost],
+                     State1),
+            call(reregistered, State1);
         #'Event'{type = 'OFFERS', offers = EventOffers} ->
             call(resource_offers, EventOffers, State);
         #'Event'{type = 'RESCIND', rescind = EventRescind} ->
@@ -755,6 +740,40 @@ apply_event(Message, #state{master_host = MasterHost,
         #'Event'{type = 'HEARTBEAT'} ->
             {ok, set_heartbeat_timer(State)}
     end.
+
+%% @doc Sets subscribed state.
+%% @private
+-spec set_subscribed(erl_mesos:'Event.Subscribed'(), state()) ->
+    {erl_mesos:'Event.Subscribed'(), state()}.
+set_subscribed(EventSubscribed, #state{call_subscribe = CallSubscribe} =
+               State) ->
+    CallSubscribe1 = set_framework_id(EventSubscribed, CallSubscribe),
+    EventSubscribed1 =
+        #'Event.Subscribed'{heartbeat_interval_seconds =
+                            HeartbeatInterval} =
+            set_default_heartbeat_interval(EventSubscribed),
+    HeartbeatTimeout = heartbeat_timeout(HeartbeatInterval),
+    State1 = State#state{call_subscribe = CallSubscribe1,
+                         master_hosts_queue = undefined,
+                         subscribe_state = subscribed,
+                         num_redirect = 0,
+                         num_resubscribe = 0,
+                         heartbeat_timeout = HeartbeatTimeout},
+    {EventSubscribed1, set_heartbeat_timer(State1)}.
+
+%% @doc Sets framework id.
+%% @private
+-spec set_framework_id(erl_mesos:'Event.Subscribed'(),
+                       erl_mesos:'Call.Subscribe'()) ->
+    erl_mesos:'Call.Subscribe'().
+set_framework_id(#'Event.Subscribed'{framework_id = FrameworkId},
+                 #'Call.Subscribe'{framework_info =
+                                       #'FrameworkInfo'{id = undefined} =
+                                   FrameworkInfo} = CallSubscribe) ->
+    FrameworkInfo1 = FrameworkInfo#'FrameworkInfo'{id = FrameworkId},
+    CallSubscribe#'Call.Subscribe'{framework_info = FrameworkInfo1};
+set_framework_id(_EventSubscribed, CallSubscribe) ->
+    CallSubscribe.
 
 %% @doc Sets default heartbeat interval.
 %% @private
@@ -794,15 +813,6 @@ cancel_heartbeat_timer(undefined) ->
     undefined;
 cancel_heartbeat_timer(HeartbeatTimerRef) ->
     erlang:cancel_timer(HeartbeatTimerRef).
-
-%% @doc Sets subscribed state.
-%% @private
--spec set_subscribed(state()) -> state().
-set_subscribed(State) ->
-    State#state{master_hosts_queue = undefined,
-                subscribe_state = subscribed,
-                num_redirect = 0,
-                num_resubscribe = 0}.
 
 %% @doc Calls Scheduler:Callback/2.
 %% @private
