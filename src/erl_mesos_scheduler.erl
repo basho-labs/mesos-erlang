@@ -709,17 +709,16 @@ apply_event(Message, #state{master_host = MasterHost,
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response), not Registered ->
-            {EventSubscribed1, State1} = set_subscribed(EventSubscribed, State),
-            State2 = State1#state{registered = true},
             log_info("Successfully subscribed.", "Host: ~s.", [MasterHost],
-                     State2),
-            call(registered, EventSubscribed1, State2);
+                     State),
+            {EventSubscribed1, State1} = set_subscribed(EventSubscribed, State),
+            call(registered, EventSubscribed1, State1#state{registered = true});
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response) ->
-            {_EventSubscribed, State1} = set_subscribed(EventSubscribed, State),
             log_info("Successfully resubscribed.", "Host: ~s.", [MasterHost],
-                     State1),
+                     State),
+            {_EventSubscribed, State1} = set_subscribed(EventSubscribed, State),
             call(reregistered, State1);
         #'Event'{type = 'OFFERS', offers = EventOffers} ->
             call(resource_offers, EventOffers, State);
