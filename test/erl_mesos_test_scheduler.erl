@@ -40,76 +40,64 @@
          handle_info/3,
          terminate/3]).
 
--record(state, {user,
-                callback,
-                test_pid,
-                handle_resource_offers}).
+-record(state, {user, test_pid}).
 
 %% erl_mesos_scheduler callback functions.
 
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
-    HandleResourceOffers =
-        proplists:get_value(handle_resource_offers, Options, false),
     {ok, FrameworkInfo, true, #state{user = FrameworkInfo#'FrameworkInfo'.user,
-                                     callback = init,
-                                     test_pid = TestPid,
-                                     handle_resource_offers =
-                                         HandleResourceOffers}}.
+                                     test_pid = TestPid}}.
 
 registered(SchedulerInfo, EventSubscribed,
            #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {registered, self(), SchedulerInfo, EventSubscribed}),
-    {ok, State#state{callback = registered}}.
+    reply(TestPid, registered, {self(), SchedulerInfo, EventSubscribed}),
+    {ok, State}.
 
 disconnected(SchedulerInfo, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {disconnected, self(), SchedulerInfo}),
-    {ok, State#state{callback = disconnected}}.
+    reply(TestPid, disconnected, {self(), SchedulerInfo}),
+    {ok, State}.
 
 reregistered(SchedulerInfo, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {reregistered, self(), SchedulerInfo}),
-    {ok, State#state{callback = reregistered}}.
+    reply(TestPid, reregistered, {self(), SchedulerInfo}),
+    {ok, State}.
 
 resource_offers(SchedulerInfo, EventOffers,
-                #state{test_pid = TestPid,
-                       handle_resource_offers = true} = State) ->
-    reply(TestPid, {resource_offers, self(), SchedulerInfo, EventOffers}),
-    {ok, State#state{callback = resource_offers,
-                     handle_resource_offers = false}};
-resource_offers(_SchedulerInfo, _EventOffers, State) ->
+                #state{test_pid = TestPid} = State) ->
+    reply(TestPid, resource_offers, {self(), SchedulerInfo, EventOffers}),
     {ok, State}.
 
 offer_rescinded(SchedulerInfo, EventRescind,
                 #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {offer_rescinded, self(), SchedulerInfo, EventRescind}),
-    {ok, State#state{callback = offer_rescinded}}.
+    reply(TestPid, offer_rescinded, {self(), SchedulerInfo, EventRescind}),
+    {ok, State}.
 
 status_update(SchedulerInfo, EventUpdate, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {status_update, self(), SchedulerInfo, EventUpdate}),
-    {ok, State#state{callback = status_update}}.
+    reply(TestPid, status_update, {self(), SchedulerInfo, EventUpdate}),
+    {ok, State}.
 
 framework_message(SchedulerInfo, EventMessage,
                   #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {framework_message, self(), SchedulerInfo, EventMessage}),
-    {ok, State#state{callback = framework_message}}.
+    reply(TestPid, framework_message, {self(), SchedulerInfo, EventMessage}),
+    {ok, State}.
 
 slave_lost(SchedulerInfo, EventFailure, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {slave_lost, self(), SchedulerInfo, EventFailure}),
-    {ok, State#state{callback = slave_lost}}.
+    reply(TestPid, slave_lost, {self(), SchedulerInfo, EventFailure}),
+    {ok, State}.
 
 executor_lost(SchedulerInfo, EventFailure,
               #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {executor_lost, self(), SchedulerInfo, EventFailure}),
-    {ok, State#state{callback = executor_lost}}.
+    reply(TestPid, executor_lost, {self(), SchedulerInfo, EventFailure}),
+    {ok, State}.
 
 error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {error, self(), SchedulerInfo, EventError}),
-    {stop, State#state{callback = error}}.
+    reply(TestPid, error, {self(), SchedulerInfo, EventError}),
+    {stop, State}.
 
 handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
     Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
-    reply(TestPid, {teardown, Teardown}),
+    reply(TestPid, teardown, Teardown),
     {stop, State};
 handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
             #state{test_pid = TestPid} = State) ->
@@ -121,7 +109,7 @@ handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
     OfferOperation = erl_mesos_utils:launch_offer_operation([TaskInfo]),
     Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
                                         [OfferOperation]),
-    reply(TestPid, {accept, Accept}),
+    reply(TestPid, accept, Accept),
     {ok, State};
 handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
             {accept_test_executor, OfferId, AgentId, TaskId},
@@ -142,55 +130,55 @@ handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
     OfferOperation = erl_mesos_utils:launch_offer_operation([TaskInfo]),
     Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
                                         [OfferOperation]),
-    reply(TestPid, {accept, Accept}),
+    reply(TestPid, accept, Accept),
     {ok, State};
 handle_info(SchedulerInfo, {decline, TaskId},
             #state{test_pid = TestPid} = State) ->
     Decline = erl_mesos_scheduler:decline(SchedulerInfo, [TaskId]),
-    reply(TestPid, {decline, Decline}),
+    reply(TestPid, decline, Decline),
     {ok, State};
 handle_info(SchedulerInfo, revive, #state{test_pid = TestPid} = State) ->
     Revive = erl_mesos_scheduler:revive(SchedulerInfo),
-    reply(TestPid, {revive, Revive}),
+    reply(TestPid, revive, Revive),
     {ok, State};
 handle_info(SchedulerInfo, {kill, TaskId},
             #state{test_pid = TestPid} = State) ->
     Kill = erl_mesos_scheduler:kill(SchedulerInfo, TaskId),
-    reply(TestPid, {kill, Kill}),
+    reply(TestPid, kill, Kill),
     {ok, State};
 handle_info(SchedulerInfo, {shutdown, ExecutorId, AgentId},
             #state{test_pid = TestPid} = State) ->
     Shutdown = erl_mesos_scheduler:shutdown(SchedulerInfo, ExecutorId, AgentId),
-    reply(TestPid, {shutdown, Shutdown}),
+    reply(TestPid, shutdown, Shutdown),
     {ok, State};
 handle_info(SchedulerInfo, {acknowledge, AgentId, TaskId, Uuid},
             #state{test_pid = TestPid} = State) ->
     Acknowledge =
         erl_mesos_scheduler:acknowledge(SchedulerInfo, AgentId, TaskId, Uuid),
-    reply(TestPid, {acknowledge, Acknowledge}),
+    reply(TestPid, acknowledge, Acknowledge),
     {ok, State};
 handle_info(SchedulerInfo, {reconcile, TaskId},
             #state{test_pid = TestPid} = State) ->
     CallReconcileTask = #'Call.Reconcile.Task'{task_id = TaskId},
     Reconcile = erl_mesos_scheduler:reconcile(SchedulerInfo,
                                               [CallReconcileTask]),
-    reply(TestPid, {reconcile, Reconcile}),
+    reply(TestPid, reconcile, Reconcile),
     {ok, State};
 handle_info(SchedulerInfo, {message, AgentId, ExecutorId, Data},
             #state{test_pid = TestPid} = State) ->
     Message =
         erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId, Data),
-    reply(TestPid, {message, Message}),
+    reply(TestPid, message, Message),
     {ok, State};
 handle_info(SchedulerInfo, {request, Requests},
             #state{test_pid = TestPid} = State) ->
     Request = erl_mesos_scheduler:request(SchedulerInfo, Requests),
-    reply(TestPid, {request, Request}),
+    reply(TestPid, request, Request),
     {ok, State};
 handle_info(SchedulerInfo, suppress,
             #state{test_pid = TestPid} = State) ->
     Suppress = erl_mesos_scheduler:suppress(SchedulerInfo),
-    reply(TestPid, {suppress, Suppress}),
+    reply(TestPid, suppress, Suppress),
     {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
@@ -198,7 +186,7 @@ handle_info(_SchedulerInfo, _Info, State) ->
     {ok, State}.
 
 terminate(SchedulerInfo, Reason, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, {terminate, self(), SchedulerInfo, Reason, State}).
+    reply(TestPid, terminate, {self(), SchedulerInfo, Reason, State}).
 
 %% Internal functions.
 
@@ -208,7 +196,7 @@ framework_info(Options) ->
     FailoverTimeout = proplists:get_value(failover_timeout, Options, 0.0),
     erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
 
-reply(undefined, _Message) ->
+reply(undefined, _Name, _Message) ->
     undefined;
-reply(TestPid, Message) ->
-    TestPid ! Message.
+reply(TestPid, Name, Data) ->
+    TestPid ! {Name, Data}.
