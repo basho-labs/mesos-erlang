@@ -124,7 +124,8 @@
 -callback slave_lost(scheduler_info(), erl_mesos:'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback executor_lost(scheduler_info(), erl_mesos:'Event.Failure'(), term()) ->
+-callback executor_lost(scheduler_info(), erl_mesos:'Event.Failure'(),
+                        term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback error(scheduler_info(), erl_mesos:'Event.Error'(), term()) ->
@@ -221,6 +222,8 @@ kill(SchedulerInfo, TaskId, AgentId) ->
     erl_mesos_scheduler_call:kill(SchedulerInfo, CallKill).
 
 %% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
+-spec shutdown(scheduler_info(), erl_mesos:'ExecutorID'()) ->
+    ok | {error, term()}.
 shutdown(SchedulerInfo, ExecutorId) ->
     shutdown(SchedulerInfo, ExecutorId, undefined).
 
@@ -285,6 +288,7 @@ init({Ref, Scheduler, SchedulerOptions, Options}) ->
     end.
 
 %% @private
+-spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
 handle_call(Request, _From, State) ->
     log_warning("Scheduler received unexpected call request.", "Request: ~p.",
                 [Request], State),

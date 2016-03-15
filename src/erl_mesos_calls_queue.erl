@@ -105,6 +105,7 @@ exec_or_push_call(Call, CallsQueue) ->
             end
     end.
 
+%% @doc Executes calls form the calls queue.
 -spec exec_calls(calls_queue()) ->
     {ok, calls_queue()} | {exec_error, term(), calls_queue()} | {error, term()}.
 exec_calls(#calls_queue{max_num_try_execute = MaxNumTryExecute,

@@ -36,6 +36,8 @@ start_link() ->
 %% supervisor callback function.
 
 %% @private
+-spec init(term()) ->
+    {ok, {{supervisor:strategy(), 10, 10}, [supervisor:child_spec()]}}.
 init({}) ->
     Specs = [{erl_mesos_scheduler_sup,
                   {erl_mesos_scheduler_sup, start_link, []},
