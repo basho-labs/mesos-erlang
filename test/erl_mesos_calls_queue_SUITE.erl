@@ -62,7 +62,7 @@ pop_push_call(_Config) ->
              end,
     CallsQueue2 = lists:foldl(PopFun, CallsQueue1, Numbers),
     0 = erl_mesos_calls_queue:len(CallsQueue2),
-    {error, calls_queue_empty} = erl_mesos_calls_queue:pop_call(CallsQueue2).
+    calls_queue_empty = erl_mesos_calls_queue:pop_call(CallsQueue2).
 
 exec_or_push_call(_Config) ->
     %% Execute.
@@ -89,7 +89,7 @@ exec_calls(_Config) ->
     MaxNumTryExecute = 3,
     Options = [{max_len, MaxLen}, {max_num_try_execute, MaxNumTryExecute}],
     CallsQueue = erl_mesos_calls_queue:new(Options),
-    {error, calls_queue_empty} = erl_mesos_calls_queue:exec_calls(CallsQueue),
+    calls_queue_empty = erl_mesos_calls_queue:exec_calls(CallsQueue),
     %% Push.
     Numbers = lists:seq(1, MaxLen),
     [_ | Numbers1] = Numbers,
