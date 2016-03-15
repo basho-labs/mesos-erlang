@@ -66,14 +66,14 @@ len(#calls_queue{calls = Calls}) ->
 
 %% @doc Popes call from the calls queue.
 -spec pop_call(calls_queue()) ->
-    {ok, call(), calls_queue()} | {error, calls_queue_empty}.
+    {ok, call(), calls_queue()} | calls_queue_empty.
 pop_call(#calls_queue{calls = Calls} = CallsQueue) ->
     case queue:len(Calls) > 0 of
         true ->
             {{value, Call}, Calls1} = queue:out(Calls),
             {ok, Call, CallsQueue#calls_queue{calls = Calls1}};
         false ->
-            {error, calls_queue_empty}
+            calls_queue_empty
     end.
 
 %% @doc Pushes call to the calls queue.
@@ -107,7 +107,7 @@ exec_or_push_call(Call, CallsQueue) ->
 
 %% @doc Executes calls form the calls queue.
 -spec exec_calls(calls_queue()) ->
-    {ok, calls_queue()} | {exec_error, term(), calls_queue()} | {error, term()}.
+    {exec_error, term(), calls_queue()} | {error, term()} | calls_queue_empty.
 exec_calls(#calls_queue{max_num_try_execute = MaxNumTryExecute,
                         num_try_execute = NumTryExecute})
   when MaxNumTryExecute + 1 =:= NumTryExecute ->
@@ -129,7 +129,7 @@ exec_calls(#calls_queue{calls = Calls,
                     {exec_error, Reason, CallsQueue1}
             end;
         false ->
-            {error, calls_queue_empty}
+            calls_queue_empty
     end.
 
 %% Internal functions.
