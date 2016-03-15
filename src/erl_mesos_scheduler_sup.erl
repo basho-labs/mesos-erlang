@@ -53,6 +53,8 @@ stop_scheduler(Pid) ->
 %% supervisor callback function.
 
 %% @private
+-spec init(term()) ->
+    {ok, {{supervisor:strategy(), 1, 10}, [supervisor:child_spec()]}}.
 init({}) ->
     Spec = {undefined,
                {erl_mesos_scheduler, start_link, []},
