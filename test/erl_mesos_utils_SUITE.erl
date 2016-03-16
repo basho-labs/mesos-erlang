@@ -232,6 +232,7 @@ executor_info(_Config) ->
     CommandInfo = erl_mesos_utils:command_info("command", [CommandInfoUri]),
     Resources = [erl_mesos_utils:scalar_resource("cpus", 0.1)],
     FrameworkId = erl_mesos_utils:framework_id("framework_id"),
+    Source = "source",
     #'ExecutorInfo'{executor_id = ExecutorId,
                     framework_id = undefined,
                     command = CommandInfo,
@@ -247,7 +248,14 @@ executor_info(_Config) ->
                     command = CommandInfo,
                     resources = Resources} =
         erl_mesos_utils:executor_info(ExecutorId, CommandInfo, Resources,
-                                      FrameworkId).
+                                      FrameworkId),
+    #'ExecutorInfo'{executor_id = ExecutorId,
+                    framework_id = FrameworkId,
+                    command = CommandInfo,
+                    resources = Resources,
+                    source = Source} =
+        erl_mesos_utils:executor_info(ExecutorId, CommandInfo, Resources,
+                                      FrameworkId, Source).
 
 task_info(_Config) ->
     Name = "name",
@@ -257,6 +265,7 @@ task_info(_Config) ->
     CommandInfo = erl_mesos_utils:command_info("command"),
     ExecutorId = erl_mesos_utils:executor_id("executor_id"),
     ExecutorInfo = erl_mesos_utils:executor_info(ExecutorId, CommandInfo),
+    Data = <<"data">>,
     #'TaskInfo'{name = Name,
                 task_id = TaskId,
                 agent_id = AgentId,
@@ -272,7 +281,16 @@ task_info(_Config) ->
                 executor = undefined,
                 command = CommandInfo} =
         erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources, undefined,
-                                  CommandInfo).
+                                  CommandInfo),
+    #'TaskInfo'{name = Name,
+                task_id = TaskId,
+                agent_id = AgentId,
+                resources = Resources,
+                executor = ExecutorInfo,
+                command = CommandInfo,
+                data = Data} =
+        erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources,
+                                  ExecutorInfo, CommandInfo, Data).
 
 offer_operation(_Config) ->
     Name = "name",
