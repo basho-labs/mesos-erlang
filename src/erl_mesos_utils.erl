@@ -52,7 +52,7 @@
 
 -export([agent_id/1]).
 
--export([task_id/1, task_info/4, task_info/5, task_info/6]).
+-export([task_id/1, task_info/4, task_info/5, task_info/6, task_info/7]).
 
 -export([launch_offer_operation/1,
          reserve_offer_operation/1,
@@ -275,14 +275,16 @@ agent_id(Value) ->
 task_id(Value) ->
     #'TaskID'{value = Value}.
 
-%% @equiv task_info(Name, TaskId, AgentId, Resources, undefined, undefined)
+%% @equiv task_info(Name, TaskId, AgentId, Resources, undefined, undefined,
+%%                  undefined)
 -spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
                 [erl_mesos:'Resource'()]) ->
     erl_mesos:'TaskInfo'().
 task_info(Name, TaskId, AgentId, Resources) ->
     task_info(Name, TaskId, AgentId, Resources, undefined, undefined).
 
-%% @equiv task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, undefined)
+%% @equiv task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, undefined,
+%%                  undefined)
 -spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
                 [erl_mesos:'Resource'()],
                 undefined | erl_mesos:'ExecutorInfo'()) ->
@@ -290,19 +292,32 @@ task_info(Name, TaskId, AgentId, Resources) ->
 task_info(Name, TaskId, AgentId, Resources, ExecutorInfo) ->
     task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, undefined).
 
-%% @doc Returns task info.
+%% @equiv task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, CommandInfo,
+%%                  undefined)
 -spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
                 [erl_mesos:'Resource'()],
                 undefined | erl_mesos:'ExecutorInfo'(),
                 undefined | erl_mesos:'CommandInfo'()) ->
     erl_mesos:'TaskInfo'().
 task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, CommandInfo) ->
+    task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, CommandInfo,
+              undefined).
+
+%% @doc Returns task info.
+-spec task_info(string(), erl_mesos:'TaskID'(), erl_mesos:'AgentID'(),
+                [erl_mesos:'Resource'()],
+                undefined | erl_mesos:'ExecutorInfo'(),
+                undefined | erl_mesos:'CommandInfo'(),
+                undefined | binary()) ->
+    erl_mesos:'TaskInfo'().
+task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, CommandInfo, Data) ->
     #'TaskInfo'{name = Name,
                 task_id = TaskId,
                 agent_id = AgentId,
                 resources = Resources,
                 executor = ExecutorInfo,
-                command = CommandInfo}.
+                command = CommandInfo,
+                data = Data}.
 
 %% @doc Returns launch offer operation.
 -spec launch_offer_operation([erl_mesos:'TaskInfo'()]) ->

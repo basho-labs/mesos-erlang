@@ -257,6 +257,7 @@ task_info(_Config) ->
     CommandInfo = erl_mesos_utils:command_info("command"),
     ExecutorId = erl_mesos_utils:executor_id("executor_id"),
     ExecutorInfo = erl_mesos_utils:executor_info(ExecutorId, CommandInfo),
+    Data = <<"data">>,
     #'TaskInfo'{name = Name,
                 task_id = TaskId,
                 agent_id = AgentId,
@@ -272,7 +273,16 @@ task_info(_Config) ->
                 executor = undefined,
                 command = CommandInfo} =
         erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources, undefined,
-                                  CommandInfo).
+                                  CommandInfo),
+    #'TaskInfo'{name = Name,
+                task_id = TaskId,
+                agent_id = AgentId,
+                resources = Resources,
+                executor = ExecutorInfo,
+                command = CommandInfo,
+                data = Data} =
+        erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources,
+                                  ExecutorInfo, CommandInfo, Data).
 
 offer_operation(_Config) ->
     Name = "name",
