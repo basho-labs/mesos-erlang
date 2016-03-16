@@ -48,7 +48,11 @@
          set_resource_reservation/4,
          volume_resource_reservation/6]).
 
--export([executor_id/1, executor_info/2, executor_info/3, executor_info/4]).
+-export([executor_id/1,
+         executor_info/2,
+         executor_info/3,
+         executor_info/4,
+         executor_info/5]).
 
 -export([agent_id/1]).
 
@@ -198,7 +202,7 @@ volume_resource(Value, PersistenceId, ContainerPath, Mode) ->
                                             volume = Volume},
     Resource#'Resource'{disk = ResourceDiskInfo}.
 
-%% @doc Addes role and reservation info to the resource.
+%% @doc Adds role and reservation info to the resource.
 -spec add_resource_reservation(erl_mesos:'Resource'(), string(), string()) ->
     erl_mesos:'Resource'().
 add_resource_reservation(Resource, Role, Principal) ->
@@ -241,29 +245,41 @@ volume_resource_reservation(Value, PersistenceId, ContainerPath, Mode, Role,
 executor_id(Value) ->
     #'ExecutorID'{value = Value}.
 
-%% @equiv executor_info(ExecutorId, CommandInfo, [], undefined)
+%% @equiv executor_info(ExecutorId, CommandInfo, [], undefined, undefined)
 -spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'()) ->
     erl_mesos:'ExecutorInfo'().
 executor_info(ExecutorId, CommandInfo) ->
     executor_info(ExecutorId, CommandInfo, [], undefined).
 
-%% @equiv executor_info(ExecutorId, CommandInfo, Resources, undefined)
+%% @equiv executor_info(ExecutorId, CommandInfo, Resources, undefined,
+%%                      undefined)
 -spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'(),
                     [erl_mesos:'Resource'()]) ->
     erl_mesos:'ExecutorInfo'().
 executor_info(ExecutorId, CommandInfo, Resources) ->
     executor_info(ExecutorId, CommandInfo, Resources, undefined).
 
-%% @doc Returns executor info.
+%% @equiv executor_info(ExecutorId, CommandInfo, Resources, FrameworkId,
+%%                      undefined)
 -spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'(),
                     [erl_mesos:'Resource'()],
                     undefined | erl_mesos:'FrameworkID'()) ->
     erl_mesos:'ExecutorInfo'().
 executor_info(ExecutorId, CommandInfo, Resources, FrameworkId) ->
+    executor_info(ExecutorId, CommandInfo, Resources, FrameworkId, undefined).
+
+%% @doc Returns executor info.
+-spec executor_info(erl_mesos:'ExecutorID'(), erl_mesos:'CommandInfo'(),
+                    [erl_mesos:'Resource'()],
+                    undefined | erl_mesos:'FrameworkID'(),
+                    undefined | string()) ->
+    erl_mesos:'ExecutorInfo'().
+executor_info(ExecutorId, CommandInfo, Resources, FrameworkId, Source) ->
     #'ExecutorInfo'{executor_id = ExecutorId,
                     framework_id = FrameworkId,
                     command = CommandInfo,
-                    resources = Resources}.
+                    resources = Resources,
+                    source = Source}.
 
 %% @doc Returns agent id.
 -spec agent_id(string()) -> erl_mesos:'AgentID'().

@@ -232,6 +232,7 @@ executor_info(_Config) ->
     CommandInfo = erl_mesos_utils:command_info("command", [CommandInfoUri]),
     Resources = [erl_mesos_utils:scalar_resource("cpus", 0.1)],
     FrameworkId = erl_mesos_utils:framework_id("framework_id"),
+    Source = "source",
     #'ExecutorInfo'{executor_id = ExecutorId,
                     framework_id = undefined,
                     command = CommandInfo,
@@ -247,7 +248,14 @@ executor_info(_Config) ->
                     command = CommandInfo,
                     resources = Resources} =
         erl_mesos_utils:executor_info(ExecutorId, CommandInfo, Resources,
-                                      FrameworkId).
+                                      FrameworkId),
+    #'ExecutorInfo'{executor_id = ExecutorId,
+                    framework_id = FrameworkId,
+                    command = CommandInfo,
+                    resources = Resources,
+                    source = Source} =
+        erl_mesos_utils:executor_info(ExecutorId, CommandInfo, Resources,
+                                      FrameworkId, Source).
 
 task_info(_Config) ->
     Name = "name",
