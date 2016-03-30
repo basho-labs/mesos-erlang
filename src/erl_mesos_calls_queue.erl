@@ -90,7 +90,7 @@ push_call(Call, #calls_queue{calls = Calls,
 
 %% @doc Executes call or put call to the calls queue.
 -spec exec_or_push_call(call(), calls_queue()) ->
-    {ok, queue()} | {exec_error, term(), calls_queue()} |
+    {ok, calls_queue()} | {exec_error, term(), calls_queue()} |
     {error, calls_queue_len_limit}.
 exec_or_push_call(Call, CallsQueue) ->
     case execute_call(Call) of
