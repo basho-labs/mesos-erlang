@@ -87,7 +87,7 @@ groups() ->
                       suppress]}].
 
 init_per_suite(Config) ->
-    ok = erl_mesos:start(),
+    {ok, _Apps} = erl_mesos:start(),
     Scheduler = erl_mesos_test_scheduler,
     SchedulerOptions = [{user, "root"},
                         {name, "erl_mesos_test_scheduler"}],

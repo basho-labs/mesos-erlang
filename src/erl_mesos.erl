@@ -161,7 +161,12 @@
 %% @doc Starts app with deps.
 -spec start() -> ok.
 start() ->
-    application:ensure_all_started(erl_mesos).
+    case application:ensure_all_started(erl_mesos) of
+        {ok, _Apps} ->
+            ok;
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 %% @equiv erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options,
 %%                                  infinity)
