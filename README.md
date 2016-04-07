@@ -1,6 +1,6 @@
 # Erlang Mesos library
 
-## Scheduler api
+## Scheduler
 
 ### Creating scheduler
 
@@ -137,7 +137,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = scheduler_info()
-EventMessage = erl_mesos:'EventMessage'()
+EventMessage = erl_mesos:'Event.Message'()
 State = term()
 NewState = term()
 ```
@@ -145,20 +145,98 @@ NewState = term()
 Whenever a `erl_mesos_scheduler` process receives message event from
 Mesos this function is called to handle this event.
 
+#### Module:slave_lost/3
 
-TODO: finish callbacks.
--callback slave_lost(scheduler_info(), erl_mesos:'Event.Failure'(), term()) ->
-    {ok, term()} | {stop, term()}.
+```erlang
+Module:slave_lost(SchedulerInfo, EventFailure, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
 
--callback executor_lost(scheduler_info(), erl_mesos:'Event.Failure'(),
-                        term()) ->
-    {ok, term()} | {stop, term()}.
+Data types:
 
--callback error(scheduler_info(), erl_mesos:'Event.Error'(), term()) ->
-    {ok, term()} | {stop, term()}.
+```erlang
+SchedulerInfo = scheduler_info()
+EventFailure = erl_mesos:'Event.Failure'()
+State = term()
+NewState = term()
+```
 
--callback handle_info(scheduler_info(), term(), term()) ->
-    {ok, term()} | {stop, term()}.
+Whenever a `erl_mesos_scheduler` process receives failure event without 
+executor id data from Mesos this function is called to handle this 
+event.
 
--callback terminate(scheduler_info(), term(), term()) -> term().
+#### Module:executor_lost/3
 
+```erlang
+Module:executor_lost(SchedulerInfo, EventFailure, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+EventFailure = erl_mesos:'Event.Failure'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_scheduler` process receives failure event with 
+executor id data from Mesos this function is called to handle this 
+event.
+
+#### Module:error/3
+
+```erlang
+Module:error(SchedulerInfo, EventError, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+EventError = erl_mesos:'Event.Error'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_scheduler` process receives error event from Mesos 
+this function is called to handle this event.
+
+#### Module:handle_info/3
+
+```erlang
+Module:handle_info(SchedulerInfo, Info, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+EventError = erl_mesos:'Event.Error'()
+State = term()
+NewState = term()
+```
+
+This function is called by a `erl_mesos_scheduler` it receives any other 
+message than Mesos event.
+
+#### Module:terminate/3
+
+```erlang
+Module:terminate(SchedulerInfo, Reason, State) -> Result.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+Reason = term()
+State = term()
+Result = term()
+```
+
+This function is called by a `erl_mesos_scheduler` when it is about to 
+terminate.
