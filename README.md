@@ -2,9 +2,10 @@
 
 ## Scheduler
 
-### Creating scheduler
-
 `erl_mesos_scheduler` process a wrapper on top of `gen_server` process.
+
+### Scheduler callbacks
+
 Each scheduler handler must implement `erl_mesos_scheduler` behaviour.
 
 `erl_mesos_scheduler` callbacks:
@@ -226,7 +227,8 @@ message than Mesos event.
 #### Module:terminate/3
 
 ```erlang
-Module:terminate(SchedulerInfo, Reason, State) -> Result.
+Module:terminate(SchedulerInfo, Reason, State) -> 
+    Result.
 ```
 
 Data types:
@@ -240,3 +242,88 @@ Result = term()
 
 This function is called by a `erl_mesos_scheduler` when it is about to 
 terminate.
+
+## Scheduler API calls
+
+#### Teardown
+
+```erlang
+erl_mesos_scheduler:teardown(SchedulerInfo) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+Reason = term()
+```
+
+Teardown call.
+
+#### Accept
+
+```erlang
+erl_mesos_scheduler:accept(SchedulerInfo, OfferIds, Operations) -> 
+    ok | {error, Reason}.
+```
+
+```erlang
+erl_mesos_scheduler:accept(SchedulerInfo, OfferIds, Operations, 
+                           Filters) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+OfferIds = [erl_mesos:'OfferID'()]
+Operations = [erl_mesos:'Offer.Operation'()]
+Filters = undefined | erl_mesos:'Filters'()
+Reason = term()
+```
+
+Accept call.
+
+#### Decline
+
+```erlang
+erl_mesos_scheduler:decline(SchedulerInfo, OfferIds) -> 
+    ok | {error, Reason}.
+```
+
+```erlang
+erl_mesos_scheduler:decline(SchedulerInfo, OfferIds, Filters) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+OfferIds = [erl_mesos:'OfferID'()]
+Filters = undefined | erl_mesos:'Filters'()
+Reason = term()
+```
+
+Decline call.
+
+#### Revive
+
+```erlang
+erl_mesos_scheduler:revive(SchedulerInfo) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = scheduler_info()
+Reason = term()
+```
+
+Decline call.
+
+
+
