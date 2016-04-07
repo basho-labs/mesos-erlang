@@ -93,10 +93,12 @@ close_async_response(ClientRef) ->
 handle_sync_response(Response) ->
     case Response of
         {ok, 202, _Headers, ClientRef} ->
-            %% The body is always {ok, <<>>} in this case, but we need to 
-            %% read the body to finish the request in Hackney.
-            erl_mesos_http:body(ClientRef),
-            ok;
+            case erl_mesos_http:body(ClientRef) of
+                {ok, _Body} ->
+                    ok;
+                {error, Reason} ->
+                    {error, Reason}
+            end;
         {ok, Status, _Headers, ClientRef} ->
             case erl_mesos_http:body(ClientRef) of
                 {ok, Body} ->
