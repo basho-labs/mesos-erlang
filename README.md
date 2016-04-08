@@ -40,7 +40,7 @@ Module:registered(SchedulerInfo, EventSubscribed, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventSubscribed = erl_mesos:'Event.Subscribed'()
 State = term()
 NewState = term()
@@ -59,7 +59,7 @@ Module:disconnected(SchedulerInfo, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 State = term()
 NewState = term()
 ```
@@ -81,7 +81,7 @@ Module:reregistered(SchedulerInfo, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 State = term()
 NewState = term()
 ```
@@ -99,7 +99,7 @@ Module:offer_rescinded(SchedulerInfo, EventRescind, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventRescind = erl_mesos:'Event.Rescind'()
 State = term()
 NewState = term()
@@ -118,7 +118,7 @@ Module:status_update(SchedulerInfo, EventUpdate, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventUpdate = erl_mesos:'Event.Update'()
 State = term()
 NewState = term()
@@ -137,7 +137,7 @@ Module:framework_message(SchedulerInfo, EventMessage, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventMessage = erl_mesos:'Event.Message'()
 State = term()
 NewState = term()
@@ -156,7 +156,7 @@ Module:slave_lost(SchedulerInfo, EventFailure, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventFailure = erl_mesos:'Event.Failure'()
 State = term()
 NewState = term()
@@ -176,7 +176,7 @@ Module:executor_lost(SchedulerInfo, EventFailure, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventFailure = erl_mesos:'Event.Failure'()
 State = term()
 NewState = term()
@@ -196,7 +196,7 @@ Module:error(SchedulerInfo, EventError, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventError = erl_mesos:'Event.Error'()
 State = term()
 NewState = term()
@@ -215,7 +215,7 @@ Module:handle_info(SchedulerInfo, Info, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 EventError = erl_mesos:'Event.Error'()
 State = term()
 NewState = term()
@@ -234,7 +234,7 @@ Module:terminate(SchedulerInfo, Reason, State) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 Reason = term()
 State = term()
 Result = term()
@@ -243,7 +243,7 @@ Result = term()
 This function is called by a `erl_mesos_scheduler` when it is about to 
 terminate.
 
-## Scheduler API calls
+### Scheduler calls
 
 #### Teardown
 
@@ -255,7 +255,7 @@ erl_mesos_scheduler:teardown(SchedulerInfo) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 Reason = term()
 ```
 
@@ -277,7 +277,7 @@ erl_mesos_scheduler:accept(SchedulerInfo, OfferIds, Operations,
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 OfferIds = [erl_mesos:'OfferID'()]
 Operations = [erl_mesos:'Offer.Operation'()]
 Filters = undefined | erl_mesos:'Filters'()
@@ -301,7 +301,7 @@ erl_mesos_scheduler:decline(SchedulerInfo, OfferIds, Filters) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 OfferIds = [erl_mesos:'OfferID'()]
 Filters = undefined | erl_mesos:'Filters'()
 Reason = term()
@@ -319,11 +319,143 @@ erl_mesos_scheduler:revive(SchedulerInfo) ->
 Data types:
 
 ```erlang
-SchedulerInfo = scheduler_info()
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 Reason = term()
 ```
 
-Decline call.
+Revive call.
 
+#### Kill
 
+```erlang
+erl_mesos_scheduler:kill(SchedulerInfo, TaskId) -> 
+    ok | {error, Reason}.
+```
+
+```erlang
+erl_mesos_scheduler:kill(SchedulerInfo, TaskId, AgentId) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
+TaskId = erl_mesos:'TaskID'()
+AgentId = undefined | erl_mesos:'AgentID()'
+Reason = term()
+```
+
+Kill call.
+
+#### Shutdown
+
+```erlang
+erl_mesos_scheduler:shutdown(SchedulerInfo, ExecutorId) -> 
+    ok | {error, Reason}.
+```
+
+```erlang
+erl_mesos_scheduler:shutdown(SchedulerInfo, ExecutorId, AgentId) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
+ExecutorId = erl_mesos:'TaskID'()
+AgentId = undefined | erl_mesos:'AgentID()'
+Reason = term()
+```
+
+Shutdown call.
+
+#### Acknowledge
+
+```erlang
+erl_mesos_scheduler:acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
+AgentId = erl_mesos:'AgentID()'
+TaskId = erl_mesos:'TaskID'()
+Uuid = binary()
+Reason = term()
+```
+
+Acknowledge call.
+
+#### Reconcile
+
+```erlang
+erl_mesos_scheduler:reconcile(SchedulerInfo, CallReconcileTasks) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
+CallReconcileTasks = [erl_mesos:'Call.Reconcile.Task'()]
+Reason = term()
+```
+
+Reconcile call.
+
+#### Message
+
+```erlang
+erl_mesos_scheduler:reconcile(SchedulerInfo, AgentId, ExecutorId, 
+                              Data) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
+AgentId = erl_mesos:'AgentID'()
+ExecutorId = erl_mesos:'ExecutorID'()
+Data = binary()
+Reason = term()
+```
+
+Reconcile call.
+
+#### Request
+
+```erlang
+erl_mesos_scheduler:request(SchedulerInfo, Requests) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
+Requests = [erl_mesos:'Request'()]
+Reason = term()
+```
+
+Request call.
+
+#### Suppress
+
+```erlang
+erl_mesos_scheduler:request(SchedulerInfo) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+SchedulerInfo = erl_mesos_scheduler:scheduler_info()
+```
+
+Suppress call.
 
