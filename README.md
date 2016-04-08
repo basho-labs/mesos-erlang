@@ -459,3 +459,60 @@ SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 
 Suppress call.
 
+### Starting scheduler
+
+Scheduler can be started by calling `erl_mesos:start_scheduler/4`:
+
+```erlang
+{ok, Pid} = erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options)
+
+Ref = term()
+Scheduler = module()
+SchedulerOptions = erl_mesos_scheduler:options()
+Options = term()
+```
+
+* `Ref` is an unique scheduler identifier. Usually is atom.
+* `Scheduler` is a scheduler module.
+* `SchedulerOptions` is a scheduler options.
+* `Options` is a term which will be passed to the `Scheduler:init/1`.
+
+Also scheduler process may be started by custom supervisor:
+
+```erlang
+{ok, Pid} = erl_mesos_scheudler:start_link(Ref, Scheduler, SchedulerOptions, Options)
+
+Ref = term()
+Scheduler = module()
+SchedulerOptions = erl_mesos_scheduler:options()
+Options = term()
+```
+
+### Scheduler options.
+
+ Name                      | Default value          | Possible types 
+---------------------------|------------------------|------------------------
+| master_hosts             | [<<"localhost:5000">>] | [string() \| binary()]
+| heartbeat_timeout_window | 5000                   | pos_integer()
+| request_options          | []                     | [{atom, term()}]
+| max_num_resubscribe      | 1                      | non_neg_integer()
+| resubscribe_interval     | 0                      | non_neg_integer()
+
+`master_hosts` - list of hosts which scheduler will use during subscription 
+ or resubscription.
+ 
+`heartbeat_timeout_window` - additional timeout value for waiting for heartbeat Mesos event.
+
+`request_options` - HTTP request options. See https://github.com/benoitc/hackney for details.
+ 
+Each time when scheduler disconnect from current mesos master it will 
+try to resubscribe to each host from `master_hosts` lists `max_num_resubscribe` 
+times with `resubscribe_interval`.
+
+### Stopping scheduler
+
+```erlang
+ok = erl_mesos:stop_scheduler(Ref)
+
+Ref = term()
+```
