@@ -5,7 +5,6 @@ PARENT=$(pwd)
 URL_PREFIX=https://raw.githubusercontent.com/apache/mesos
 
 # Download proto files
-rm -r ${PARENT}/proto
 mkdir -p ${PARENT}/proto/mesos/v1/scheduler
 wget -q ${URL_PREFIX}/${VSN}/include/mesos/v1/mesos.proto -P ${PARENT}/proto/mesos/v1
 wget -q ${URL_PREFIX}/${VSN}/include/mesos/v1/scheduler/scheduler.proto -P ${PARENT}/proto/mesos/v1/scheduler
