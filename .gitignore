@@ -1,8 +1,7 @@
-.idea
-erl_mesos.iml
 .rebar
 deps
-doc/*
+doc
+proto
 include/scheduler_protobuf.hrl
 src/scheduler_protobuf.erl
 ebin
