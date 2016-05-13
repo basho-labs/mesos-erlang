@@ -185,9 +185,11 @@ registered(Config) ->
     %% Test scheduler info.
     #scheduler_info{master_host = MasterHost,
                     subscribed = true,
-                    framework_id = FrameworkId} = SchedulerInfo,
+                    framework_id = FrameworkId,
+                    stream_id = StreamId} = SchedulerInfo,
     MasterHosts = proplists:get_value(master_hosts, Options),
     true = lists:member(binary_to_list(MasterHost), MasterHosts),
+    true = is_binary(StreamId),
     %% Test event subscribed.
     #'Event.Subscribed'{framework_id = FrameworkId,
                         heartbeat_interval_seconds = HeartbeatIntervalSeconds} =
@@ -214,7 +216,8 @@ disconnected(Config) ->
     {disconnected, {SchedulerPid, SchedulerInfo}} = recv_reply(disconnected),
     %% Test scheduler info.
     #scheduler_info{master_host = MasterHost,
-                    subscribed = false} = SchedulerInfo,
+                    subscribed = false,
+                    stream_id = undefined} = SchedulerInfo,
     MasterHosts = proplists:get_value(master_hosts, Options),
     true = lists:member(binary_to_list(MasterHost), MasterHosts),
     %% Test cluster stop.
@@ -226,7 +229,8 @@ disconnected(Config) ->
     {disconnected, {SchedulerPid1, SchedulerInfo1}} = recv_reply(disconnected),
     %% Test scheduler info.
     #scheduler_info{master_host = MasterHost1,
-                    subscribed = false} = SchedulerInfo1,
+                    subscribed = false,
+                    stream_id = undefined} = SchedulerInfo1,
     true = lists:member(binary_to_list(MasterHost1), MasterHosts).
 
 reregistered(Config) ->
