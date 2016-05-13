@@ -3,7 +3,7 @@ FROM ubuntu:14.04
 MAINTAINER Dmitry Platon <platon.dimka@gmail.com>
 
 ### Mesos env.
-ENV VSN=0.27.2
+ENV VSN=0.28.0
 ENV DIR="/opt/mesos/"
 ENV FRAMEWORKS_HOME_DIR="/opt/mesos/frameworks_home"
 
