@@ -69,6 +69,7 @@
                 client_ref :: undefined | erl_mesos_http:client_ref(),
                 recv_timer_ref :: undefined | reference(),
                 subscribe_state :: undefined | subscribe_state(),
+                stream_id :: undefined | binary(),
                 num_redirect = 0 :: non_neg_integer(),
                 num_resubscribe = 0 :: non_neg_integer(),
                 heartbeat_timeout :: undefined | pos_integer(),
@@ -93,7 +94,7 @@
 %% Callbacks.
 
 -callback init(term()) ->
-    {ok, erl_mesos:'FrameworkInfo'(), boolean(), term()} | {stop, term()}.
+    {ok, erl_mesos:'FrameworkInfo'(), term()} | {stop, term()}.
 
 -callback registered(scheduler_info(), erl_mesos:'Event.Subscribed'(),
                      term()) ->
@@ -536,10 +537,9 @@ state(Ref, Scheduler, Options) ->
 init(SchedulerOptions, #state{master_hosts = MasterHosts,
                               scheduler = Scheduler} = State) ->
     case Scheduler:init(SchedulerOptions) of
-        {ok, FrameworkInfo, Force, SchedulerState}
-          when is_record(FrameworkInfo, 'FrameworkInfo'), is_boolean(Force) ->
-            CallSubscribe = #'Call.Subscribe'{framework_info = FrameworkInfo,
-                                              force = Force},
+        {ok, FrameworkInfo, SchedulerState}
+          when is_record(FrameworkInfo, 'FrameworkInfo') ->
+            CallSubscribe = #'Call.Subscribe'{framework_info = FrameworkInfo},
             {ok, State#state{call_subscribe = CallSubscribe,
                              scheduler_state = SchedulerState,
                              master_hosts_queue = MasterHosts}};
@@ -599,14 +599,16 @@ scheduler_info(#state{data_format = DataFormat,
                       call_subscribe =
                       #'Call.Subscribe'{framework_info =
                                         #'FrameworkInfo'{id = Id}},
-                      subscribe_state = SubscribeState}) ->
+                      subscribe_state = SubscribeState,
+                      stream_id = StreamId}) ->
     Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
                     api_version = ApiVersion,
                     master_host = MasterHost,
                     request_options = RequestOptions,
                     subscribed = Subscribed,
-                    framework_id = Id}.
+                    framework_id = Id,
+                    stream_id = StreamId}.
 
 %% @doc Handles async response.
 %% @private
@@ -634,7 +636,8 @@ handle_async_response(Body,
     case erl_mesos_data_format:content_type(DataFormat) of
         ContentType ->
             cancel_recv_timer(RecvTimerRef),
-            handle_events(Body, State);
+            StreamId = proplists:get_value(<<"Mesos-Stream-Id">>, Headers),
+            handle_events(Body, State#state{stream_id = StreamId});
         _ContentType ->
             log_error("Invalid content type.", "Content type: ~s.",
                       [ContentType], State),
@@ -860,7 +863,8 @@ handle_unsubscribe(#state{client_ref = ClientRef,
                           subscribe_state = subscribed} = State) ->
     close(ClientRef),
     State1 = State#state{client_ref = undefined,
-                         subscribe_state = undefined},
+                         subscribe_state = undefined,
+                         stream_id = undefined},
     case call(disconnected, State1) of
         {ok, #state{master_hosts = MasterHosts,
                     master_host = MasterHost} = State2} ->
@@ -876,7 +880,8 @@ handle_unsubscribe(#state{client_ref = ClientRef,
     close(ClientRef),
     cancel_recv_timer(RecvTimerRef),
     State1 = State#state{client_ref = undefined,
-                         subscribe_state = undefined},
+                         subscribe_state = undefined,
+                         stream_id = undefined},
     start_resubscribe_timer(State1).
 
 %% @doc Start resubscribe timer.
@@ -1070,6 +1075,7 @@ format_state(#state{ref = Ref,
                     client_ref = ClientRef,
                     recv_timer_ref = RecvTimerRef,
                     subscribe_state = SubscribeState,
+                    stream_id = StreamId,
                     num_redirect = NumRedirect,
                     num_resubscribe = NumResubscribe,
                     heartbeat_timeout = HeartbeatTimeout,
@@ -1089,6 +1095,7 @@ format_state(#state{ref = Ref,
              {client_ref, ClientRef},
              {recv_timer_ref, RecvTimerRef},
              {subscribe_state, SubscribeState},
+             {stream_id, StreamId},
              {num_redirect, NumRedirect},
              {num_resubscribe, NumResubscribe},
              {heartbeat_timeout, HeartbeatTimeout},

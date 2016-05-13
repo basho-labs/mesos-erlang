@@ -166,7 +166,7 @@ async_request(#scheduler_info{data_format = DataFormat,
                               master_host = MasterHost,
                               request_options = RequestOptions}, Call) ->
     ReqUrl = request_url(ApiVersion, MasterHost),
-    erl_mesos_http:async_request(ReqUrl, DataFormat, Call, RequestOptions).
+    erl_mesos_http:async_request(ReqUrl, DataFormat, [], Call, RequestOptions).
 
 %% @doc Sends sync http request.
 %% @private
@@ -177,9 +177,11 @@ sync_request(#scheduler_info{subscribed = false}, _Call) ->
 sync_request(#scheduler_info{data_format = DataFormat,
                              api_version = ApiVersion,
                              master_host = MasterHost,
-                             request_options = RequestOptions}, Call) ->
+                             request_options = RequestOptions,
+                             stream_id = StreamId}, Call) ->
     ReqUrl = request_url(ApiVersion, MasterHost),
-    Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, Call,
+    ReqHeaders = sync_request_headers(StreamId),
+    Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, ReqHeaders, Call,
                                            RequestOptions),
     erl_mesos_http:handle_sync_response(Response).
 
@@ -188,3 +190,12 @@ sync_request(#scheduler_info{data_format = DataFormat,
 -spec request_url(version(), binary()) -> binary().
 request_url(v1, MasterHost) ->
     <<"http://", MasterHost/binary, ?V1_API_PATH>>.
+
+%% @doc Sync request headers.
+%% @private
+-spec sync_request_headers(undefined | erl_mesos_http:headers()) ->
+    erl_mesos_http:headers().
+sync_request_headers(undefined) ->
+    [];
+sync_request_headers(StreamId) ->
+    [{<<"Mesos-Stream-Id">>, StreamId}].
