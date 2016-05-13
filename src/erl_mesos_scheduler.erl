@@ -313,6 +313,8 @@ handle_info(Info, #state{client_ref = ClientRef,
     case erl_mesos_http:async_response(Info) of
         {async_response, ClientRef, Response} ->
             handle_async_response(Response, State);
+        {async_response, _ClientRef, _Response} ->
+            {noreply, State};
         undefined ->
             case Info of
                 {'DOWN', ClientRef, Reason} ->
@@ -340,13 +342,7 @@ handle_info(Info, #state{client_ref = ClientRef,
                     {noreply, State};
                 _Info ->
                     call_handle_info(Info, State)
-            end;
-        {async_response, _ClientRef, done} ->
-            {noreply, State};
-        AsyncResponse ->
-            log_warning("Scheduler received unexpected async response.",
-                        "Async response: ~p.", [AsyncResponse], State),
-            {noreply, State}
+            end
     end.
 
 %% @private
@@ -964,8 +960,8 @@ handle_redirect(#state{master_hosts = MasterHosts,
             {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
         _MaxNumRedirect ->
             close(ClientRef),
-            MasterHost1 = proplists:get_value(<<"Location">>, Headers),
-            log_info("Redirect.", "Form host: ~s, To host: ~s.",
+            MasterHost1 = get_redirect_master_host(Headers),
+            log_info("Redirect.", "Form host: ~s, to host: ~s.",
                      [MasterHost, MasterHost1], State),
             MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
                                                        MasterHosts)],
@@ -976,6 +972,17 @@ handle_redirect(#state{master_hosts = MasterHosts,
                                  subscribe_state = undefined,
                                  num_redirect = NumRedirect + 1},
             redirect(State1)
+    end.
+
+%% @doc Returns redirect master host.
+%% @private
+-spec get_redirect_master_host(erl_mesos_http:headers()) -> binary().
+get_redirect_master_host(Headers) ->
+    case proplists:get_value(<<"Location">>, Headers) of
+        <<"//", MasterHost/binary>> ->
+            MasterHost;
+        MasterHost ->
+            MasterHost
     end.
 
 %% @doc Calls subscribe/1 or resubscribe/1.
