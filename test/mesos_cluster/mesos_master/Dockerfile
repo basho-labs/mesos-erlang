@@ -3,7 +3,7 @@ FROM ubuntu:14.04
 MAINTAINER Dmitry Platon <platon.dimka@gmail.com>
 
 ### Mesos env.
-ENV VSN=0.28.0
+ENV VSN=0.28.1
 ENV DIR="/opt/mesos/"
 ENV WORK_DIR="/opt/mesos/work_dir"
 
