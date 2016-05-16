@@ -47,8 +47,8 @@
 init(Options) ->
     FrameworkInfo = framework_info(Options),
     TestPid = proplists:get_value(test_pid, Options),
-    {ok, FrameworkInfo, true, #state{user = FrameworkInfo#'FrameworkInfo'.user,
-                                     test_pid = TestPid}}.
+    {ok, FrameworkInfo, #state{user = FrameworkInfo#'FrameworkInfo'.user,
+                               test_pid = TestPid}}.
 
 registered(SchedulerInfo, EventSubscribed,
            #state{test_pid = TestPid} = State) ->

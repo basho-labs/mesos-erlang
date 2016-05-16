@@ -22,7 +22,7 @@
 
 -module(erl_mesos_http).
 
--export([async_request/4, sync_request/4, body/1]).
+-export([async_request/5, sync_request/5, body/1]).
 
 -export([async_response/1, close_async_response/1]).
 
@@ -46,24 +46,24 @@
 %% External functions.
 
 %% @doc Sends async http request.
--spec async_request(binary(), erl_mesos_data_format:data_format(),
+-spec async_request(binary(), erl_mesos_data_format:data_format(), headers(),
                     erl_mesos_data_format:message(), options()) ->
     {ok, client_ref()} | {error, term()}.
-async_request(Url, DataFormat, Message, Options) ->
-    Headers = request_headers(DataFormat),
+async_request(Url, DataFormat, Headers, Message, Options) ->
+    Headers1 = request_headers(DataFormat, Headers),
     Body = erl_mesos_data_format:encode(DataFormat, Message),
     Options1 = async_request_options(Options),
-    request(post, Url, Headers, Body, Options1).
+    request(post, Url, Headers1, Body, Options1).
 
 %% @doc Sends sync http request.
--spec sync_request(binary(), erl_mesos_data_format:data_format(),
+-spec sync_request(binary(), erl_mesos_data_format:data_format(), headers(),
                    erl_mesos_data_format:message(), options()) ->
     {ok, non_neg_integer(), headers(), client_ref()} | {error, term()}.
-sync_request(Url, DataFormat, Message, Options) ->
-    Headers = request_headers(DataFormat),
+sync_request(Url, DataFormat, Headers, Message, Options) ->
+    Headers1 = request_headers(DataFormat, Headers),
     Body = erl_mesos_data_format:encode(DataFormat, Message),
     Options1 = sync_request_options(Options),
-    request(post, Url, Headers, Body, Options1).
+    request(post, Url, Headers1, Body, Options1).
 
 %% @doc Receives http request body.
 -spec body(client_ref()) -> {ok, binary()} | {error, term()}.
@@ -86,8 +86,8 @@ close_async_response(ClientRef) ->
 
 %% @doc Handles sync response.
 %% @private
--spec handle_sync_response({ok, non_neg_integer(), erl_mesos_http:headers(),
-                           reference()} | {error, term()}) ->
+-spec handle_sync_response({ok, non_neg_integer(), headers(), reference()} |
+                           {error, term()}) ->
     ok | {error, term()} |
     {error, {http_response, non_neg_integer(), binary()}}.
 handle_sync_response(Response) ->
@@ -114,13 +114,14 @@ handle_sync_response(Response) ->
 
 %% @doc Returns request headers.
 %% @private
--spec request_headers(erl_mesos_data_format:data_format()) ->
-    erl_mesos_http:headers().
-request_headers(DataFormat) ->
+-spec request_headers(erl_mesos_data_format:data_format(), headers()) ->
+    headers().
+request_headers(DataFormat, Headers) ->
     ContentType = erl_mesos_data_format:content_type(DataFormat),
     [{<<"Content-Type">>, ContentType},
      {<<"Accept">>, ContentType},
-     {<<"Connection">>, <<"close">>}].
+     {<<"Connection">>, <<"close">>}] ++
+    Headers.
 
 %% @doc Returns async request options.
 %% @private
