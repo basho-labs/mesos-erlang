@@ -29,7 +29,7 @@
          start_slave/1,
          stop_slave/1]).
 
--define(CLUSTER_PATH, "mesos_cluster/cluster.sh").
+-define(CLUSTER_PATH, "erl_mesos_cluster/cluster.sh").
 
 %% External functions.
 
