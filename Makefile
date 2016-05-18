@@ -25,4 +25,4 @@ test: deps compile
 	$(REBAR) ct
 
 docker:
-	./test/mesos_cluster/cluster.sh build
+	./test/erl_mesos_cluster/cluster.sh build
