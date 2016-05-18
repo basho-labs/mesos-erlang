@@ -1,8 +1,13 @@
 #!/bin/bash
 
-MASTER_PATH=/usr/sbin/mesos-master
-WORK_DIR_PATH=/var/lib/mesos
-PARAMS="--work_dir=${WORK_DIR_PATH}"
+SLAVE_PATH=/usr/sbin/mesos-slave
+PARAMS=""
+PARAMS="${PARAMS} --resources=${MESOS_RESOURCES}"
+PARAMS="${PARAMS} --isolation=${MESOS_ISOLATION}"
+PARAMS="${PARAMS} --attributes=${MESOS_ATTRIBUTES}"
+PARAMS="${PARAMS} --frameworks_home=${MESOS_FRAMEWORKS_HOME}"
+
+mkdir -p ${MESOS_FRAMEWORKS_HOME}
 
 if [[ "${MESOS_IP}" ]]; then
     PARAMS="${PARAMS} --ip=${MESOS_IP}"
@@ -16,12 +21,8 @@ if [[ "${MESOS_PORT}" ]]; then
     PARAMS="${PARAMS} --port=${MESOS_PORT}"
 fi
 
-if [[ "${MESOS_QUORUM}" ]]; then
-    PARAMS="${PARAMS} --quorum=${MESOS_QUORUM}"
+if [[ "${MESOS_MASTER}" ]]; then
+    PARAMS="${PARAMS} --master=${MESOS_MASTER}"
 fi
 
-if [[ "${MESOS_ZK}" ]]; then
-    PARAMS="${PARAMS} --zk=${MESOS_ZK}"
-fi
-
-${MASTER_PATH} ${PARAMS}
+${SLAVE_PATH} ${PARAMS}

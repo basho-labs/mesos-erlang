@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export PYTHONPATH=${PYTHONPATH}:/usr/lib/python2.7/site-packages/
+
+EXECUTOR=test_executor.py
+
+${MESOS_FRAMEWORKS_HOME}/{EXECUTOR}
