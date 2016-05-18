@@ -16,6 +16,9 @@ RUN apt-get -y upgrade
 RUN apt-get -y install mesos=${MESOS_BUILD_VERSION}
 RUN apt-mark hold mesos
 
+### Environment.
+ENV MESOS_WORK_DIR=/var/lib/mesos
+
 ### Copy start script.
 RUN mkdir -p /opt
 COPY start_mesos_master.sh /opt
