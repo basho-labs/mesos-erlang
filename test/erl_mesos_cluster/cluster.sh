@@ -19,7 +19,7 @@ function build {
     echo "* Build zookeeper image *"
     echo "*************************"
     echo ""
-    docker build -t zk "$script_dir"/zookeeper
+    docker build -t erl_mesos_zk "$script_dir"/zk
 
     # Build mesos master image.
     echo ""
@@ -27,7 +27,7 @@ function build {
     echo "* Build mesos master image *"
     echo "****************************"
     echo ""
-    docker build -t mesos_master "$script_dir"/mesos_master
+    docker build -t erl_mesos_master "$script_dir"/mesos_master
 
     # Build mesos slave image.
     echo ""
@@ -35,7 +35,7 @@ function build {
     echo "* Build mesos slave image *"
     echo "****************************"
     echo ""
-    docker build -t mesos_slave "$script_dir"/mesos_slave
+    docker build -t erl_mesos_slave "$script_dir"/mesos_slave
 }
 
 function start {
@@ -59,18 +59,15 @@ function stop_master {
 }
 
 function start_slave {
-    docker run --privileged\
-               --name=mesos_slave \
-               --link=zk:zk\
-               -d\
-               -e\
-               conf=--master=zk://zk:2181/mesos\
-               mesos_slave
+    docker run --privileged --name=erl_mesos_slave\
+               --link=erl_mesos_zk:erl_mesos_zk -d\
+               -e MESOS_MASTER=zk://erl_mesos_zk:2181/mesos\
+               erl_mesos_slave
 }
 
 function stop_slave {
-    docker kill mesos_slave
-    docker rm mesos_slave
+    docker kill erl_mesos_slave
+    docker rm erl_mesos_slave
 }
 
 case "$1" in
