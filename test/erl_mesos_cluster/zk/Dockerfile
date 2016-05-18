@@ -18,6 +18,7 @@ RUN apt-get -y update
 RUN apt-get -y upgrade
 RUN apt-get -y install zookeeperd
 
+### Copy start script.
 RUN mkdir -p /opt
 COPY start_zk.sh /opt
 RUN chmod a+x /opt/start_zk.sh
