@@ -4,7 +4,9 @@ doc
 proto
 include/scheduler_protobuf.hrl
 src/scheduler_protobuf.erl
+include/executor_protobuf.hrl
+src/executor_protobuf.erl
 ebin
 logs
 *.beam
-Emakefile
+
