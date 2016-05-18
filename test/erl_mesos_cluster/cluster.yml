@@ -1,0 +1,44 @@
+erl_mesos_zk:
+    image: erl_mesos_zk
+    container_name: erl_mesos_zk
+    environment:
+        - ZK_PORT=2181
+
+erl_mesos_master_1:
+    image: erl_mesos_master
+    environment:
+        - MESOS_HOSTNAME=localhost
+        - MESOS_PORT=10101
+        - MESOS_QUORUM=1
+        - MESOS_ZK=zk://erl_mesos_zk:2181/mesos
+    container_name: erl_mesos_master_1
+    links:
+        - erl_mesos_zk
+    ports:
+        - "10101:10101"
+
+erl_mesos_master_2:
+    image: erl_mesos_master
+    environment:
+        - MESOS_HOSTNAME=localhost
+        - MESOS_PORT=10102
+        - MESOS_QUORUM=1
+        - MESOS_ZK=zk://erl_mesos_zk:2181/mesos
+    container_name: erl_mesos_master_2
+    links:
+        - erl_mesos_zk
+    ports:
+        - "10102:10102"
+
+erl_mesos_master_3:
+    image: erl_mesos_master
+    environment:
+        - MESOS_HOSTNAME=localhost
+        - MESOS_PORT=10103
+        - MESOS_QUORUM=1
+        - MESOS_ZK=zk://erl_mesos_zk:2181/mesos
+    container_name: erl_mesos_master_3
+    links:
+        - erl_mesos_zk
+    ports:
+        - "10103:10103"
