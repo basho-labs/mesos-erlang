@@ -1,4 +1,4 @@
-# Erlang Mesos library
+# Mesos Erlang library
 
 ## Scheduler
 
@@ -14,7 +14,7 @@ Each scheduler handler must implement `erl_mesos_scheduler` behaviour.
 
 ```erlang
 Module:init(Options) -> 
-    {ok, FrameworkInfo, Force, State} | {stop, Reason}.
+    {ok, FrameworkInfo, State} | {stop, Reason}.
 ```
 
 Data types:
@@ -22,7 +22,6 @@ Data types:
 ```erlang
 Options = term()
 FrameworkInfo = erl_mesos:'FrameworkInfo'()
-Force = boolean()
 State = term()
 ```
 
