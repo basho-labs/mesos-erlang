@@ -62,7 +62,7 @@
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
                 registered = false :: boolean(),
-                call_subscribe :: undefined | erl_mesos:'Call.Subscribe'(),
+                call_subscribe :: undefined | 'Call.Subscribe'(),
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
@@ -82,6 +82,63 @@
 -type options() :: [{atom(), term()}].
 -export_type([options/0]).
 
+-type 'Call'() :: #'Call'{}.
+-export_type(['Call'/0]).
+
+-type 'Call.Subscribe'() :: #'Call.Subscribe'{}.
+-export_type(['Call.Subscribe'/0]).
+
+-type 'Call.Accept'() :: #'Call.Accept'{}.
+-export_type(['Call.Accept'/0]).
+
+-type 'Call.Decline'() :: #'Call.Decline'{}.
+-export_type(['Call.Decline'/0]).
+
+-type 'Call.Kill'() :: #'Call.Kill'{}.
+-export_type(['Call.Kill'/0]).
+
+-type 'Call.Shutdown'() :: #'Call.Shutdown'{}.
+-export_type(['Call.Shutdown'/0]).
+
+-type 'Call.Acknowledge'() :: #'Call.Acknowledge'{}.
+-export_type(['Call.Acknowledge'/0]).
+
+-type 'Call.Reconcile.Task'() :: #'Call.Reconcile.Task'{}.
+-export_type(['Call.Reconcile.Task'/0]).
+
+-type 'Call.Reconcile'() :: #'Call.Reconcile'{}.
+-export_type(['Call.Reconcile'/0]).
+
+-type 'Call.Message'() :: #'Call.Message'{}.
+-export_type(['Call.Message'/0]).
+
+-type 'Call.Req'() :: #'Call.Req'{}.
+-export_type(['Call.Req'/0]).
+
+-type 'Event'() :: #'Event'{}.
+-export_type(['Event'/0]).
+
+-type 'Event.Subscribed'() :: #'Event.Subscribed'{}.
+-export_type(['Event.Subscribed'/0]).
+
+-type 'Event.Offers'() :: #'Event.Offers'{}.
+-export_type(['Event.Offers'/0]).
+
+-type 'Event.Rescind'() :: #'Event.Rescind'{}.
+-export_type(['Event.Rescind'/0]).
+
+-type 'Event.Update'() :: #'Event.Update'{}.
+-export_type(['Event.Update'/0]).
+
+-type 'Event.Message'() :: #'Event.Message'{}.
+-export_type(['Event.Message'/0]).
+
+-type 'Event.Failure'() :: #'Event.Failure'{}.
+-export_type(['Event.Failure'/0]).
+
+-type 'Event.Error'() :: #'Event.Error'{}.
+-export_type(['Event.Error'/0]).
+
 -type scheduler_info() :: #scheduler_info{}.
 -export_type([scheduler_info/0]).
 
@@ -96,8 +153,7 @@
 -callback init(term()) ->
     {ok, erl_mesos:'FrameworkInfo'(), term()} | {stop, term()}.
 
--callback registered(scheduler_info(), erl_mesos:'Event.Subscribed'(),
-                     term()) ->
+-callback registered(scheduler_info(), 'Event.Subscribed'(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback disconnected(scheduler_info(), term()) ->
@@ -106,30 +162,25 @@
 -callback reregistered(scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback resource_offers(scheduler_info(), erl_mesos:'Event.Offers'(),
-                          term()) ->
+-callback resource_offers(scheduler_info(), 'Event.Offers'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback offer_rescinded(scheduler_info(), erl_mesos:'Event.Rescind'(),
-                          term()) ->
+-callback offer_rescinded(scheduler_info(), 'Event.Rescind'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback status_update(scheduler_info(), erl_mesos:'Event.Update'(),
-                        term()) ->
+-callback status_update(scheduler_info(), 'Event.Update'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback framework_message(scheduler_info(), erl_mesos:'Event.Message'(),
-                            term()) ->
+-callback framework_message(scheduler_info(), 'Event.Message'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback slave_lost(scheduler_info(), erl_mesos:'Event.Failure'(), term()) ->
+-callback slave_lost(scheduler_info(), 'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback executor_lost(scheduler_info(), erl_mesos:'Event.Failure'(),
-                        term()) ->
+-callback executor_lost(scheduler_info(), 'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback error(scheduler_info(), erl_mesos:'Event.Error'(), term()) ->
+-callback error(scheduler_info(), 'Event.Error'(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback handle_info(scheduler_info(), term(), term()) ->
@@ -248,7 +299,7 @@ acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
     erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
 
 %% @doc Reconcile call.
--spec reconcile(scheduler_info(), [erl_mesos:'Call.Reconcile.Task'()]) ->
+-spec reconcile(scheduler_info(), ['Call.Reconcile.Task'()]) ->
     ok | {error, term()}.
 reconcile(SchedulerInfo, CallReconcileTasks) ->
     CallReconcile = #'Call.Reconcile'{tasks = CallReconcileTasks},
@@ -745,8 +796,8 @@ apply_event(Message, #state{master_host = MasterHost,
 
 %% @doc Sets subscribed state.
 %% @private
--spec set_subscribed(erl_mesos:'Event.Subscribed'(), state()) ->
-    {erl_mesos:'Event.Subscribed'(), state()}.
+-spec set_subscribed('Event.Subscribed'(), state()) ->
+    {'Event.Subscribed'(), state()}.
 set_subscribed(EventSubscribed, #state{call_subscribe = CallSubscribe} =
                State) ->
     CallSubscribe1 = set_framework_id(EventSubscribed, CallSubscribe),
@@ -765,9 +816,8 @@ set_subscribed(EventSubscribed, #state{call_subscribe = CallSubscribe} =
 
 %% @doc Sets framework id.
 %% @private
--spec set_framework_id(erl_mesos:'Event.Subscribed'(),
-                       erl_mesos:'Call.Subscribe'()) ->
-    erl_mesos:'Call.Subscribe'().
+-spec set_framework_id('Event.Subscribed'(), 'Call.Subscribe'()) ->
+    'Call.Subscribe'().
 set_framework_id(#'Event.Subscribed'{framework_id = FrameworkId},
                  #'Call.Subscribe'{framework_info =
                                        #'FrameworkInfo'{id = undefined} =
@@ -779,8 +829,8 @@ set_framework_id(_EventSubscribed, CallSubscribe) ->
 
 %% @doc Sets default heartbeat interval.
 %% @private
--spec set_default_heartbeat_interval(erl_mesos:'Event.Subscribed'()) ->
-    erl_mesos:'Event.Subscribed'().
+-spec set_default_heartbeat_interval('Event.Subscribed'()) ->
+    'Event.Subscribed'().
 set_default_heartbeat_interval(#'Event.Subscribed'{heartbeat_interval_seconds =
                                                    undefined} =
                                EventSubscribed) ->
