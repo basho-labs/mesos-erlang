@@ -3,5 +3,5 @@
                         agent_host :: binary(),
                         request_options :: erl_mesos_http:options(),
                         subscribed :: boolean(),
-                        framework_id :: erl_mesos:'FrameworkID'(),
-                        executor_id :: erl_mesos:'ExecutorID'()}).
+                        executor_id :: erl_mesos:'ExecutorID'(),
+                        framework_id :: erl_mesos:'FrameworkID'()}).

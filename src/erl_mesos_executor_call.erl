@@ -46,14 +46,14 @@ subscribe(ExecutorInfo, CallSubscribe) ->
 
 %% Internal functions.
 
-%% @doc Sets framework id and executor id.
+%% @doc Sets executor id and framework id.
 %% @private
 -spec set_ids(erl_mesos_executor:executor_info(),
               erl_mesos_executor:'Call'()) ->
     erl_mesos_executor:'Call'().
-set_ids(#executor_info{framework_id = FrameworkId,
-                       executor_id = ExecutorId}, Call) ->
-    Call#'Call'{framework_id = FrameworkId, executor_id = ExecutorId}.
+set_ids(#executor_info{executor_id = ExecutorId,
+                       framework_id = FrameworkId}, Call) ->
+    Call#'Call'{executor_id = ExecutorId, framework_id = FrameworkId}.
 
 %% @doc Sends async http request.
 %% @private
