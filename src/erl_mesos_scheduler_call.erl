@@ -48,7 +48,7 @@
 
 %% @doc Executes subscribe call.
 -spec subscribe(erl_mesos_scheduler:scheduler_info(),
-  erl_mesos_scheduler:'Call.Subscribe'()) ->
+                erl_mesos_scheduler:'Call.Subscribe'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 subscribe(SchedulerInfo, CallSubscribe) ->
     Call = #'Call'{type = 'SUBSCRIBE', subscribe = CallSubscribe},
