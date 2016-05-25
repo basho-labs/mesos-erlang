@@ -48,7 +48,6 @@
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
                 registered = false :: boolean(),
-                call_subscribe :: undefined | 'Call.Subscribe'(),
                 executor_state :: term(),
                 client_ref :: undefined | erl_mesos_http:client_ref(),
                 recv_timer_ref :: undefined | reference(),
@@ -96,10 +95,18 @@
     {ok, term()} | {stop, term()}.
 
 -callback disconnected(executor_info(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback reregister(executor_info(), term()) ->
     {ok, 'Call.Subscribe'(), term()} | {stop, term()}.
 
 -callback reregistered(executor_info(), term()) ->
     {ok, term()} | {stop, term()}.
+
+-callback handle_info(executor_info(), term(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback terminate(executor_info(), term(), term()) -> term().
 
 -define(DEFAULT_REQUEST_OPTIONS, []).
 
@@ -168,7 +175,7 @@ handle_info(Info, #state{client_ref = ClientRef,
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef),
-                    SubscribeState =/= subscribed ->
+                       SubscribeState =/= subscribed ->
                     log_error("Receive timeout occurred.", State),
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
@@ -176,21 +183,22 @@ handle_info(Info, #state{client_ref = ClientRef,
                     {noreply, State};
                 {timeout, ResubscribeTimerRef, resubscribe}
                   when SubscribeState =:= undefined ->
-                    %%resubscribe(State);
-                    {noreply, State};
+                    resubscribe(State);
                 {timeout, ResubscribeTimerRef, resubscribe} ->
                     {noreply, State};
                 _Info ->
-                    %% call_handle_info(Info, State)
-                    {noreply, State}
+                    call_handle_info(Info, State)
             end
     end.
 
 %% @private
 -spec terminate(term(), state()) -> term().
-terminate(_Reason, _State) ->
-    %% TODO: implement terminate call.
-    ok.
+terminate(Reason, #state{client_ref = ClientRef,
+                         executor = Executor,
+                         executor_state = ExecutorState} = State) ->
+    close(ClientRef),
+    ExecutorInfo = executor_info(State),
+    Executor:terminate(ExecutorInfo, Reason, ExecutorState).
 
 %% @private
 -spec code_change(term(), state(), term()) -> {ok, state()}.
@@ -217,8 +225,8 @@ init(Ref, Executor, ExecutorOptions, Options) ->
         {ok, ValidOptions} ->
             State = state(Ref, Executor, ValidOptions),
             case init(ExecutorOptions, State) of
-                {ok, State1} ->
-                    subscribe(State1);
+                {ok, CallSubscribe, State1} ->
+                    subscribe(CallSubscribe, State1);
                 {stop, Reason} ->
                     {error, Reason}
             end;
@@ -312,22 +320,21 @@ resubscribe(RecoveryTimeout, SubscriptionBackoffMax) ->
 
 %% @doc Calls Executor:init/1.
 %% @private
--spec init(term(), state()) -> {ok, state()} | {stop, term()}.
+-spec init(term(), state()) ->
+    {ok, 'Call.Subscribe'(), state()} | {stop, term()}.
 init(ExecutorOptions, #state{executor = Executor} = State) ->
     case Executor:init(ExecutorOptions) of
         {ok, CallSubscribe, ExecutorState}
           when is_record(CallSubscribe, 'Call.Subscribe') ->
-            {ok, State#state{call_subscribe = CallSubscribe,
-                             executor_state = ExecutorState}};
+            {ok, CallSubscribe, State#state{executor_state = ExecutorState}};
         {stop, Reason} ->
             {stop, Reason}
     end.
 
 %% @doc Sends subscribe requests.
 %% @private
--spec subscribe(state()) -> {ok, state()} | {error, term()}.
-subscribe(#state{agent_host = AgentHost,
-                 call_subscribe = CallSubscribe} = State) ->
+-spec subscribe('Call.Subscribe'(), state()) -> {ok, state()} | {error, term()}.
+subscribe(CallSubscribe, #state{agent_host = AgentHost} = State) ->
     log_info("Try to subscribe.", "Host: ~s.", [AgentHost], State),
     ExecutorInfo = executor_info(State),
     case erl_mesos_executor_call:subscribe(ExecutorInfo, CallSubscribe) of
@@ -486,8 +493,8 @@ apply_event(Message, #state{agent_host = AgentHost,
                      State),
             State1 = set_subscribed(State),
             call(reregistered, State1);
-        Event ->
-            io:format("Event: ~p~n", [Event]),
+        #'Event'{type = EventType} ->
+            io:format("Event type: ~p.~n", [EventType]),
             {ok, State}
     end.
 
@@ -510,7 +517,7 @@ call(Callback, #state{executor = Executor,
             {stop, State#state{executor_state = ExecutorState1}}
     end.
 
-%% @doc Calls Scheduler:Callback/3.
+%% @doc Calls Executor:Callback/3.
 %% @private
 -spec call(atom(), term(), state()) -> {ok, state()} | {stop, state()}.
 call(Callback, Arg, #state{executor = Executor,
@@ -523,10 +530,99 @@ call(Callback, Arg, #state{executor = Executor,
             {stop, State#state{executor_state = ExecutorState1}}
     end.
 
-handle_unsubscribe(State) ->
-    %% TODO: implement unsubscribe.
-    io:format("handle_unsubscribe"),
-    {stop, normal, State}.
+%% @doc Handles unsubscribe.
+%% @private
+-spec handle_unsubscribe(state()) ->
+    {noreply, state()} | {stop, term(), state()}.
+handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef,
+                          subscribe_state = subscribed} = State) ->
+    State1 = State#state{subscribe_state = undefined},
+    case call(disconnected, State1) of
+        {ok, State2} ->
+            cancel_recv_timer(RecvTimerRef),
+            start_resubscribe_timer(State2);
+        {stop, State1} ->
+            {stop, shutdown, State1}
+    end;
+handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef} = State) ->
+    cancel_recv_timer(RecvTimerRef),
+    State1 = State#state{subscribe_state = undefined},
+    start_resubscribe_timer(State1).
+
+%% @doc Start resubscribe timer.
+%% @private
+-spec start_resubscribe_timer(state()) ->
+    {noreply, state()} | {stop, term(), state()}.
+start_resubscribe_timer(#state{max_num_resubscribe = 0} = State) ->
+    {stop, {shutdown, {resubscribe, {error, max_num_resubscribe}}}, State};
+start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
+                               num_resubscribe = MaxNumResubscribe} = State) ->
+    {stop, {shutdown, {resubscribe, {error, max_num_resubscribe}}}, State};
+start_resubscribe_timer(#state{client_ref = ClientRef,
+                               num_resubscribe = NumResubscribe} = State) ->
+    close(ClientRef),
+    State1 = State#state{client_ref = undefined,
+                         num_resubscribe = NumResubscribe + 1},
+    State2 = set_resubscribe_timer(State1),
+    {noreply, State2}.
+
+%% @doc Sets resubscribe timer.
+%% @private
+-spec set_resubscribe_timer(state()) -> state().
+set_resubscribe_timer(#state{resubscribe_interval = ResubscribeInterval} =
+                      State) ->
+    ResubscribeTimerRef = erlang:start_timer(ResubscribeInterval, self(),
+                                             resubscribe),
+    State#state{resubscribe_timer_ref = ResubscribeTimerRef}.
+
+%% @doc Calls Executor:reregister/2 and sends resubscribe requests.
+%% @private
+-spec resubscribe(state()) -> {noreply, state()} | {stop, term(), state()}.
+resubscribe(#state{executor = Executor,
+                   agent_host = AgentHost,
+                   executor_state = ExecutorState} = State) ->
+    ExecutorInfo = executor_info(State),
+    case Executor:reregister(ExecutorInfo, ExecutorState) of
+        {ok, CallSubscribe, ExecutorState1}
+          when is_record(CallSubscribe, 'Call.Subscribe') ->
+            State1 = State#state{executor_state = ExecutorState1},
+            log_info("Try to resubscribe.", "Host: ~s.", [AgentHost], State),
+            case erl_mesos_executor_call:subscribe(ExecutorInfo,
+                                                   CallSubscribe) of
+                {ok, ClientRef} ->
+                    State2 = State1#state{client_ref = ClientRef},
+                    State3 = set_recv_timer(State2),
+                    {noreply, State3};
+                {error, Reason} ->
+                    log_error("Can not resubscribe.",
+                              "Host: ~s, Error reason: ~p.",
+                              [AgentHost, Reason], State1),
+                    handle_unsubscribe(State1)
+            end;
+        {stop, ExecutorState1} ->
+            State1 = State#state{executor_state = ExecutorState1},
+            {stop, shutdown, State1}
+    end.
+
+%% @doc Calls Executor:handle_info/3.
+%% @private
+-spec call_handle_info(term(), state()) ->
+    {noreply, state()} | {stop, shutdown, state()}.
+call_handle_info(Info, State) ->
+    case call(handle_info, Info, State) of
+        {ok, State1} ->
+            {noreply, State1};
+        {stop, State1} ->
+            {stop, shutdown, State1}
+    end.
+
+%% @doc Closes the connection.
+%% @private
+-spec close(undefined | erl_mesos_http:client_ref()) -> ok | {error, term()}.
+close(undefined) ->
+    ok;
+close(ClientRef) ->
+    erl_mesos_http:close_async_response(ClientRef).
 
 %% @doc Logs info.
 %% @private
@@ -571,7 +667,6 @@ format_state(#state{ref = Ref,
                     max_num_resubscribe = MaxNumResubscribe,
                     resubscribe_interval = ResubscribeInterval,
                     registered = Registered,
-                    call_subscribe = CallSubscribe,
                     executor_state = ExecutorState,
                     client_ref = ClientRef,
                     recv_timer_ref = RecvTimerRef,
@@ -588,7 +683,6 @@ format_state(#state{ref = Ref,
              {max_num_resubscribe, MaxNumResubscribe},
              {resubscribe_interval, ResubscribeInterval},
              {registered, Registered},
-             {call_subscribe, CallSubscribe},
              {client_ref, ClientRef},
              {recv_timer_ref, RecvTimerRef},
              {subscribe_state, SubscribeState},
