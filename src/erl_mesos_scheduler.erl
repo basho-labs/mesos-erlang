@@ -907,21 +907,19 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 handle_unsubscribe(#state{registered = false,
                           client_ref = ClientRef,
                           recv_timer_ref = RecvTimerRef} = State) ->
-    close(ClientRef),
     case subscribe(State) of
         {ok, State1} ->
+            close(ClientRef),
             cancel_recv_timer(RecvTimerRef),
-            State2 = State1#state{subscribe_state = undefined},
+            State2 = State1#state{client_ref = undefined,
+                                  subscribe_state = undefined},
             {noreply, State2};
         {error, Reason} ->
             {stop, {shutdown, {subscribe, {error, Reason}}}, State}
     end;
-handle_unsubscribe(#state{client_ref = ClientRef,
-                          recv_timer_ref = RecvTimerRef,
+handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef,
                           subscribe_state = subscribed} = State) ->
-    close(ClientRef),
-    State1 = State#state{client_ref = undefined,
-                         subscribe_state = undefined,
+    State1 = State#state{subscribe_state = undefined,
                          stream_id = undefined},
     case call(disconnected, State1) of
         {ok, #state{master_hosts = MasterHosts,
@@ -933,12 +931,9 @@ handle_unsubscribe(#state{client_ref = ClientRef,
         {stop, State1} ->
             {stop, shutdown, State1}
     end;
-handle_unsubscribe(#state{client_ref = ClientRef,
-                          recv_timer_ref = RecvTimerRef} = State) ->
-    close(ClientRef),
+handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef} = State) ->
     cancel_recv_timer(RecvTimerRef),
-    State1 = State#state{client_ref = undefined,
-                         subscribe_state = undefined,
+    State1 = State#state{subscribe_state = undefined,
                          stream_id = undefined},
     start_resubscribe_timer(State1).
 
@@ -963,14 +958,18 @@ start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
 start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
                                master_hosts_queue =
                                [MasterHost | MasterHostsQueue],
+                               client_ref = ClientRef,
                                num_resubscribe = MaxNumResubscribe} = State) ->
+    close(ClientRef),
     State1 = State#state{master_hosts_queue = MasterHostsQueue,
                          master_host = MasterHost,
                          client_ref = undefined,
                          num_resubscribe = 1},
     State2 = set_resubscribe_timer(State1),
     {noreply, State2};
-start_resubscribe_timer(#state{num_resubscribe = NumResubscribe} = State) ->
+start_resubscribe_timer(#state{client_ref = ClientRef,
+                               num_resubscribe = NumResubscribe} = State) ->
+    close(ClientRef),
     State1 = State#state{client_ref = undefined,
                          num_resubscribe = NumResubscribe + 1},
     State2 = set_resubscribe_timer(State1),
@@ -1023,7 +1022,7 @@ handle_redirect(#state{master_hosts = MasterHosts,
             {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
         _MaxNumRedirect ->
             close(ClientRef),
-            MasterHost1 = get_redirect_master_host(Headers),
+            MasterHost1 = redirect_master_host(Headers),
             log_info("Redirect.", "Form host: ~s, to host: ~s.",
                      [MasterHost, MasterHost1], State),
             MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
@@ -1039,8 +1038,8 @@ handle_redirect(#state{master_hosts = MasterHosts,
 
 %% @doc Returns redirect master host.
 %% @private
--spec get_redirect_master_host(erl_mesos_http:headers()) -> binary().
-get_redirect_master_host(Headers) ->
+-spec redirect_master_host(erl_mesos_http:headers()) -> binary().
+redirect_master_host(Headers) ->
     case proplists:get_value(<<"Location">>, Headers) of
         <<"//", MasterHost/binary>> ->
             MasterHost;
