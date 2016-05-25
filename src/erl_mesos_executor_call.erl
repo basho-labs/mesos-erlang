@@ -61,11 +61,13 @@ set_ids(#executor_info{executor_id = ExecutorId,
                     erl_mesos_executor:'Call'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 async_request(#executor_info{data_format = DataFormat,
+                             data_format_module = DataFormatModule,
                              api_version = ApiVersion,
                              agent_host = AgentHost,
                              request_options = RequestOptions}, Call) ->
     ReqUrl = request_url(ApiVersion, AgentHost),
-    erl_mesos_http:async_request(ReqUrl, DataFormat, [], Call, RequestOptions).
+    erl_mesos_http:async_request(ReqUrl, DataFormat, DataFormatModule, [], Call,
+                                 RequestOptions).
 
 %% @doc Returns request url.
 %% @private
