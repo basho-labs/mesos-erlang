@@ -166,11 +166,13 @@ set_framework_id(#scheduler_info{framework_id = FrameworkId}, Call) ->
                     erl_mesos_scheduler:'Call'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 async_request(#scheduler_info{data_format = DataFormat,
+                              data_format_module = DataFormatModule,
                               api_version = ApiVersion,
                               master_host = MasterHost,
                               request_options = RequestOptions}, Call) ->
     ReqUrl = request_url(ApiVersion, MasterHost),
-    erl_mesos_http:async_request(ReqUrl, DataFormat, [], Call, RequestOptions).
+    erl_mesos_http:async_request(ReqUrl, DataFormat, DataFormatModule, [], Call,
+                                 RequestOptions).
 
 %% @doc Sends sync http request.
 %% @private
@@ -180,14 +182,15 @@ async_request(#scheduler_info{data_format = DataFormat,
 sync_request(#scheduler_info{subscribed = false}, _Call) ->
     {error, not_subscribed};
 sync_request(#scheduler_info{data_format = DataFormat,
+                             data_format_module = DataFormatModule,
                              api_version = ApiVersion,
                              master_host = MasterHost,
                              request_options = RequestOptions,
                              stream_id = StreamId}, Call) ->
     ReqUrl = request_url(ApiVersion, MasterHost),
     ReqHeaders = sync_request_headers(StreamId),
-    Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, ReqHeaders, Call,
-                                           RequestOptions),
+    Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, DataFormatModule,
+                                           ReqHeaders, Call, RequestOptions),
     erl_mesos_http:handle_sync_response(Response).
 
 %% @doc Returns request url.

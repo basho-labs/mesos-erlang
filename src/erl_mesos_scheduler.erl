@@ -55,6 +55,7 @@
 -record(state, {ref :: term(),
                 scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
+                data_format_module :: module(),
                 api_version :: erl_mesos_scheduler_call:version(),
                 master_hosts :: [binary()],
                 request_options :: erl_mesos_http:options(),
@@ -203,6 +204,8 @@
 -define(DEFAULT_RESUBSCRIBE_INTERVAL, 0).
 
 -define(DATA_FORMAT, protobuf).
+
+-define(DATA_FORMAT_MODULE, scheduler_protobuf).
 
 -define(API_VERSION, v1).
 
@@ -575,6 +578,7 @@ state(Ref, Scheduler, Options) ->
     #state{ref = Ref,
            scheduler = Scheduler,
            data_format = ?DATA_FORMAT,
+           data_format_module = ?DATA_FORMAT_MODULE,
            api_version = ?API_VERSION,
            master_hosts = MasterHosts,
            request_options = RequestOptions,
@@ -644,6 +648,7 @@ set_recv_timer(Timeout, State) ->
 %% @private
 -spec scheduler_info(state()) -> scheduler_info().
 scheduler_info(#state{data_format = DataFormat,
+                      data_format_module = DataFormatModule,
                       api_version = ApiVersion,
                       master_host = MasterHost,
                       request_options = RequestOptions,
@@ -654,6 +659,7 @@ scheduler_info(#state{data_format = DataFormat,
                       stream_id = StreamId}) ->
     Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
+                    data_format_module = DataFormatModule,
                     api_version = ApiVersion,
                     master_host = MasterHost,
                     request_options = RequestOptions,
@@ -729,8 +735,10 @@ cancel_recv_timer(RecvTimerRef) ->
 %% @private
 -spec handle_events(binary(), state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_events(Events, #state{data_format = DataFormat} = State) ->
-    Messages = erl_mesos_data_format:decode_events(DataFormat, Events),
+handle_events(Events, #state{data_format = DataFormat,
+                             data_format_module = DataFormatModule} = State) ->
+    Messages = erl_mesos_data_format:decode_events(DataFormat, DataFormatModule,
+                                                   Events),
     case apply_events(Messages, State) of
         {ok, State1} ->
             {noreply, State1};
@@ -1111,6 +1119,7 @@ log_error(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
 format_state(#state{ref = Ref,
                     scheduler = Scheduler,
                     data_format = DataFormat,
+                    data_format_module = DataFormatModule,
                     api_version = ApiVersion,
                     master_hosts = MasterHosts,
                     request_options = RequestOptions,
@@ -1132,6 +1141,7 @@ format_state(#state{ref = Ref,
                     heartbeat_timer_ref = HeartbeatTimerRef,
                     resubscribe_timer_ref = ResubscribeTimerRef}) ->
     State = [{data_format, DataFormat},
+             {data_format_module, DataFormatModule},
              {api_version, ApiVersion},
              {master_hosts, MasterHosts},
              {request_options, RequestOptions},
