@@ -76,6 +76,21 @@
 -type 'Event.Subscribed'() :: #'Event.Subscribed'{}.
 -export_type(['Event.Subscribed'/0]).
 
+-type 'Event.Launch'() :: #'Event.Launch'{}.
+-export_type(['Event.Launch'/0]).
+
+-type 'Event.Kill'() :: #'Event.Kill'{}.
+-export_type(['Event.Kill'/0]).
+
+-type 'Event.Acknowledged'() :: #'Event.Acknowledged'{}.
+-export_type(['Event.Acknowledged'/0]).
+
+-type 'Event.Message'() :: #'Event.Message'{}.
+-export_type(['Event.Message'/0]).
+
+-type 'Event.Error'() :: #'Event.Error'{}.
+-export_type(['Event.Error'/0]).
+
 -type executor_info() :: #executor_info{}.
 -export_type([executor_info/0]).
 
@@ -101,6 +116,24 @@
     {ok, 'Call.Subscribe'(), term()} | {stop, term()}.
 
 -callback reregistered(executor_info(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback launch_task(executor_info(), 'Event.Launch'(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback kill_task(executor_info(), 'Event.Kill'(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback acknowledged(executor_info(), 'Event.Acknowledged'(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback framework_message(executor_info(), 'Event.Message'(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback error(executor_info(), 'Event.Error'(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback shutdown(executor_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback handle_info(executor_info(), term(), term()) ->
@@ -493,9 +526,18 @@ apply_event(Message, #state{agent_host = AgentHost,
                      State),
             State1 = set_subscribed(State),
             call(reregistered, State1);
-        #'Event'{type = EventType} ->
-            io:format("Event type: ~p.~n", [EventType]),
-            {ok, State}
+        #'Event'{type = 'LAUNCH', launch = EventLaunch} ->
+            call(launch_task, EventLaunch, State);
+        #'Event'{type = 'KILL', kill = EventKill} ->
+            call(kill_task, EventKill, State);
+        #'Event'{type = 'ACKNOWLEDGED', acknowledged = EventAcknowledged} ->
+            call(acknowledged, EventAcknowledged, State);
+        #'Event'{type = 'MESSAGE', message = EventMessage} ->
+            call(framework_message, EventMessage, State);
+        #'Event'{type = 'ERROR', error = EventError} ->
+            call(error, EventError, State);
+        #'Event'{type = 'SHUTDOWN'} ->
+            call(shutdown, State)
     end.
 
 %% @doc Sets subscribed state.
