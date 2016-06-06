@@ -338,18 +338,15 @@ state(Ref, Executor, Options) ->
 %% @private
 -spec resubscribe(undefined | float(), undefined | float()) ->
     {non_neg_integer(), non_neg_integer()}.
-resubscribe(undefined, _SubscriptionBackoffMax) ->
-    {0, 0};
-resubscribe(_RecoveryTimeout, undefined) ->
+resubscribe(RecoveryTimeout, SubscriptionBackoffMax)
+  when RecoveryTimeout == undefined orelse RecoveryTimeout == 0.0 orelse
+       SubscriptionBackoffMax == undefined orelse
+       SubscriptionBackoffMax == 0.0 ->
     {0, 0};
 resubscribe(RecoveryTimeout, SubscriptionBackoffMax) ->
-    case trunc(SubscriptionBackoffMax) of
-        0 ->
-            {0, 0};
-        ResubscribeInterval ->
-            MaxNumResubscribe = trunc(RecoveryTimeout / ResubscribeInterval),
-            {MaxNumResubscribe, ResubscribeInterval}
-    end.
+    MaxNumResubscribe = trunc(RecoveryTimeout / SubscriptionBackoffMax),
+    ResubscribeInterval = trunc(SubscriptionBackoffMax),
+    {MaxNumResubscribe, ResubscribeInterval}.
 
 %% @doc Calls Executor:init/1.
 %% @private
