@@ -28,6 +28,8 @@
 
 -export([start_link/4]).
 
+-export([update/2, message/2]).
+
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -69,6 +71,9 @@
 
 -type 'Call.Update'() :: #'Call.Update'{}.
 -export_type(['Call.Update'/0]).
+
+-type 'Call.Message'() :: #'Call.Message'{}.
+-export_type(['Call.Message'/0]).
 
 -type 'Event'() :: #'Event'{}.
 -export_type(['Event'/0]).
@@ -159,6 +164,18 @@
 start_link(Ref, Executor, ExecutorOptions, Options) ->
     gen_server:start_link(?MODULE, {Ref, Executor, ExecutorOptions, Options},
                           []).
+
+%% @doc Update call.
+-spec update(executor_info(), erl_mesos:'TaskStatus'()) -> ok | {error, term()}.
+update(ExecutorInfo, TaskStatus) ->
+    CallUpdate = #'Call.Update'{status = TaskStatus},
+    erl_mesos_executor_call:update(ExecutorInfo, CallUpdate).
+
+%% @doc Message call.
+-spec message(executor_info(), binary()) -> ok | {error, term()}.
+message(ExecutorInfo, Data) ->
+    CallMessage = #'Call.Message'{data = Data},
+    erl_mesos_executor_call:message(ExecutorInfo, CallMessage).
 
 %% gen_server callback functions.
 
