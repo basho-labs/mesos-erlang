@@ -127,8 +127,6 @@ reconcile(SchedulerInfo, CallReconcile) ->
 -spec message(erl_mesos_scheduler:scheduler_info(),
               erl_mesos_scheduler:'Call.Message'()) ->
     ok | {error, term()}.
-message(#scheduler_info{subscribed = false}, _CallMessage) ->
-    {error, not_subscribed};
 message(SchedulerInfo, CallMessage) ->
     Call = #'Call'{type = 'MESSAGE', message = CallMessage},
     Call1 = set_framework_id(SchedulerInfo, Call),
