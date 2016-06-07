@@ -26,7 +26,7 @@
 
 -include("executor_protobuf.hrl").
 
--export([subscribe/2]).
+-export([subscribe/2, update/2, message/2]).
 
 -type version() :: v1.
 -export_type([version/0]).
@@ -43,6 +43,24 @@ subscribe(ExecutorInfo, CallSubscribe) ->
     Call = #'Call'{type = 'SUBSCRIBE', subscribe = CallSubscribe},
     Call1 = set_ids(ExecutorInfo, Call),
     async_request(ExecutorInfo, Call1).
+
+%% @doc Executes update call.
+-spec update(erl_mesos_executor:executor_info(),
+             erl_mesos_executor:'Call.Update'()) ->
+    ok | {error, term()}.
+update(ExecutorInfo, CallUpdate) ->
+    Call = #'Call'{type = 'UPDATE', update = CallUpdate},
+    Call1 = set_ids(ExecutorInfo, Call),
+    sync_request(ExecutorInfo, Call1).
+
+%% @doc Executes message call.
+-spec message(erl_mesos_executor:executor_info(),
+              erl_mesos_executor:'Call.Message'()) ->
+    ok | {error, term()}.
+message(ExecutorInfo, CallMessage) ->
+    Call = #'Call'{type = 'MESSAGE', message = CallMessage},
+    Call1 = set_ids(ExecutorInfo, Call),
+    sync_request(ExecutorInfo, Call1).
 
 %% Internal functions.
 
@@ -68,6 +86,23 @@ async_request(#executor_info{data_format = DataFormat,
     ReqUrl = request_url(ApiVersion, AgentHost),
     erl_mesos_http:async_request(ReqUrl, DataFormat, DataFormatModule, [], Call,
                                  RequestOptions).
+
+%% @doc Sends sync http request.
+%% @private
+-spec sync_request(erl_mesos_executor:executor_info(),
+                   erl_mesos_executor:'Call'()) ->
+    ok | {error, term()}.
+sync_request(#executor_info{subscribed = false}, _Call) ->
+    {error, not_subscribed};
+sync_request(#executor_info{data_format = DataFormat,
+                            data_format_module = DataFormatModule,
+                            api_version = ApiVersion,
+                            agent_host = AgentHost,
+                            request_options = RequestOptions}, Call) ->
+    ReqUrl = request_url(ApiVersion, AgentHost),
+    Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, DataFormatModule,
+                                           [], Call, RequestOptions),
+    erl_mesos_http:handle_sync_response(Response).
 
 %% @doc Returns request url.
 %% @private
