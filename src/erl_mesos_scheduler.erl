@@ -55,6 +55,7 @@
 -record(state, {ref :: term(),
                 scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
+                data_format_module :: module(),
                 api_version :: erl_mesos_scheduler_call:version(),
                 master_hosts :: [binary()],
                 request_options :: erl_mesos_http:options(),
@@ -62,7 +63,7 @@
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
                 registered = false :: boolean(),
-                call_subscribe :: undefined | erl_mesos:'Call.Subscribe'(),
+                call_subscribe :: undefined | 'Call.Subscribe'(),
                 scheduler_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
                 master_host :: undefined | binary(),
@@ -82,6 +83,63 @@
 -type options() :: [{atom(), term()}].
 -export_type([options/0]).
 
+-type 'Call'() :: #'Call'{}.
+-export_type(['Call'/0]).
+
+-type 'Call.Subscribe'() :: #'Call.Subscribe'{}.
+-export_type(['Call.Subscribe'/0]).
+
+-type 'Call.Accept'() :: #'Call.Accept'{}.
+-export_type(['Call.Accept'/0]).
+
+-type 'Call.Decline'() :: #'Call.Decline'{}.
+-export_type(['Call.Decline'/0]).
+
+-type 'Call.Kill'() :: #'Call.Kill'{}.
+-export_type(['Call.Kill'/0]).
+
+-type 'Call.Shutdown'() :: #'Call.Shutdown'{}.
+-export_type(['Call.Shutdown'/0]).
+
+-type 'Call.Acknowledge'() :: #'Call.Acknowledge'{}.
+-export_type(['Call.Acknowledge'/0]).
+
+-type 'Call.Reconcile.Task'() :: #'Call.Reconcile.Task'{}.
+-export_type(['Call.Reconcile.Task'/0]).
+
+-type 'Call.Reconcile'() :: #'Call.Reconcile'{}.
+-export_type(['Call.Reconcile'/0]).
+
+-type 'Call.Message'() :: #'Call.Message'{}.
+-export_type(['Call.Message'/0]).
+
+-type 'Call.Req'() :: #'Call.Req'{}.
+-export_type(['Call.Req'/0]).
+
+-type 'Event'() :: #'Event'{}.
+-export_type(['Event'/0]).
+
+-type 'Event.Subscribed'() :: #'Event.Subscribed'{}.
+-export_type(['Event.Subscribed'/0]).
+
+-type 'Event.Offers'() :: #'Event.Offers'{}.
+-export_type(['Event.Offers'/0]).
+
+-type 'Event.Rescind'() :: #'Event.Rescind'{}.
+-export_type(['Event.Rescind'/0]).
+
+-type 'Event.Update'() :: #'Event.Update'{}.
+-export_type(['Event.Update'/0]).
+
+-type 'Event.Message'() :: #'Event.Message'{}.
+-export_type(['Event.Message'/0]).
+
+-type 'Event.Failure'() :: #'Event.Failure'{}.
+-export_type(['Event.Failure'/0]).
+
+-type 'Event.Error'() :: #'Event.Error'{}.
+-export_type(['Event.Error'/0]).
+
 -type scheduler_info() :: #scheduler_info{}.
 -export_type([scheduler_info/0]).
 
@@ -96,8 +154,7 @@
 -callback init(term()) ->
     {ok, erl_mesos:'FrameworkInfo'(), term()} | {stop, term()}.
 
--callback registered(scheduler_info(), erl_mesos:'Event.Subscribed'(),
-                     term()) ->
+-callback registered(scheduler_info(), 'Event.Subscribed'(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback disconnected(scheduler_info(), term()) ->
@@ -106,30 +163,25 @@
 -callback reregistered(scheduler_info(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback resource_offers(scheduler_info(), erl_mesos:'Event.Offers'(),
-                          term()) ->
+-callback resource_offers(scheduler_info(), 'Event.Offers'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback offer_rescinded(scheduler_info(), erl_mesos:'Event.Rescind'(),
-                          term()) ->
+-callback offer_rescinded(scheduler_info(), 'Event.Rescind'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback status_update(scheduler_info(), erl_mesos:'Event.Update'(),
-                        term()) ->
+-callback status_update(scheduler_info(), 'Event.Update'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback framework_message(scheduler_info(), erl_mesos:'Event.Message'(),
-                            term()) ->
+-callback framework_message(scheduler_info(), 'Event.Message'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback slave_lost(scheduler_info(), erl_mesos:'Event.Failure'(), term()) ->
+-callback slave_lost(scheduler_info(), 'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback executor_lost(scheduler_info(), erl_mesos:'Event.Failure'(),
-                        term()) ->
+-callback executor_lost(scheduler_info(), 'Event.Failure'(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback error(scheduler_info(), erl_mesos:'Event.Error'(), term()) ->
+-callback error(scheduler_info(), 'Event.Error'(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback handle_info(scheduler_info(), term(), term()) ->
@@ -152,6 +204,8 @@
 -define(DEFAULT_RESUBSCRIBE_INTERVAL, 0).
 
 -define(DATA_FORMAT, protobuf).
+
+-define(DATA_FORMAT_MODULE, scheduler_protobuf).
 
 -define(API_VERSION, v1).
 
@@ -248,7 +302,7 @@ acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
     erl_mesos_scheduler_call:acknowledge(SchedulerInfo, CallAcknowledge).
 
 %% @doc Reconcile call.
--spec reconcile(scheduler_info(), [erl_mesos:'Call.Reconcile.Task'()]) ->
+-spec reconcile(scheduler_info(), ['Call.Reconcile.Task'()]) ->
     ok | {error, term()}.
 reconcile(SchedulerInfo, CallReconcileTasks) ->
     CallReconcile = #'Call.Reconcile'{tasks = CallReconcileTasks},
@@ -524,6 +578,7 @@ state(Ref, Scheduler, Options) ->
     #state{ref = Ref,
            scheduler = Scheduler,
            data_format = ?DATA_FORMAT,
+           data_format_module = ?DATA_FORMAT_MODULE,
            api_version = ?API_VERSION,
            master_hosts = MasterHosts,
            request_options = RequestOptions,
@@ -593,6 +648,7 @@ set_recv_timer(Timeout, State) ->
 %% @private
 -spec scheduler_info(state()) -> scheduler_info().
 scheduler_info(#state{data_format = DataFormat,
+                      data_format_module = DataFormatModule,
                       api_version = ApiVersion,
                       master_host = MasterHost,
                       request_options = RequestOptions,
@@ -603,6 +659,7 @@ scheduler_info(#state{data_format = DataFormat,
                       stream_id = StreamId}) ->
     Subscribed = SubscribeState =:= subscribed,
     #scheduler_info{data_format = DataFormat,
+                    data_format_module = DataFormatModule,
                     api_version = ApiVersion,
                     master_host = MasterHost,
                     request_options = RequestOptions,
@@ -678,8 +735,10 @@ cancel_recv_timer(RecvTimerRef) ->
 %% @private
 -spec handle_events(binary(), state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_events(Events, #state{data_format = DataFormat} = State) ->
-    Messages = erl_mesos_data_format:decode_events(DataFormat, Events),
+handle_events(Events, #state{data_format = DataFormat,
+                             data_format_module = DataFormatModule} = State) ->
+    Messages = erl_mesos_data_format:decode_events(DataFormat, DataFormatModule,
+                                                   Events),
     case apply_events(Messages, State) of
         {ok, State1} ->
             {noreply, State1};
@@ -745,8 +804,8 @@ apply_event(Message, #state{master_host = MasterHost,
 
 %% @doc Sets subscribed state.
 %% @private
--spec set_subscribed(erl_mesos:'Event.Subscribed'(), state()) ->
-    {erl_mesos:'Event.Subscribed'(), state()}.
+-spec set_subscribed('Event.Subscribed'(), state()) ->
+    {'Event.Subscribed'(), state()}.
 set_subscribed(EventSubscribed, #state{call_subscribe = CallSubscribe} =
                State) ->
     CallSubscribe1 = set_framework_id(EventSubscribed, CallSubscribe),
@@ -765,9 +824,8 @@ set_subscribed(EventSubscribed, #state{call_subscribe = CallSubscribe} =
 
 %% @doc Sets framework id.
 %% @private
--spec set_framework_id(erl_mesos:'Event.Subscribed'(),
-                       erl_mesos:'Call.Subscribe'()) ->
-    erl_mesos:'Call.Subscribe'().
+-spec set_framework_id('Event.Subscribed'(), 'Call.Subscribe'()) ->
+    'Call.Subscribe'().
 set_framework_id(#'Event.Subscribed'{framework_id = FrameworkId},
                  #'Call.Subscribe'{framework_info =
                                        #'FrameworkInfo'{id = undefined} =
@@ -779,8 +837,8 @@ set_framework_id(_EventSubscribed, CallSubscribe) ->
 
 %% @doc Sets default heartbeat interval.
 %% @private
--spec set_default_heartbeat_interval(erl_mesos:'Event.Subscribed'()) ->
-    erl_mesos:'Event.Subscribed'().
+-spec set_default_heartbeat_interval('Event.Subscribed'()) ->
+    'Event.Subscribed'().
 set_default_heartbeat_interval(#'Event.Subscribed'{heartbeat_interval_seconds =
                                                    undefined} =
                                EventSubscribed) ->
@@ -849,21 +907,19 @@ call(Callback, Arg, #state{scheduler = Scheduler,
 handle_unsubscribe(#state{registered = false,
                           client_ref = ClientRef,
                           recv_timer_ref = RecvTimerRef} = State) ->
-    close(ClientRef),
     case subscribe(State) of
         {ok, State1} ->
+            close(ClientRef),
             cancel_recv_timer(RecvTimerRef),
-            State2 = State1#state{subscribe_state = undefined},
+            State2 = State1#state{client_ref = undefined,
+                                  subscribe_state = undefined},
             {noreply, State2};
         {error, Reason} ->
             {stop, {shutdown, {subscribe, {error, Reason}}}, State}
     end;
-handle_unsubscribe(#state{client_ref = ClientRef,
-                          recv_timer_ref = RecvTimerRef,
+handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef,
                           subscribe_state = subscribed} = State) ->
-    close(ClientRef),
-    State1 = State#state{client_ref = undefined,
-                         subscribe_state = undefined,
+    State1 = State#state{subscribe_state = undefined,
                          stream_id = undefined},
     case call(disconnected, State1) of
         {ok, #state{master_hosts = MasterHosts,
@@ -875,12 +931,9 @@ handle_unsubscribe(#state{client_ref = ClientRef,
         {stop, State1} ->
             {stop, shutdown, State1}
     end;
-handle_unsubscribe(#state{client_ref = ClientRef,
-                          recv_timer_ref = RecvTimerRef} = State) ->
-    close(ClientRef),
+handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef} = State) ->
     cancel_recv_timer(RecvTimerRef),
-    State1 = State#state{client_ref = undefined,
-                         subscribe_state = undefined,
+    State1 = State#state{subscribe_state = undefined,
                          stream_id = undefined},
     start_resubscribe_timer(State1).
 
@@ -905,14 +958,18 @@ start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
 start_resubscribe_timer(#state{max_num_resubscribe = MaxNumResubscribe,
                                master_hosts_queue =
                                [MasterHost | MasterHostsQueue],
+                               client_ref = ClientRef,
                                num_resubscribe = MaxNumResubscribe} = State) ->
+    close(ClientRef),
     State1 = State#state{master_hosts_queue = MasterHostsQueue,
                          master_host = MasterHost,
                          client_ref = undefined,
                          num_resubscribe = 1},
     State2 = set_resubscribe_timer(State1),
     {noreply, State2};
-start_resubscribe_timer(#state{num_resubscribe = NumResubscribe} = State) ->
+start_resubscribe_timer(#state{client_ref = ClientRef,
+                               num_resubscribe = NumResubscribe} = State) ->
+    close(ClientRef),
     State1 = State#state{client_ref = undefined,
                          num_resubscribe = NumResubscribe + 1},
     State2 = set_resubscribe_timer(State1),
@@ -965,7 +1022,7 @@ handle_redirect(#state{master_hosts = MasterHosts,
             {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
         _MaxNumRedirect ->
             close(ClientRef),
-            MasterHost1 = get_redirect_master_host(Headers),
+            MasterHost1 = redirect_master_host(Headers),
             log_info("Redirect.", "Form host: ~s, to host: ~s.",
                      [MasterHost, MasterHost1], State),
             MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
@@ -981,8 +1038,8 @@ handle_redirect(#state{master_hosts = MasterHosts,
 
 %% @doc Returns redirect master host.
 %% @private
--spec get_redirect_master_host(erl_mesos_http:headers()) -> binary().
-get_redirect_master_host(Headers) ->
+-spec redirect_master_host(erl_mesos_http:headers()) -> binary().
+redirect_master_host(Headers) ->
     case proplists:get_value(<<"Location">>, Headers) of
         <<"//", MasterHost/binary>> ->
             MasterHost;
@@ -1061,6 +1118,7 @@ log_error(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
 format_state(#state{ref = Ref,
                     scheduler = Scheduler,
                     data_format = DataFormat,
+                    data_format_module = DataFormatModule,
                     api_version = ApiVersion,
                     master_hosts = MasterHosts,
                     request_options = RequestOptions,
@@ -1082,6 +1140,7 @@ format_state(#state{ref = Ref,
                     heartbeat_timer_ref = HeartbeatTimerRef,
                     resubscribe_timer_ref = ResubscribeTimerRef}) ->
     State = [{data_format, DataFormat},
+             {data_format_module, DataFormatModule},
              {api_version, ApiVersion},
              {master_hosts, MasterHosts},
              {request_options, RequestOptions},

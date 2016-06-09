@@ -22,7 +22,7 @@
 
 -module(erl_mesos_http).
 
--export([async_request/5, sync_request/5, body/1]).
+-export([async_request/6, sync_request/6, body/1]).
 
 -export([async_response/1, close_async_response/1]).
 
@@ -46,22 +46,22 @@
 %% External functions.
 
 %% @doc Sends async http request.
--spec async_request(binary(), erl_mesos_data_format:data_format(), headers(),
-                    erl_mesos_data_format:message(), options()) ->
+-spec async_request(binary(), erl_mesos_data_format:data_format(), module(),
+                    headers(), erl_mesos_data_format:message(), options()) ->
     {ok, client_ref()} | {error, term()}.
-async_request(Url, DataFormat, Headers, Message, Options) ->
+async_request(Url, DataFormat, DataFormatModule, Headers, Message, Options) ->
     Headers1 = request_headers(DataFormat, Headers),
-    Body = erl_mesos_data_format:encode(DataFormat, Message),
+    Body = erl_mesos_data_format:encode(DataFormat, DataFormatModule, Message),
     Options1 = async_request_options(Options),
     request(post, Url, Headers1, Body, Options1).
 
 %% @doc Sends sync http request.
--spec sync_request(binary(), erl_mesos_data_format:data_format(), headers(),
-                   erl_mesos_data_format:message(), options()) ->
+-spec sync_request(binary(), erl_mesos_data_format:data_format(), module(),
+                   headers(), erl_mesos_data_format:message(), options()) ->
     {ok, non_neg_integer(), headers(), client_ref()} | {error, term()}.
-sync_request(Url, DataFormat, Headers, Message, Options) ->
+sync_request(Url, DataFormat, DataFormatModule, Headers, Message, Options) ->
     Headers1 = request_headers(DataFormat, Headers),
-    Body = erl_mesos_data_format:encode(DataFormat, Message),
+    Body = erl_mesos_data_format:encode(DataFormat, DataFormatModule, Message),
     Options1 = sync_request_options(Options),
     request(post, Url, Headers1, Body, Options1).
 

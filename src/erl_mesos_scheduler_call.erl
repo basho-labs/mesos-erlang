@@ -48,7 +48,7 @@
 
 %% @doc Executes subscribe call.
 -spec subscribe(erl_mesos_scheduler:scheduler_info(),
-                erl_mesos:'Call.Subscribe'()) ->
+                erl_mesos_scheduler:'Call.Subscribe'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 subscribe(SchedulerInfo, CallSubscribe) ->
     Call = #'Call'{type = 'SUBSCRIBE', subscribe = CallSubscribe},
@@ -63,7 +63,8 @@ teardown(SchedulerInfo) ->
     sync_request(SchedulerInfo, Call1).
 
 %% @doc Executes accept call.
--spec accept(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call.Accept'()) ->
+-spec accept(erl_mesos_scheduler:scheduler_info(),
+             erl_mesos_scheduler:'Call.Accept'()) ->
     ok | {error, term()}.
 accept(SchedulerInfo, CallAccept) ->
     Call = #'Call'{type = 'ACCEPT', accept = CallAccept},
@@ -72,7 +73,7 @@ accept(SchedulerInfo, CallAccept) ->
 
 %% @doc Executes decline call.
 -spec decline(erl_mesos_scheduler:scheduler_info(),
-              erl_mesos:'Call.Decline'()) ->
+              erl_mesos_scheduler:'Call.Decline'()) ->
     ok | {error, term()}.
 decline(SchedulerInfo, CallDecline) ->
     Call = #'Call'{type = 'DECLINE', decline = CallDecline},
@@ -87,7 +88,8 @@ revive(SchedulerInfo) ->
     sync_request(SchedulerInfo, Call1).
 
 %% @doc Executes kill call.
--spec kill(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call.Kill'()) ->
+-spec kill(erl_mesos_scheduler:scheduler_info(),
+           erl_mesos_scheduler:'Call.Kill'()) ->
     ok | {error, term()}.
 kill(SchedulerInfo, CallKill) ->
     Call = #'Call'{type = 'KILL', kill = CallKill},
@@ -96,7 +98,7 @@ kill(SchedulerInfo, CallKill) ->
 
 %% @doc Executes shutdown call.
 -spec shutdown(erl_mesos_scheduler:scheduler_info(),
-               erl_mesos:'Call.Shutdown'()) ->
+               erl_mesos_scheduler:'Call.Shutdown'()) ->
      ok | {error, term()}.
 shutdown(SchedulerInfo, CallShutdown) ->
     Call = #'Call'{type = 'SHUTDOWN', shutdown = CallShutdown},
@@ -105,7 +107,7 @@ shutdown(SchedulerInfo, CallShutdown) ->
 
 %% @doc Executes acknowledge call.
 -spec acknowledge(erl_mesos_scheduler:scheduler_info(),
-                  erl_mesos:'Call.Acknowledge'()) ->
+                  erl_mesos_scheduler:'Call.Acknowledge'()) ->
     ok | {error, term()}.
 acknowledge(SchedulerInfo, CallAcknowledge) ->
     Call = #'Call'{type = 'ACKNOWLEDGE', acknowledge = CallAcknowledge},
@@ -114,7 +116,7 @@ acknowledge(SchedulerInfo, CallAcknowledge) ->
 
 %% @doc Executes reconcile call.
 -spec reconcile(erl_mesos_scheduler:scheduler_info(),
-                erl_mesos:'Call.Reconcile'()) ->
+                erl_mesos_scheduler:'Call.Reconcile'()) ->
     ok | {error, term()}.
 reconcile(SchedulerInfo, CallReconcile) ->
     Call = #'Call'{type = 'RECONCILE', reconcile = CallReconcile},
@@ -123,17 +125,16 @@ reconcile(SchedulerInfo, CallReconcile) ->
 
 %% @doc Executes message call.
 -spec message(erl_mesos_scheduler:scheduler_info(),
-              erl_mesos:'Call.Message'()) ->
+              erl_mesos_scheduler:'Call.Message'()) ->
     ok | {error, term()}.
-message(#scheduler_info{subscribed = false}, _CallMessage) ->
-    {error, not_subscribed};
 message(SchedulerInfo, CallMessage) ->
     Call = #'Call'{type = 'MESSAGE', message = CallMessage},
     Call1 = set_framework_id(SchedulerInfo, Call),
     sync_request(SchedulerInfo, Call1).
 
 %% @doc Executes request call.
--spec request(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call.Req'()) ->
+-spec request(erl_mesos_scheduler:scheduler_info(),
+              erl_mesos_scheduler:'Call.Req'()) ->
     ok | {error, term()}.
 request(SchedulerInfo, CallReq) ->
     Call = #'Call'{type = 'REQUEST', request = CallReq},
@@ -152,37 +153,42 @@ suppress(SchedulerInfo) ->
 %% @doc Sets framework id.
 %% @private
 -spec set_framework_id(erl_mesos_scheduler:scheduler_info(),
-                       erl_mesos:'Call'()) ->
-    erl_mesos:'Call'().
+                       erl_mesos_scheduler:'Call'()) ->
+    erl_mesos_scheduler:'Call'().
 set_framework_id(#scheduler_info{framework_id = FrameworkId}, Call) ->
     Call#'Call'{framework_id = FrameworkId}.
 
 %% @doc Sends async http request.
 %% @private
--spec async_request(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call'()) ->
+-spec async_request(erl_mesos_scheduler:scheduler_info(),
+                    erl_mesos_scheduler:'Call'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 async_request(#scheduler_info{data_format = DataFormat,
+                              data_format_module = DataFormatModule,
                               api_version = ApiVersion,
                               master_host = MasterHost,
                               request_options = RequestOptions}, Call) ->
     ReqUrl = request_url(ApiVersion, MasterHost),
-    erl_mesos_http:async_request(ReqUrl, DataFormat, [], Call, RequestOptions).
+    erl_mesos_http:async_request(ReqUrl, DataFormat, DataFormatModule, [], Call,
+                                 RequestOptions).
 
 %% @doc Sends sync http request.
 %% @private
--spec sync_request(erl_mesos_scheduler:scheduler_info(), erl_mesos:'Call'()) ->
+-spec sync_request(erl_mesos_scheduler:scheduler_info(),
+                   erl_mesos_scheduler:'Call'()) ->
     ok | {error, term()}.
 sync_request(#scheduler_info{subscribed = false}, _Call) ->
     {error, not_subscribed};
 sync_request(#scheduler_info{data_format = DataFormat,
+                             data_format_module = DataFormatModule,
                              api_version = ApiVersion,
                              master_host = MasterHost,
                              request_options = RequestOptions,
                              stream_id = StreamId}, Call) ->
     ReqUrl = request_url(ApiVersion, MasterHost),
     ReqHeaders = sync_request_headers(StreamId),
-    Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, ReqHeaders, Call,
-                                           RequestOptions),
+    Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, DataFormatModule,
+                                           ReqHeaders, Call, RequestOptions),
     erl_mesos_http:handle_sync_response(Response).
 
 %% @doc Returns request url.
