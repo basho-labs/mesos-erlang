@@ -69,8 +69,8 @@
 -type 'Resource'() :: #'Resource'{}.
 -export_type(['Resource'/0]).
 
--type 'Request'() :: #'Request'{}.
--export_type(['Request'/0]).
+-type 'mesos_v1_Request'() :: #'mesos_v1_Request'{}.
+-export_type(['mesos_v1_Request'/0]).
 
 -type 'TaskID'() :: #'TaskID'{}.
 -export_type(['TaskID'/0]).

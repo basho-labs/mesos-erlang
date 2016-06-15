@@ -690,7 +690,7 @@ request(Config) ->
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
     #'Offer'{agent_id = AgentId} = Offer,
-    Requests = [#'Request'{agent_id = AgentId}],
+    Requests = [#'mesos_v1_Request'{agent_id = AgentId}],
     SchedulerPid ! {request, Requests},
     {request, ok} = recv_reply(request),
     ok = stop_scheduler(Ref, Config).
