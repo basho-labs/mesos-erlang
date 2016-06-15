@@ -1,6 +1,6 @@
 [{<<"gpb">>,
   {git,"git://github.com/tomas-abrahamsson/gpb.git",
-       {ref,"8495d7b3c2562988b80b326dc93343a946e715d6"}},
+       {ref,"68cef3787fa39082a9b207a7235a10057c7dbc0d"}},
   0},
  {<<"hackney">>,
   {git,"git://github.com/benoitc/hackney.git",
