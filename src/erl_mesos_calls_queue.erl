@@ -28,7 +28,7 @@
          exec_or_push_call/2,
          exec_calls/1]).
 
--record(calls_queue, {calls :: queue(),
+-record(calls_queue, {calls :: queue:queue(),
                       max_len :: pos_integer(),
                       max_num_try_execute :: pos_integer(),
                       num_try_execute = 0 :: non_neg_integer()}).
