@@ -1,0 +1,10 @@
+[{<<"gpb">>,
+  {git,"git://github.com/tomas-abrahamsson/gpb.git",
+       {ref,"8495d7b3c2562988b80b326dc93343a946e715d6"}},
+  0},
+ {<<"hackney">>,
+  {git,"git://github.com/benoitc/hackney.git",
+       {ref,"b29a643c572bb83f8089bd57c373e7aaf1e86608"}},
+  0},
+ {<<"idna">>,{pkg,<<"idna">>,<<"1.0.2">>},1},
+ {<<"ssl_verify_hostname">>,{pkg,<<"ssl_verify_hostname">>,<<"1.0.5">>},1}].
