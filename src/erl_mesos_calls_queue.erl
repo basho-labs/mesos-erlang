@@ -28,7 +28,7 @@
          exec_or_push_call/2,
          exec_calls/1]).
 
--record(calls_queue, {calls :: queue(),
+-record(calls_queue, {calls = [] :: [call()],
                       max_len :: pos_integer(),
                       max_num_try_execute :: pos_integer(),
                       num_try_execute = 0 :: non_neg_integer()}).
@@ -56,37 +56,30 @@ new(Options) ->
     MaxLen = proplists:get_value(max_len, Options, ?DEFAULT_MAX_LEN),
     MaxNumTryExecute = proplists:get_value(max_num_try_execute, Options,
                                            ?DEFAULT_MAX_NUM_TRY_EXECUTE),
-    #calls_queue{calls = queue:new(),
-                 max_len = MaxLen,
+    #calls_queue{max_len = MaxLen,
                  max_num_try_execute = MaxNumTryExecute}.
 
 -spec len(calls_queue()) -> non_neg_integer().
 len(#calls_queue{calls = Calls}) ->
-    queue:len(Calls).
+    length(Calls).
 
 %% @doc Popes call from the calls queue.
 -spec pop_call(calls_queue()) ->
     {ok, call(), calls_queue()} | calls_queue_empty.
-pop_call(#calls_queue{calls = Calls} = CallsQueue) ->
-    case queue:len(Calls) > 0 of
-        true ->
-            {{value, Call}, Calls1} = queue:out(Calls),
-            {ok, Call, CallsQueue#calls_queue{calls = Calls1}};
-        false ->
-            calls_queue_empty
-    end.
+pop_call(#calls_queue{calls = [Call | Calls]} = CallsQueue) ->
+    {ok, Call, CallsQueue#calls_queue{calls = Calls}};
+pop_call(_CallsQueue) ->
+    calls_queue_empty.
 
 %% @doc Pushes call to the calls queue.
 -spec push_call(call(), calls_queue()) ->
     {ok, calls_queue()} | {error, calls_queue_len_limit}.
 push_call(Call, #calls_queue{calls = Calls,
-                             max_len = MaxLen} = CallsQueue) ->
-    case queue:len(Calls) < MaxLen of
-        true ->
-            {ok, CallsQueue#calls_queue{calls = queue:in(Call, Calls)}};
-        false ->
-            {error, calls_queue_len_limit}
-    end.
+                             max_len = MaxLen} = CallsQueue)
+  when length(Calls) < MaxLen ->
+    {ok, CallsQueue#calls_queue{calls = Calls ++ [Call]}};
+push_call(_Call, _CallsQueue) ->
+    {error, calls_queue_len_limit}.
 
 %% @doc Executes call or put call to the calls queue.
 -spec exec_or_push_call(call(), calls_queue()) ->
@@ -112,25 +105,20 @@ exec_calls(#calls_queue{max_num_try_execute = MaxNumTryExecute,
                         num_try_execute = NumTryExecute})
   when MaxNumTryExecute + 1 =:= NumTryExecute ->
     {error, calls_queue_try_execute_limit};
-exec_calls(#calls_queue{calls = Calls,
+exec_calls(#calls_queue{calls = [Call | Calls],
                         num_try_execute = NumTryExecute} = CallsQueue) ->
-    case queue:len(Calls) > 0 of
-        true ->
-            Call = queue:get(Calls),
-            case execute_call(Call) of
-                ok ->
-                    Calls1 = queue:drop(Calls),
-                    CallsQueue1 = CallsQueue#calls_queue{calls = Calls1,
-                                                         num_try_execute = 0},
-                    exec_calls(CallsQueue1);
-                {error, Reason} ->
-                    CallsQueue1 = CallsQueue#calls_queue{num_try_execute =
-                                                         NumTryExecute + 1},
-                    {exec_error, Reason, CallsQueue1}
-            end;
-        false ->
-            calls_queue_empty
-    end.
+    case execute_call(Call) of
+        ok ->
+            CallsQueue1 = CallsQueue#calls_queue{calls = Calls,
+                                                 num_try_execute = 0},
+            exec_calls(CallsQueue1);
+        {error, Reason} ->
+            CallsQueue1 = CallsQueue#calls_queue{num_try_execute =
+                                                 NumTryExecute + 1},
+            {exec_error, Reason, CallsQueue1}
+    end;
+exec_calls(_CallsQueue) ->
+    calls_queue_empty.
 
 %% Internal functions.
 
