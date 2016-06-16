@@ -18,6 +18,7 @@ RUN apt-mark hold mesos
 
 ### Environment.
 ENV MESOS_WORK_DIR=/var/lib/mesos
+ENV MESOS_LOG_DIR=/var/log/mesos
 
 ### Copy start script.
 RUN mkdir -p /opt
