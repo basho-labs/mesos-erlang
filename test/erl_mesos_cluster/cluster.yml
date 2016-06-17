@@ -40,14 +40,16 @@ services:
         networks:
             app_net:
                 ipv4_address: 172.16.200.23
-#    erl_mesos_slave:
-#        image: erl_mesos_slave
-#        environment:
-#            - MESOS_MASTER=zk://172.16.200.11:2181/mesos
-#        container_name: erl_mesos_slave
-#        networks:
-#            app_net:
-#                ipv4_address: 172.16.200.31
+    erl_mesos_slave:
+        image: erl_mesos_slave
+        environment:
+            - MESOS_MASTER=zk://172.16.200.11:2181/mesos
+        container_name: erl_mesos_slave
+        volumes:
+            - /sys/fs/cgroup:/sys/fs/cgroup 
+        networks:
+            app_net:
+                ipv4_address: 172.16.200.31
 
 networks:
     app_net:
