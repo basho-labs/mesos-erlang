@@ -26,7 +26,6 @@
          stop/1,
          stop_master/2,
          restart/1,
-         start_slave/1,
          stop_slave/1]).
 
 -define(CLUSTER_PATH, "erl_mesos_cluster/cluster.sh").
@@ -64,10 +63,6 @@ stop_master(MasterContainer, Config) ->
 restart(Config) ->
     ClusterPath = cluster_path(Config),
     os:cmd(ClusterPath ++ " restart").
-
-start_slave(Config) ->
-    ClusterPath = cluster_path(Config),
-    os:cmd(ClusterPath ++ " start_slave").
 
 stop_slave(Config) ->
     ClusterPath = cluster_path(Config),

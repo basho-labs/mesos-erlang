@@ -58,13 +58,6 @@ function stop_master {
     docker kill "$1"
 }
 
-function start_slave {
-    docker run --privileged --name=erl_mesos_slave\
-               --link=erl_mesos_zk:erl_mesos_zk -d\
-               -e MESOS_MASTER=zk://erl_mesos_zk:2181/mesos\
-               erl_mesos_slave
-}
-
 function stop_slave {
     docker kill erl_mesos_slave
     docker rm erl_mesos_slave
@@ -86,13 +79,10 @@ case "$1" in
     stop_master)
         stop_master "$2"
         ;;
-    start_slave)
-        start_slave
-        ;;
     stop_slave)
         stop_slave
         ;;
     *)
-        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|start_slave|stop_slave}"
+        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|stop_slave}"
         exit 1
 esac

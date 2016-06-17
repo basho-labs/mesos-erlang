@@ -43,7 +43,6 @@
          offer_rescinded/1,
          status_update/1,
          framework_message/1,
-         slave_lost/1,
          error/1,
          teardown/1,
          accept/1,
@@ -73,7 +72,6 @@ groups() ->
                       offer_rescinded,
                       status_update,
                       framework_message,
-                      slave_lost,
                       error,
                       teardown,
                       accept,
@@ -287,7 +285,6 @@ resource_offers(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, SchedulerInfo, EventOffers}} =
         recv_reply(resource_offers),
     %% Test scheduler info.
@@ -353,7 +350,6 @@ offer_rescinded(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, _}} = recv_reply(resource_offers),
     %% Test scheduler info.
     stop_mesos_slave(Config),
@@ -376,7 +372,6 @@ status_update(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -413,7 +408,6 @@ framework_message(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -436,35 +430,6 @@ framework_message(Config) ->
     #'Event.Message'{agent_id = AgentId,
                      executor_id = ExecutorId,
                      data = Data} = EventMessage,
-    ok = stop_scheduler(Ref, Config).
-
-slave_lost(Config) ->
-    log("Slave lost test cases.", Config),
-    Ref = {erl_mesos_scheduler, slave_lost},
-    Scheduler = ?config(scheduler, Config),
-    SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
-    Options = ?config(options, Config),
-    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
-                              Config),
-    {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
-    {resource_offers, {SchedulerPid, _, EventOffers}} =
-        recv_reply(resource_offers),
-    #'Event.Offers'{offers = [Offer | _]} = EventOffers,
-    #'Offer'{id = OfferId, agent_id = AgentId} = Offer,
-    TaskId = timestamp_task_id(),
-    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
-    {accept, ok} = recv_reply(accept),
-    stop_mesos_slave(Config),
-    start_mesos_slave(Config),
-    {slave_lost, {SchedulerPid, SchedulerInfo, EventFailure}} =
-        recv_reply(slave_lost),
-    %% Test scheduler info.
-    #scheduler_info{subscribed = true} = SchedulerInfo,
-    %% Test event failure.
-    #'Event.Failure'{agent_id = AgentId,
-                     executor_id = undefined} = EventFailure,
     ok = stop_scheduler(Ref, Config).
 
 error(Config) ->
@@ -518,7 +483,6 @@ accept(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -543,7 +507,6 @@ decline(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -562,7 +525,6 @@ revive(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -585,7 +547,6 @@ kill(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -608,7 +569,6 @@ shutdown(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -633,7 +593,6 @@ acknowledge(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -656,7 +615,6 @@ reconcile(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -685,7 +643,6 @@ request(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -732,13 +689,6 @@ stop_mesos_master(MasterContainer, Config) ->
 master_container(MasterHost, Config) ->
     {ok, Masters} = erl_mesos_cluster:config(masters, Config),
     proplists:get_value(binary_to_list(MasterHost), Masters).
-
-start_mesos_slave(Config) ->
-    log("Start test mesos slave.", Config),
-    erl_mesos_cluster:start_slave(Config),
-    {ok, SlaveStartTimeout} = erl_mesos_cluster:config(slave_start_timeout,
-                                                       Config),
-    timer:sleep(SlaveStartTimeout).
 
 stop_mesos_slave(Config) ->
     log("Stop test mesos slave.", Config),
