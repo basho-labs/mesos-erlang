@@ -1,44 +1,59 @@
-erl_mesos_zk:
-    image: erl_mesos_zk
-    container_name: erl_mesos_zk
-    environment:
-        - ZK_PORT=2181
+version: '2'
 
-erl_mesos_master_1:
-    image: erl_mesos_master
-    environment:
-        - MESOS_HOSTNAME=localhost
-        - MESOS_PORT=10101
-        - MESOS_QUORUM=1
-        - MESOS_ZK=zk://erl_mesos_zk:2181/mesos
-    container_name: erl_mesos_master_1
-    links:
-        - erl_mesos_zk
-    ports:
-        - "10101:10101"
+services:
+    erl_mesos_zk:
+        image: erl_mesos_zk
+        container_name: erl_mesos_zk
+        networks:
+            app_net:
+                ipv4_address: 172.16.200.11
+    erl_mesos_master_1:
+        image: erl_mesos_master
+        environment:
+            - MESOS_IP=172.16.200.21
+            - MESOS_HOSTNAME=172.16.200.21
+            - MESOS_QUORUM=2
+            - MESOS_ZK=zk://172.16.200.11:2181/mesos
+        container_name: erl_mesos_master_1
+        networks:
+            app_net:
+                ipv4_address: 172.16.200.21
+    erl_mesos_master_2:
+        image: erl_mesos_master
+        environment:
+            - MESOS_IP=172.16.200.22
+            - MESOS_HOSTNAME=172.16.200.22
+            - MESOS_QUORUM=2
+            - MESOS_ZK=zk://172.16.200.11:2181/mesos
+        container_name: erl_mesos_master_2
+        networks:
+            app_net:
+                ipv4_address: 172.16.200.22
+    erl_mesos_master_3:
+        image: erl_mesos_master
+        environment:
+            - MESOS_IP=172.16.200.23
+            - MESOS_HOSTNAME=172.16.200.23
+            - MESOS_QUORUM=2
+            - MESOS_ZK=zk://172.16.200.11:2181/mesos
+        container_name: erl_mesos_master_3
+        networks:
+            app_net:
+                ipv4_address: 172.16.200.23
+#    erl_mesos_slave:
+#        image: erl_mesos_slave
+#        environment:
+#            - MESOS_MASTER=zk://172.16.200.11:2181/mesos
+#        container_name: erl_mesos_slave
+#        networks:
+#            app_net:
+#                ipv4_address: 172.16.200.31
 
-erl_mesos_master_2:
-    image: erl_mesos_master
-    environment:
-        - MESOS_HOSTNAME=localhost
-        - MESOS_PORT=10102
-        - MESOS_QUORUM=1
-        - MESOS_ZK=zk://erl_mesos_zk:2181/mesos
-    container_name: erl_mesos_master_2
-    links:
-        - erl_mesos_zk
-    ports:
-        - "10102:10102"
-
-erl_mesos_master_3:
-    image: erl_mesos_master
-    environment:
-        - MESOS_HOSTNAME=localhost
-        - MESOS_PORT=10103
-        - MESOS_QUORUM=1
-        - MESOS_ZK=zk://erl_mesos_zk:2181/mesos
-    container_name: erl_mesos_master_3
-    links:
-        - erl_mesos_zk
-    ports:
-        - "10103:10103"
+networks:
+    app_net:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.16.200.0/24
+                  gateway: 172.16.200.1
