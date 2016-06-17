@@ -1,8 +1,7 @@
 #!/bin/bash
 
 SLAVE_PATH=/usr/sbin/mesos-slave
-PARAMS=""
-PARAMS="${PARAMS} --resources=${MESOS_RESOURCES}"
+PARAMS="--resources=${MESOS_RESOURCES}"
 PARAMS="${PARAMS} --isolation=${MESOS_ISOLATION}"
 PARAMS="${PARAMS} --attributes=${MESOS_ATTRIBUTES}"
 PARAMS="${PARAMS} --frameworks_home=${MESOS_FRAMEWORKS_HOME}"
