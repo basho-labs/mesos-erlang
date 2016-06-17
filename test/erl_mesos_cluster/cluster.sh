@@ -46,7 +46,7 @@ function start {
 function stop {
     docker_compose_path=$(script_dir)"/cluster.yml"
     docker-compose -f "$docker_compose_path" kill
-    docker-compose -f "$docker_compose_path" rm -f
+    docker-compose -f "$docker_compose_path" rm -f --all
 }
 
 function restart {
@@ -78,7 +78,6 @@ case "$1" in
         start
         ;;
     stop)
-        stop_slave
         stop
         ;;
     restart)
