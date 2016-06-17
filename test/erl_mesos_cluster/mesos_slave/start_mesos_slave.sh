@@ -1,12 +1,11 @@
 #!/bin/bash
 
 SLAVE_PATH=/usr/sbin/mesos-slave
-PARAMS="--resources=${MESOS_RESOURCES}"
-PARAMS="${PARAMS} --isolation=${MESOS_ISOLATION}"
-PARAMS="${PARAMS} --attributes=${MESOS_ATTRIBUTES}"
-PARAMS="${PARAMS} --frameworks_home=${MESOS_FRAMEWORKS_HOME}"
+PARAMS="--frameworks_home=${MESOS_FRAMEWORKS_HOME}"
+PARAMS="${PARAMS} --log_dir=${MESOS_LOG_DIR}"
 
 mkdir -p ${MESOS_FRAMEWORKS_HOME}
+mkdir -p ${MESOS_LOG_DIR}
 
 if [[ "${MESOS_IP}" ]]; then
     PARAMS="${PARAMS} --ip=${MESOS_IP}"

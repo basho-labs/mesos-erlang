@@ -17,10 +17,8 @@ RUN apt-get -y install mesos=${MESOS_BUILD_VERSION}
 RUN apt-mark hold mesos
 
 ### Environment.
-ENV MESOS_RESOURCES='cpus:1.0'
-ENV MESOS_ISOLATION=process
-ENV MESOS_ATTRIBUTES=isolation:process
 ENV MESOS_FRAMEWORKS_HOME=/opt/mesos/frameworks_home
+ENV MESOS_LOG_DIR=/var/log/mesos
 
 ### Copy start script.
 RUN mkdir -p /opt
