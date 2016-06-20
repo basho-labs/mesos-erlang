@@ -90,7 +90,7 @@ init_per_suite(Config) ->
     SchedulerOptions = [{user, "root"},
                         {name, "erl_mesos_test_scheduler"}],
     {ok, Masters} = erl_mesos_cluster:config(masters, Config),
-    MasterHosts = proplists:get_keys(Masters),
+    MasterHosts = [MasterHost || {_Container, MasterHost} <- Masters],
     Options = [{master_hosts, MasterHosts}],
     [{log, ?LOG},
      {scheduler, Scheduler},
@@ -688,7 +688,9 @@ stop_mesos_master(MasterContainer, Config) ->
 
 master_container(MasterHost, Config) ->
     {ok, Masters} = erl_mesos_cluster:config(masters, Config),
-    proplists:get_value(binary_to_list(MasterHost), Masters).
+    {Container, _MasterHost} = lists:keyfind(binary_to_list(MasterHost), 2,
+                                             Masters),
+    Container.
 
 stop_mesos_slave(Config) ->
     log("Stop test mesos slave.", Config),
