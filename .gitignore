@@ -9,5 +9,6 @@ src/executor_protobuf.erl
 ebin
 logs
 *.beam
-rel/erl_mesos
+test/erl_mesos_test_executor/ebin
+test/erl_mesos_test_executor/rel/erl_mesos_test_executor
 

@@ -1,6 +1,6 @@
 @setlocal
 
-@set node_name=erl_mesos
+@set node_name=erl_mesos_test_executor
 
 @rem Get the absolute path to the parent directory,
 @rem which is assumed to be the node root.

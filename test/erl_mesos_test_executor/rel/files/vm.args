@@ -1,8 +1,8 @@
 ## Name of the node
--name erl_mesos@127.0.0.1
+-name erl_mesos_test_executor@127.0.0.1
 
 ## Cookie for distributed erlang
--setcookie erl_mesos
+-setcookie erl_mesos_test_executor
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
 ## (Disabled by default..use with caution!)

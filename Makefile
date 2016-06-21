@@ -26,9 +26,3 @@ test: deps compile
 
 docker:
 	./test/erl_mesos_cluster/cluster.sh build
-
-relclean:
-	-rm -rf rel/erl_mesos
-
-rel: relclean deps compile
-	$(REBAR) generate
