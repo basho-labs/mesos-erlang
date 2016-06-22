@@ -13,7 +13,7 @@ clean:
 	$(REBAR) clean
 
 relclean:
-	-rm -rf rel/erl_mesos
+	-rm -rf rel/erl_mesos_test_executor
 
 rel: clean relclean compile
 	$(REBAR) generate
