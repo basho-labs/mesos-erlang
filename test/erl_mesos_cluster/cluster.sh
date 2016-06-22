@@ -29,6 +29,14 @@ function build {
     echo ""
     docker build -t erl_mesos_master "$script_dir"/mesos_master
 
+    # Build test executor.
+    echo ""
+    echo "****************************"
+    echo "* Build test executor      *"
+    echo "****************************"
+    echo ""
+    build_test_executor
+
     # Build mesos slave image.
     echo ""
     echo "****************************"
@@ -36,6 +44,15 @@ function build {
     echo "****************************"
     echo ""
     docker build -t erl_mesos_slave "$script_dir"/mesos_slave
+}
+
+function build_test_executor {
+    script_dir=$(script_dir)
+    test_executor_path=$(script_dir)"/../erl_mesos_test_executor"
+    rel_path="$test_executor_path/rel/erl_mesos_test_executor"
+    target_path="$script_dir/mesos_slave/frameworks_home/erl_mesos_test_executor"
+    make rel -C "$test_executor_path"
+    tar -zcf "$target_path.tar.gz" -C "$rel_path" .
 }
 
 function start {
