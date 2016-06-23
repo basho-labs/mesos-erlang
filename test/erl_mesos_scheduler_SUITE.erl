@@ -692,7 +692,9 @@ set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].
 
 response_pid() ->
-    erl_mesos_test_utils:response_pid().
+    [{ClientRef, _Request} | _] = ets:tab2list(hackney_manager),
+    {ok, Pid} = hackney_manager:async_response_pid(ClientRef),
+    Pid.
 
 recv_reply(Reply) ->
     erl_mesos_test_utils:recv_reply(Reply).
