@@ -26,6 +26,8 @@
 
 -include_lib("scheduler_protobuf.hrl").
 
+-export([offers/1]).
+
 -export([init/1,
          registered/3,
          reregistered/2,
@@ -41,6 +43,11 @@
          terminate/3]).
 
 -record(state, {user, test_pid}).
+
+%% External functions.
+
+offers(#'Event.Offers'{offers = Offers}) ->
+    Offers.
 
 %% erl_mesos_scheduler callback functions.
 
@@ -99,25 +106,15 @@ handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
     Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
     reply(TestPid, teardown, Teardown),
     {stop, State};
-handle_info(SchedulerInfo, {accept, OfferId, AgentId, TaskId},
-            #state{test_pid = TestPid} = State) ->
-    CommandInfo = erl_mesos_utils:command_info("while true; sleep 1; done"),
-    ResourceCpu = erl_mesos_utils:scalar_resource("cpus", 0.1),
-    TaskInfo = erl_mesos_utils:task_info("test_task", TaskId, AgentId,
-                                         [ResourceCpu], undefined,
-                                         CommandInfo),
-    OfferOperation = erl_mesos_utils:launch_offer_operation([TaskInfo]),
-    Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
-                                        [OfferOperation]),
-    reply(TestPid, accept, Accept),
-    {ok, State};
+
 handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
-            {accept_test_executor, OfferId, AgentId, TaskId},
+            {accept, OfferId, AgentId, TaskId},
             #state{user = User, test_pid = TestPid} = State) ->
     CommandInfoUris =
-        [erl_mesos_utils:command_info_uri("test_executor"),
-         erl_mesos_utils:command_info_uri("test_executor.py", false)],
-    CommandInfo = erl_mesos_utils:command_info("./test_executor",
+        [erl_mesos_utils:command_info_uri("erl_mesos_test_executor.sh"),
+         erl_mesos_utils:command_info_uri("erl_mesos_test_executor.tar.gz",
+                                          false, true)],
+    CommandInfo = erl_mesos_utils:command_info("./erl_mesos_test_executor.sh",
                                                CommandInfoUris, true, User),
     ExecutorResourceCpus = erl_mesos_utils:scalar_resource("cpus", 0.1),
     ExecutorId = erl_mesos_utils:executor_id(TaskId#'TaskID'.value),
@@ -125,8 +122,9 @@ handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
                                                  [ExecutorResourceCpus],
                                                  FrameworkId),
     TaskResourceCpu = erl_mesos_utils:scalar_resource("cpus", 0.1),
-    TaskInfo = erl_mesos_utils:task_info("test_task", TaskId, AgentId,
-                                         [TaskResourceCpu], ExecutorInfo),
+    TaskInfo = erl_mesos_utils:task_info("erl_mesos_test_executor", TaskId,
+                                         AgentId, [TaskResourceCpu],
+                                         ExecutorInfo),
     OfferOperation = erl_mesos_utils:launch_offer_operation([TaskInfo]),
     Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
                                         [OfferOperation]),
