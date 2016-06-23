@@ -203,9 +203,7 @@ disconnected(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    FormatState = format_state(SchedulerPid),
-    ClientRef = state_client_ref(FormatState),
-    Pid = response_pid(ClientRef),
+    Pid = response_pid(),
     exit(Pid, kill),
     {disconnected, {SchedulerPid, SchedulerInfo}} = recv_reply(disconnected),
     %% Test scheduler info.
@@ -242,9 +240,7 @@ reregistered(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    FormatState = format_state(SchedulerPid),
-    ClientRef = state_client_ref(FormatState),
-    Pid = response_pid(ClientRef),
+    Pid = response_pid(),
     exit(Pid, kill),
     {disconnected, {SchedulerPid, _}} = recv_reply(disconnected),
     {reregistered, {SchedulerPid, SchedulerInfo}} = recv_reply(reregistered),
@@ -436,9 +432,7 @@ error(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    FormatState = format_state(SchedulerPid),
-    ClientRef = state_client_ref(FormatState),
-    Pid = response_pid(ClientRef),
+    Pid = response_pid(),
     exit(Pid, kill),
     {disconnected, {SchedulerPid, _}} = recv_reply(disconnected),
     {error, {SchedulerPid, _SchedulerInfo, EventError}} = recv_reply(error),
@@ -697,18 +691,8 @@ stop_scheduler(Ref, Config) ->
 set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].
 
-format_state(SchedulerPid) ->
-    {status, _Pid, _Module, Items} = sys:get_status(SchedulerPid),
-    {data, Format} = lists:last(lists:last(Items)),
-    proplists:get_value("State", Format).
-
-state_client_ref(FormatState) ->
-    State = proplists:get_value("State", FormatState),
-    proplists:get_value(client_ref, State).
-
-response_pid(ClientRef) ->
-    {ok, Pid} = hackney_manager:async_response_pid(ClientRef),
-    Pid.
+response_pid() ->
+    erl_mesos_test_utils:response_pid().
 
 recv_reply(Reply) ->
     erl_mesos_test_utils:recv_reply(Reply).

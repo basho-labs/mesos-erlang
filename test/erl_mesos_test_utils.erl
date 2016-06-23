@@ -26,6 +26,8 @@
 
 -export([timestamp_task_id/0]).
 
+-export([response_pid/0]).
+
 -export([recv_reply/1, recv_framework_message_reply/1]).
 
 -define(RECV_REPLY_TIMEOUT, 10000).
@@ -39,6 +41,11 @@ timestamp_task_id() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     Timestamp = (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs,
     #'TaskID'{value = integer_to_list(Timestamp)}.
+
+response_pid() ->
+    [{ClientRef, _Request} | _] = ets:tab2list(hackney_manager),
+    {ok, Pid} = hackney_manager:async_response_pid(ClientRef),
+    Pid.
 
 recv_reply(Reply) ->
     receive
