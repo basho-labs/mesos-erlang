@@ -185,7 +185,11 @@ framework_info(Options) ->
     Name = proplists:get_value(name, Options, ""),
     User = proplists:get_value(user, Options, ""),
     FailoverTimeout = proplists:get_value(failover_timeout, Options, 0.0),
-    erl_mesos_utils:framework_info(Name, User, FailoverTimeout).
+    Checkpoint = proplists:get_value(checkpoint, Options, true),
+    #'FrameworkInfo'{name = Name,
+                     user = User,
+                     failover_timeout = FailoverTimeout,
+                     checkpoint = Checkpoint}.
 
 reply(undefined, _Name, _Message) ->
     undefined;
