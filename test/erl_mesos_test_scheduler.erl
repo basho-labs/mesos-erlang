@@ -26,8 +26,6 @@
 
 -include_lib("scheduler_protobuf.hrl").
 
--export([offers/1]).
-
 -export([init/1,
          registered/3,
          reregistered/2,
@@ -43,11 +41,6 @@
          terminate/3]).
 
 -record(state, {user, test_pid}).
-
-%% External functions.
-
-offers(#'Event.Offers'{offers = Offers}) ->
-    Offers.
 
 %% erl_mesos_scheduler callback functions.
 
