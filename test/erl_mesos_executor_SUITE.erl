@@ -35,17 +35,15 @@
          init_per_testcase/2,
          end_per_testcase/2]).
 
--export([registered/1, disconnected/1]).
+-export([registered/1, reregistered/1]).
 
 -define(LOG, false).
-
--define(RECV_REPLY_TIMEOUT, 10000).
 
 all() ->
     [{group, mesos_cluster, [sequence]}].
 
 groups() ->
-    [{mesos_cluster, [registered, disconnected]}].
+    [{mesos_cluster, [registered, reregistered]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -114,9 +112,9 @@ registered(Config) ->
     %% Test event subscribed.
     true = is_record(EventSubscribed, 'Event.Subscribed').
 
-disconnected(Config) ->
-    log("Disconnected test cases.", Config),
-    Ref = {erl_mesos_executor, disconnected},
+reregistered(Config) ->
+    log("Reregistered test cases.", Config),
+    Ref = {erl_mesos_executor, reregistered},
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     SchedulerOptions1 = set_test_pid(SchedulerOptions),
@@ -135,10 +133,15 @@ disconnected(Config) ->
         recv_reply(status_update),
     ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
     SchedulerPid ! {disconnect_executor, AgentId, ExecutorId},
-    {reregistered, {_, ExecutorInfo}} =
+    {reregistered,
+     {ExecutorInfo, DisconnectedExecutorInfo, ReregisterExecutorInfo}} =
         recv_framework_message_reply(reregistered),
     %% Test executor info.
-    #executor_info{subscribed = false} = ExecutorInfo.
+    #executor_info{subscribed = true} = ExecutorInfo,
+    %% Test disconnected executor info.
+    #executor_info{subscribed = false} = DisconnectedExecutorInfo,
+    %% Test reregister executor info.
+    #executor_info{subscribed = false} = ReregisterExecutorInfo.
 
 %% Internal functions.
 

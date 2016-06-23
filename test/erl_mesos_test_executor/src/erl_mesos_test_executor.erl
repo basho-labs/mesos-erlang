@@ -40,7 +40,7 @@
          handle_info/3,
          terminate/3]).
 
--record(state, {task_id, executor_info}).
+-record(state, {task_id, disconnected_executor_info, reregister_executor_info}).
 
 %% erl_mesos_executor callback functions.
 
@@ -52,15 +52,20 @@ registered(ExecutorInfo, EventSubscribed, State) ->
     {ok, State}.
 
 disconnected(ExecutorInfo, State) ->
-    {ok, State#state{executor_info = ExecutorInfo}}.
+    {ok, State#state{disconnected_executor_info = ExecutorInfo}}.
 
 reregister(ExecutorInfo, State) ->
     reply(ExecutorInfo, reregister, ExecutorInfo),
-    {ok, #'Call.Subscribe'{}, State}.
+    {ok, #'Call.Subscribe'{},
+     State#state{reregister_executor_info = ExecutorInfo}}.
 
-reregistered(ExecutorInfo, #state{executor_info = ExecutorInfo1} = State) ->
-    reply(ExecutorInfo, reregistered, {ExecutorInfo, ExecutorInfo1}),
-    {ok, State#state{executor_info = undefined}}.
+reregistered(ExecutorInfo, #state{disconnected_executor_info =
+                                      DisconnectedExecutorInfo,
+                                  reregister_executor_info =
+                                      ReregisterExecutorInfo} = State) ->
+    Data = {ExecutorInfo, DisconnectedExecutorInfo, ReregisterExecutorInfo},
+    reply(ExecutorInfo, reregistered, Data),
+    {ok, State}.
 
 launch_task(ExecutorInfo, #'Event.Launch'{task = TaskInfo}, State) ->
     #'TaskInfo'{task_id = TaskId,
