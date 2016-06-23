@@ -384,16 +384,13 @@ status_update(Config) ->
     %% Test scheduler info.
     #scheduler_info{subscribed = true} = SchedulerInfo,
     %% Test event update.
-    #'Event.Update'{status = Status} = EventUpdate,
+    #'Event.Update'{status = TaskStatus} = EventUpdate,
     #'TaskStatus'{task_id = TaskId,
                   state = 'TASK_RUNNING',
                   source = 'SOURCE_EXECUTOR',
                   agent_id = AgentId,
-                  executor_id = ExecutorId,
                   timestamp = Timestamp,
-                  uuid = Uuid} = Status,
-    #'ExecutorID'{value = ExecutorIdValue} = ExecutorId,
-    true = is_list(ExecutorIdValue),
+                  uuid = Uuid} = TaskStatus,
     true = is_float(Timestamp),
     true = is_binary(Uuid),
     ok = stop_scheduler(Ref, Config).
@@ -413,23 +410,20 @@ framework_message(Config) ->
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
     #'Offer'{id = OfferId, agent_id = AgentId} = Offer,
     TaskId = timestamp_task_id(),
-    SchedulerPid ! {accept_test_executor, OfferId, AgentId, TaskId},
+    SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(accept),
     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
         recv_reply(status_update),
     ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
-    TestMessage = <<"test_message">>,
-    Data = base64:encode(TestMessage),
-    SchedulerPid ! {message, AgentId, ExecutorId, Data},
+    SchedulerPid ! {message, AgentId, ExecutorId, base64:encode(<<"message">>)},
     {message, ok} = recv_reply(message),
     {framework_message, {SchedulerPid, SchedulerInfo, EventMessage}} =
         recv_reply(framework_message),
     %% Test scheduler info.
     #scheduler_info{subscribed = true} = SchedulerInfo,
     %% Test event message.
-    #'Event.Message'{agent_id = AgentId,
-                     executor_id = ExecutorId,
-                     data = Data} = EventMessage,
+    #'Event.Message'{agent_id = AgentId, data = Data} = EventMessage,
+    true = is_binary(Data),
     ok = stop_scheduler(Ref, Config).
 
 error(Config) ->
@@ -576,9 +570,9 @@ shutdown(Config) ->
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(accept),
-    {status_update, {SchedulerPid, _, EventUpdate}} = recv_reply(status_update),
-    #'Event.Update'{status = Status} = EventUpdate,
-    #'TaskStatus'{executor_id = ExecutorId} = Status,
+    {status_update, {SchedulerPid, _, _EventUpdate}} =
+        recv_reply(status_update),
+    ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
     SchedulerPid ! {shutdown, ExecutorId, AgentId},
     {shutdown, ok} = recv_reply(shutdown),
     ok = stop_scheduler(Ref, Config).
