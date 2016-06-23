@@ -55,11 +55,7 @@
          request/1,
          suppress/1]).
 
--record(state, {user, test_pid}).
-
 -define(LOG, false).
-
--define(RECV_REPLY_TIMEOUT, 10000).
 
 all() ->
     [bad_options, {group, mesos_cluster, [sequence]}].
@@ -715,17 +711,10 @@ response_pid(ClientRef) ->
     Pid.
 
 recv_reply(Reply) ->
-    receive
-        {Reply, Data} ->
-            {Reply, Data}
-    after ?RECV_REPLY_TIMEOUT ->
-        {error, timeout}
-    end.
+    erl_mesos_test_utils:recv_reply(Reply).
 
 timestamp_task_id() ->
-    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
-    Timestamp = (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs,
-    #'TaskID'{value = integer_to_list(Timestamp)}.
+    erl_mesos_test_utils:timestamp_task_id().
 
 log(Format, Config) ->
     log(Format, [], Config).
