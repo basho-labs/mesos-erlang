@@ -40,5 +40,5 @@ init({ExecutorOptions, Options}) ->
                                                   erl_mesos_test_executor,
                                                   ExecutorOptions,
                                                   Options]},
-             permanent, 5000, worker, [erl_mesos_test_executor]}],
+                transient, 5000, worker, [erl_mesos_test_executor]}],
     {ok, {{one_for_one, 1, 1}, Specs}}.

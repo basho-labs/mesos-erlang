@@ -3,6 +3,7 @@
                                         {registered, []},
                                         {applications, [kernel,
                                                         stdlib,
-                                                        erl_mesos]},
+                                                        erl_mesos,
+                                                        crypto]},
                                         {mod, {erl_mesos_test_executor_app, []}},
                                         {env, []}]}.

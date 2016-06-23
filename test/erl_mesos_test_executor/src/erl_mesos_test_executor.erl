@@ -40,10 +40,12 @@
          handle_info/3,
          terminate/3]).
 
+-record(state, {task_id}).
+
 %% erl_mesos_executor callback functions.
 
 init(_Options) ->
-    {ok, #'Call.Subscribe'{}, undefined}.
+    {ok, #'Call.Subscribe'{}, #state{}}.
 
 registered(ExecutorInfo, EventSubscribed, State) ->
     reply(ExecutorInfo, registered, {ExecutorInfo, EventSubscribed}),
@@ -62,14 +64,16 @@ reregistered(ExecutorInfo, State) ->
     {ok, State}.
 
 launch_task(ExecutorInfo, #'Event.Launch'{task = TaskInfo}, State) ->
-    #'TaskInfo'{task_id = TaskId} = TaskInfo,
+    #'TaskInfo'{task_id = TaskId,
+                agent_id = AgentId} = TaskInfo,
     TaskStatus = #'TaskStatus'{task_id = TaskId,
                                state = 'TASK_RUNNING',
-                               uuid = uuid(),
-                               source = 'SOURCE_EXECUTOR'},
+                               source = 'SOURCE_EXECUTOR',
+                               agent_id = AgentId,
+                               uuid = uuid()},
     Update = erl_mesos_executor:update(ExecutorInfo, TaskStatus),
     reply(ExecutorInfo, launch_task, {Update, ExecutorInfo}),
-    {ok, State}.
+    {ok, State#state{task_id = TaskId}}.
 
 kill_task(ExecutorInfo, EventKill, State) ->
     reply(ExecutorInfo, kill_task, {ExecutorInfo, EventKill}),
@@ -85,7 +89,7 @@ framework_message(ExecutorInfo, EventMessage, State) ->
 
 error(ExecutorInfo, EventError, State) ->
     reply(ExecutorInfo, error, {EventError, State}),
-    {ok, error}.
+    {ok, State}.
 
 shutdown(ExecutorInfo, State) ->
     reply(ExecutorInfo, shutdown, ExecutorInfo),
@@ -102,9 +106,8 @@ terminate(ExecutorInfo, Reason, _State) ->
 %% Internal functions.
 
 reply(ExecutorInfo, Name, Data) ->
-    Data = term_to_binary({Name, Data}),
-    erl_mesos_executor:message(ExecutorInfo, Data).
+    erl_mesos_executor:message(ExecutorInfo, term_to_binary({Name, Data})).
 
 uuid() ->
-    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
-    integer_to_binary((MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs).
+    <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> = crypto:rand_bytes(16),
+    <<U:32, U1:16, 4:4, U2:12, 2#10:2, U3:30, U4:32>>.
