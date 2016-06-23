@@ -171,6 +171,10 @@ handle_info(SchedulerInfo, suppress,
     Suppress = erl_mesos_scheduler:suppress(SchedulerInfo),
     reply(TestPid, suppress, Suppress),
     {ok, State};
+handle_info(SchedulerInfo, {disconnect_executor, AgentId, ExecutorId}, State) ->
+    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
+                                     <<"disconnect">>),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->
