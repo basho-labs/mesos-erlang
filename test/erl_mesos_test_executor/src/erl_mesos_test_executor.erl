@@ -40,7 +40,7 @@
          handle_info/3,
          terminate/3]).
 
--record(state, {task_id}).
+-record(state, {task_id, executor_info}).
 
 %% erl_mesos_executor callback functions.
 
@@ -52,16 +52,15 @@ registered(ExecutorInfo, EventSubscribed, State) ->
     {ok, State}.
 
 disconnected(ExecutorInfo, State) ->
-    reply(ExecutorInfo, disconnected, ExecutorInfo),
-    {ok, State}.
+    {ok, State#state{executor_info = ExecutorInfo}}.
 
 reregister(ExecutorInfo, State) ->
     reply(ExecutorInfo, reregister, ExecutorInfo),
     {ok, #'Call.Subscribe'{}, State}.
 
-reregistered(ExecutorInfo, State) ->
-    reply(ExecutorInfo, reregistered, ExecutorInfo),
-    {ok, State}.
+reregistered(ExecutorInfo, #state{executor_info = ExecutorInfo1} = State) ->
+    reply(ExecutorInfo, reregistered, {ExecutorInfo, ExecutorInfo1}),
+    {ok, State#state{executor_info = undefined}}.
 
 launch_task(ExecutorInfo, #'Event.Launch'{task = TaskInfo}, State) ->
     #'TaskInfo'{task_id = TaskId,
@@ -84,7 +83,13 @@ acknowledged(ExecutorInfo, EventAcknowledged, State) ->
     {ok, State}.
 
 framework_message(ExecutorInfo, EventMessage, State) ->
-    reply(ExecutorInfo, framework_message, {ExecutorInfo, EventMessage}),
+    case EventMessage of
+        #'Event.Message'{data = <<"disconnect">>} ->
+            Pid = response_pid(),
+            exit(Pid, kill);
+        EventMessage ->
+            reply(ExecutorInfo, framework_message, {ExecutorInfo, EventMessage})
+    end,
     {ok, State}.
 
 error(ExecutorInfo, EventError, State) ->
@@ -111,3 +116,8 @@ reply(ExecutorInfo, Name, Data) ->
 uuid() ->
     <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> = crypto:rand_bytes(16),
     <<U:32, U1:16, 4:4, U2:12, 2#10:2, U3:30, U4:32>>.
+
+response_pid() ->
+    [{ClientRef, _Request} | _] = ets:tab2list(hackney_manager),
+    {ok, Pid} = hackney_manager:async_response_pid(ClientRef),
+    Pid.
