@@ -9,4 +9,6 @@ src/executor_protobuf.erl
 ebin
 logs
 *.beam
-
+test/erl_mesos_test_executor/ebin
+test/erl_mesos_test_executor/rel/erl_mesos_test_executor
+test/erl_mesos_cluster/mesos_slave/frameworks_home/erl_mesos_test_executor.tar.gz

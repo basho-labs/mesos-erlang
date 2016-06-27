@@ -1,0 +1,9 @@
+{application, erl_mesos_test_executor, [{description, "Test executor."},
+                                        {vsn, "0.0.1"},
+                                        {registered, []},
+                                        {applications, [kernel,
+                                                        stdlib,
+                                                        erl_mesos,
+                                                        crypto]},
+                                        {mod, {erl_mesos_test_executor_app, []}},
+                                        {env, []}]}.

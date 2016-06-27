@@ -43,6 +43,8 @@ services:
     erl_mesos_slave:
         image: erl_mesos_slave
         environment:
+            - MESOS_IP=172.16.200.31
+            - MESOS_HOSTNAME=172.16.200.31
             - MESOS_MASTER=zk://172.16.200.11:2181/mesos
         container_name: erl_mesos_slave
         volumes:
