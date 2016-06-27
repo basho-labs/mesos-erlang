@@ -192,7 +192,8 @@ framework_message(Config) ->
     ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
     Data = <<"testdata">>,
     SchedulerPid ! {message, AgentId, ExecutorId, Data},
-    {framework_message, {ExecutorInfo, EventMessage}} = recv_framework_message_reply(framework_message),
+    {framework_message, {ExecutorInfo, EventMessage}} =
+        recv_framework_message_reply(framework_message),
     %% Test executor info.
     #executor_info{subscribed = true} = ExecutorInfo,
     %% Test event message
@@ -222,7 +223,8 @@ handle_info(Config) ->
         recv_reply(status_update),
     ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
     SchedulerPid ! {info_executor, AgentId, ExecutorId},
-    {handle_info, {ExecutorInfo, Info}} = recv_framework_message_reply(handle_info),
+    {handle_info, {ExecutorInfo, Info}} =
+        recv_framework_message_reply(handle_info),
     %% Test executor info.
     #executor_info{subscribed = true} = ExecutorInfo,
     %% Test info.
@@ -271,7 +273,7 @@ start_and_accept_scheduler(Ref, Config) ->
     SchedulerOptions1 = set_test_pid(SchedulerOptions),
     Options = ?config(options, Config),
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
-        Config),
+                              Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
