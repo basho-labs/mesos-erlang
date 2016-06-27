@@ -92,18 +92,21 @@ end_per_testcase(TestCase, Config) ->
 
 registered(Config) ->
     log("Registered test cases.", Config),
-    start_and_accept_scheduler(Config, registered),
+    Ref = {erl_mesos_executor, registered},
+    start_and_accept_scheduler(Ref, Config),
     {registered, {ExecutorInfo, EventSubscribed}} =
         recv_framework_message_reply(registered),
     %% Test executor info.
     #executor_info{subscribed = true} = ExecutorInfo,
     %% Test event subscribed.
-    true = is_record(EventSubscribed, 'Event.Subscribed').
+    true = is_record(EventSubscribed, 'Event.Subscribed'),
+    ok = stop_scheduler(Ref, Config).
 
 reregistered(Config) ->
     log("Reregistered test cases.", Config),
+    Ref = {erl_mesos_executor, reregistered},
     {SchedulerPid, AgentId, TaskId} =
-        start_and_accept_scheduler(Config, reregistered),
+        start_and_accept_scheduler(Ref, Config),
     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
         recv_reply(status_update),
     ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
@@ -116,12 +119,14 @@ reregistered(Config) ->
     %% Test disconnected executor info.
     #executor_info{subscribed = false} = DisconnectedExecutorInfo,
     %% Test reregister executor info.
-    #executor_info{subscribed = false} = ReregisterExecutorInfo.
+    #executor_info{subscribed = false} = ReregisterExecutorInfo,
+    ok = stop_scheduler(Ref, Config).
 
 launch_task(Config) ->
     log("Launch task test cases.", Config),
+    Ref = {erl_mesos_executor, launch_task},
     {SchedulerPid, _AgentId, _TaskId} =
-        start_and_accept_scheduler(Config, launch_task),
+        start_and_accept_scheduler(Ref, Config),
     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
         recv_reply(status_update),
     {launch_task, {Update, ExecutorInfo}} =
@@ -129,12 +134,14 @@ launch_task(Config) ->
     %% Test update.
     ok = Update,
     %% Test executor info.
-    #executor_info{subscribed = true} = ExecutorInfo.
+    #executor_info{subscribed = true} = ExecutorInfo,
+    ok = stop_scheduler(Ref, Config).
 
 kill_task(Config) ->
     log("Kill task test cases.", Config),
+    Ref = {erl_mesos_executor, kill_task},
     {SchedulerPid, _AgentId, TaskId} =
-        start_and_accept_scheduler(Config, kill_task),
+        start_and_accept_scheduler(Ref, Config),
     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
         recv_reply(status_update),
     SchedulerPid ! {kill, TaskId},
@@ -143,12 +150,14 @@ kill_task(Config) ->
     %% Test executor info.
     #executor_info{subscribed = true} = ExecutorInfo,
     %% Test event kill.
-    #'Event.Kill'{task_id = TaskId} = EventKill.
+    #'Event.Kill'{task_id = TaskId} = EventKill,
+    ok = stop_scheduler(Ref, Config).
 
 acknowledged(Config) ->
     log("Acknowledged test cases.", Config),
+    Ref = {erl_mesos_executor, acknowledged},
     {SchedulerPid, _AgentId, TaskId} =
-        start_and_accept_scheduler(Config, acknowledged),
+        start_and_accept_scheduler(Ref, Config),
     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
         recv_reply(status_update),
     {acknowledged, {ExecutorInfo, EventAcknowledged}} =
@@ -156,12 +165,14 @@ acknowledged(Config) ->
     %% Test executor info.
     #executor_info{subscribed = true} = ExecutorInfo,
     %% Test event acknowledged.
-    #'Event.Acknowledged'{task_id = TaskId} = EventAcknowledged.
+    #'Event.Acknowledged'{task_id = TaskId} = EventAcknowledged,
+    ok = stop_scheduler(Ref, Config).
 
 framework_message(Config) ->
     log("Message test cases.", Config),
+    Ref = {erl_mesos_executor, framework_message},
     {SchedulerPid, AgentId, TaskId} =
-        start_and_accept_scheduler(Config, shutdown),
+        start_and_accept_scheduler(Ref, Config),
     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
         recv_reply(status_update),
     ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
@@ -171,19 +182,22 @@ framework_message(Config) ->
     %% Test executor info.
     #executor_info{executor_id = ExecutorId} = ExecutorInfo,
     %% Test event message
-    #'Event.Message'{data = Data} = EventMessage.
+    #'Event.Message'{data = Data} = EventMessage,
+    ok = stop_scheduler(Ref, Config).
 
 shutdown(Config) ->
     log("Shutdown test cases", Config),
+    Ref = {erl_mesos_executor, shutdown},
     {SchedulerPid, AgentId, TaskId} =
-        start_and_accept_scheduler(Config, shutdown),
+        start_and_accept_scheduler(Ref, Config),
     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
         recv_reply(status_update),
     ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
     SchedulerPid ! {shutdown, ExecutorId, AgentId},
     {shutdown, ExecutorInfo} = recv_framework_message_reply(shutdown),
     %% Test executor info.
-    #executor_info{executor_id = ExecutorId} = ExecutorInfo.
+    #executor_info{executor_id = ExecutorId} = ExecutorInfo,
+    ok = stop_scheduler(Ref, Config).
 
 error(Config) ->
     log("Error test cases.", Config),
@@ -216,8 +230,11 @@ start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Config) ->
     log("Start scheduler. Ref: ~p, Scheduler: ~p.", [Ref, Scheduler], Config),
     erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options).
 
-start_and_accept_scheduler(Config, Task) ->
-    Ref = {erl_mesos_executor, Task},
+stop_scheduler(Ref, Config) ->
+    log("Stop scheduler. Ref: ~p.", [Ref], Config),
+    erl_mesos:stop_scheduler(Ref).
+
+start_and_accept_scheduler(Ref, Config) ->
     Scheduler = ?config(scheduler, Config),
     SchedulerOptions = ?config(scheduler_options, Config),
     SchedulerOptions1 = set_test_pid(SchedulerOptions),
