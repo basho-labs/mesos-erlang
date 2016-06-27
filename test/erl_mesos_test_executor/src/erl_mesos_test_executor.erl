@@ -102,7 +102,7 @@ framework_message(ExecutorInfo, EventMessage, State) ->
     {ok, State}.
 
 error(_ExecutorInfo, _EventError, State) ->
-    %% See coments in proto/mesos/v1/executor/executor.proto
+    %% See comments in proto/mesos/v1/executor/executor.proto
     {ok, State}.
 
 shutdown(ExecutorInfo, State) ->
