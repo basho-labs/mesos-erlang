@@ -175,6 +175,14 @@ handle_info(SchedulerInfo, {disconnect_executor, AgentId, ExecutorId}, State) ->
     ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
                                      <<"disconnect">>),
     {ok, State};
+handle_info(SchedulerInfo, {info_executor, AgentId, ExecutorId}, State) ->
+    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
+                                     <<"info">>),
+    {ok, State};
+handle_info(SchedulerInfo, {stop_executor, AgentId, ExecutorId}, State) ->
+    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
+                                     <<"stop">>),
+    {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
 handle_info(_SchedulerInfo, _Info, State) ->

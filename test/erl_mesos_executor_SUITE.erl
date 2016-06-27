@@ -35,8 +35,15 @@
          init_per_testcase/2,
          end_per_testcase/2]).
 
--export([registered/1, reregistered/1, launch_task/1, kill_task/1,
-         acknowledged/1, framework_message/1, shutdown/1, error/1]).
+-export([registered/1,
+         reregistered/1,
+         launch_task/1,
+         kill_task/1,
+         acknowledged/1,
+         framework_message/1,
+         shutdown/1,
+         handle_info/1,
+         terminate/1]).
 
 -define(LOG, false).
 
@@ -44,8 +51,15 @@ all() ->
     [{group, mesos_cluster, [sequence]}].
 
 groups() ->
-    [{mesos_cluster, [registered, reregistered, launch_task, kill_task,
-                      acknowledged, framework_message, shutdown, error]}].
+    [{mesos_cluster, [registered,
+                      reregistered,
+                      launch_task,
+                      kill_task,
+                      acknowledged,
+                      framework_message,
+                      shutdown,
+                      handle_info,
+                      terminate]}].
 
 init_per_suite(Config) ->
     ok = erl_mesos:start(),
@@ -180,7 +194,7 @@ framework_message(Config) ->
     SchedulerPid ! {message, AgentId, ExecutorId, Data},
     {framework_message, {ExecutorInfo, EventMessage}} = recv_framework_message_reply(framework_message),
     %% Test executor info.
-    #executor_info{executor_id = ExecutorId} = ExecutorInfo,
+    #executor_info{subscribed = true} = ExecutorInfo,
     %% Test event message
     #'Event.Message'{data = Data} = EventMessage,
     ok = stop_scheduler(Ref, Config).
@@ -196,23 +210,40 @@ shutdown(Config) ->
     SchedulerPid ! {shutdown, ExecutorId, AgentId},
     {shutdown, ExecutorInfo} = recv_framework_message_reply(shutdown),
     %% Test executor info.
-    #executor_info{executor_id = ExecutorId} = ExecutorInfo,
+    #executor_info{subscribed = true} = ExecutorInfo,
     ok = stop_scheduler(Ref, Config).
 
-error(Config) ->
-    log("Error test cases.", Config),
-    %% TODO TODO TODO
-%%     {SchedulerPid, AgentId, _TaskId} =
-%%         start_and_accept_scheduler(Config, error),
-%%     {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
-%%         recv_reply(status_update),
-%%     %% put some wrong value
-%%     ExecutorId = #'ExecutorID'{value = <<"nonexistingid">>},
-%%     SchedulerPid ! {shutdown, ExecutorId, AgentId},
-%%     {error, {EventError, _State}} = recv_framework_message_reply(error),
-%%     %% Test event error.
-%%     true = is_record(EventError, 'Event.Error').
-    ok.
+handle_info(Config) ->
+    log("Handle info test cases.", Config),
+    Ref = {erl_mesos_executor, handle_info},
+    {SchedulerPid, AgentId, TaskId} =
+        start_and_accept_scheduler(Ref, Config),
+    {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
+        recv_reply(status_update),
+    ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
+    SchedulerPid ! {info_executor, AgentId, ExecutorId},
+    {handle_info, {ExecutorInfo, Info}} = recv_framework_message_reply(handle_info),
+    %% Test executor info.
+    #executor_info{subscribed = true} = ExecutorInfo,
+    %% Test info.
+    info = Info,
+    ok = stop_scheduler(Ref, Config).
+
+terminate(Config) ->
+    log("Terminate test cases.", Config),
+    Ref = {erl_mesos_executor, terminate},
+    {SchedulerPid, AgentId, TaskId} =
+        start_and_accept_scheduler(Ref, Config),
+    {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
+        recv_reply(status_update),
+    ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
+    SchedulerPid ! {stop_executor, AgentId, ExecutorId},
+    {terminate, {ExecutorInfo, Reason}} = recv_framework_message_reply(terminate),
+    %% Test executor info.
+    #executor_info{subscribed = true} = ExecutorInfo,
+    %% Test reason.
+    shutdown = Reason,
+    ok = stop_scheduler(Ref, Config).
 
 %% Internal functions.
 

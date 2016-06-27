@@ -92,19 +92,25 @@ framework_message(ExecutorInfo, EventMessage, State) ->
         #'Event.Message'{data = <<"disconnect">>} ->
             Pid = response_pid(),
             exit(Pid, kill);
+        #'Event.Message'{data = <<"info">>} ->
+            self() ! info;
+        #'Event.Message'{data = <<"stop">>} ->
+            self() ! stop;
         EventMessage ->
             reply(ExecutorInfo, framework_message, {ExecutorInfo, EventMessage})
     end,
     {ok, State}.
 
-error(ExecutorInfo, EventError, State) ->
-    reply(ExecutorInfo, error, {EventError, State}),
+error(_ExecutorInfo, _EventError, State) ->
+    %% See coments in proto/mesos/v1/executor/executor.proto
     {ok, State}.
 
 shutdown(ExecutorInfo, State) ->
     reply(ExecutorInfo, shutdown, ExecutorInfo),
     {ok, State}.
 
+handle_info(_ExecutorInfo, stop, State) ->
+    {stop, State};
 handle_info(ExecutorInfo, Info, State) ->
     reply(ExecutorInfo, handle_info, {ExecutorInfo, Info}),
     {ok, State}.
