@@ -40,7 +40,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventSubscribed = erl_mesos:'Event.Subscribed'()
+EventSubscribed = erl_mesos_scheduler:'Event.Subscribed'()
 State = term()
 NewState = term()
 ```
@@ -99,7 +99,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventRescind = erl_mesos:'Event.Rescind'()
+EventRescind = erl_mesos_scheduler:'Event.Rescind'()
 State = term()
 NewState = term()
 ```
@@ -118,7 +118,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventUpdate = erl_mesos:'Event.Update'()
+EventUpdate = erl_mesos_scheduler:'Event.Update'()
 State = term()
 NewState = term()
 ```
@@ -137,7 +137,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventMessage = erl_mesos:'Event.Message'()
+EventMessage = erl_mesos_scheduler:'Event.Message'()
 State = term()
 NewState = term()
 ```
@@ -156,7 +156,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventFailure = erl_mesos:'Event.Failure'()
+EventFailure = erl_mesos_scheduler:'Event.Failure'()
 State = term()
 NewState = term()
 ```
@@ -176,7 +176,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventFailure = erl_mesos:'Event.Failure'()
+EventFailure = erl_mesos_scheduler:'Event.Failure'()
 State = term()
 NewState = term()
 ```
@@ -196,7 +196,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventError = erl_mesos:'Event.Error'()
+EventError = erl_mesos_scheduler:'Event.Error'()
 State = term()
 NewState = term()
 ```
@@ -215,7 +215,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventError = erl_mesos:'Event.Error'()
+Info = term()
 State = term()
 NewState = term()
 ```
