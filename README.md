@@ -468,24 +468,24 @@ Scheduler can be started by calling `erl_mesos:start_scheduler/4`:
 
 Ref = term()
 Scheduler = module()
-SchedulerOptions = erl_mesos_scheduler:options()
-Options = term()
+SchedulerOptions = term()
+Options = erl_mesos_scheduler:options()
 ```
 
-* `Ref` is an unique scheduler identifier. Usually is atom.
+* `Ref` is an unique executor identifier. Usually is atom.
 * `Scheduler` is a scheduler module.
-* `SchedulerOptions` is a scheduler options.
-* `Options` is a term which will be passed to the `Scheduler:init/1`.
+* `SchedulerOptions` is a term which will be passed to the `Scheduler:init/1`.
+* `Options` is a scheduler options.
 
 Also scheduler process may be started by custom supervisor:
 
 ```erlang
-{ok, Pid} = erl_mesos_scheudler:start_link(Ref, Scheduler, SchedulerOptions, Options)
+{ok, Pid} = erl_mesos_scheduler:start_link(Ref, Scheduler, SchedulerOptions, Options)
 
 Ref = term()
 Scheduler = module()
-SchedulerOptions = erl_mesos_scheduler:options()
-Options = term()
+SchedulerOptions = term()
+Options = erl_mesos_scheduler:options()
 ```
 
 ### Scheduler options.
@@ -776,3 +776,65 @@ Result = term()
 
 This function is called by a `erl_mesos_executor` when it is about to 
 terminate.
+
+### Executor calls
+
+#### Update
+
+```erlang
+erl_mesos_executor:update(ExecutorInfo, TaskStatus) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+TaskStatus = erl_mesos:'TaskStatus'()
+Reason = term()
+```
+
+Update call.
+
+#### Message
+
+```erlang
+erl_mesos_executor:message(ExecutorInfo, Data) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+Data = binary()
+Reason = term()
+```
+
+Message call.
+
+### Starting executor
+
+Executor can be started by calling `erl_mesos_executor:start_link/4`:
+
+```erlang
+{ok, Pid} = erl_mesos_executor:start_link(Ref, Executor, ExecutorOptions, Options)
+
+Ref = term()
+Executor = module()
+ExecutorOptions = term()
+Options = erl_mesos_executor:options()
+```
+
+* `Ref` is an unique executor identifier. Usually is atom.
+* `Executor` is a executor module.
+* `ExecutorOptions` is a term which will be passed to the `Executor:init/1`.
+* `Options` is a executor options.
+
+### Executor options.
+
+ Name                      | Default value          | Possible types 
+---------------------------|------------------------|------------------------
+| request_options          | []                     | [{atom, term()}]
+
+`request_options` - HTTP request options. See https://github.com/benoitc/hackney for details.
