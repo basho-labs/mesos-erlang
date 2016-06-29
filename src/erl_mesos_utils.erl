@@ -56,13 +56,26 @@
 
 -export([agent_id/1]).
 
--export([task_id/1, task_info/4, task_info/5, task_info/6, task_info/7]).
+-export([task_id/1,
+         task_info/4,
+         task_info/5,
+         task_info/6,
+         task_info/7,
+         task_status/3,
+         task_status/4,
+         task_status/5,
+         task_status/6,
+         task_status/7,
+         task_status/8,
+         task_status/9]).
 
 -export([launch_offer_operation/1,
          reserve_offer_operation/1,
          unreserve_offer_operation/1,
          create_offer_operation/1,
          destroy_offer_operation/1]).
+
+-export([uuid/0]).
 
 -type resources() :: #resources{}.
 -export_type([resources/0]).
@@ -335,6 +348,85 @@ task_info(Name, TaskId, AgentId, Resources, ExecutorInfo, CommandInfo, Data) ->
                 command = CommandInfo,
                 data = Data}.
 
+%% @equiv task_status(TaskId, State, Source, undefined, undefined, undefined,
+%%                    undefined, undefined, undefined)
+-spec task_status(erl_mesos:'TaskID'(), atom(), atom()) ->
+    erl_mesos:'TaskStatus'().
+task_status(TaskId, State, Source) ->
+    task_status(TaskId, State, Source, undefined, undefined, undefined,
+                undefined, undefined, undefined).
+
+%% @equiv task_status(TaskId, State, Source, AgentId, undefined, undefined,
+%%                    undefined, undefined, undefined)
+-spec task_status(erl_mesos:'TaskID'(), atom(), atom(),
+                  undefined | erl_mesos:'AgentID'()) ->
+    erl_mesos:'TaskStatus'().
+task_status(TaskId, State, Source, AgentId) ->
+    task_status(TaskId, State, Source, AgentId, undefined, undefined,
+                undefined, undefined, undefined).
+
+%% @equiv task_status(TaskId, State, Source, AgentId, ExecutorId, undefined,
+%%                    undefined, undefined, undefined)
+-spec task_status(erl_mesos:'TaskID'(), atom(), atom(),
+                  undefined | erl_mesos:'AgentID'(),
+                  undefined | erl_mesos:'ExecutorID'()) ->
+    erl_mesos:'TaskStatus'().
+task_status(TaskId, State, Source, AgentId, ExecutorId) ->
+    task_status(TaskId, State, Source, AgentId, ExecutorId, undefined,
+                undefined, undefined, undefined).
+
+%% @equiv task_status(TaskId, State, Source, AgentId, ExecutorId, Message,
+%%                    undefined, undefined, undefined)
+-spec task_status(erl_mesos:'TaskID'(), atom(), atom(),
+                  undefined | erl_mesos:'AgentID'(),
+                  undefined | erl_mesos:'ExecutorID'(), undefined | string()) ->
+    erl_mesos:'TaskStatus'().
+task_status(TaskId, State, Source, AgentId, ExecutorId, Message) ->
+    task_status(TaskId, State, Source, AgentId, ExecutorId, Message, undefined,
+                undefined, undefined).
+
+%% @equiv task_status(TaskId, State, Source, AgentId, ExecutorId, Message,
+%%                    Reason, undefined, undefined)
+-spec task_status(erl_mesos:'TaskID'(), atom(), atom(),
+                  undefined | erl_mesos:'AgentID'(),
+                  undefined | erl_mesos:'ExecutorID'(), undefined | string(),
+                  undefined | atom()) ->
+    erl_mesos:'TaskStatus'().
+task_status(TaskId, State, Source, AgentId, ExecutorId, Message, Reason) ->
+    task_status(TaskId, State, Source, AgentId, ExecutorId, Message, Reason,
+                undefined, undefined).
+
+%% @equiv task_status(TaskId, State, Source, AgentId, ExecutorId, Message,
+%%                    Reason, Data, undefined)
+-spec task_status(erl_mesos:'TaskID'(), atom(), atom(),
+                  undefined | erl_mesos:'AgentID'(),
+                  undefined | erl_mesos:'ExecutorID'(), undefined | string(),
+                  undefined | atom(), undefined | binary()) ->
+    erl_mesos:'TaskStatus'().
+task_status(TaskId, State, Source, AgentId, ExecutorId, Message, Reason,
+            Data) ->
+    task_status(TaskId, State, Source, AgentId, ExecutorId, Message, Reason,
+                Data, undefined).
+
+%% @doc Returns task status.
+-spec task_status(erl_mesos:'TaskID'(), atom(), atom(),
+                  undefined | erl_mesos:'AgentID'(),
+                  undefined | erl_mesos:'ExecutorID'(), undefined | string(),
+                  undefined | atom(), undefined | binary(),
+                  undefined | binary()) ->
+    erl_mesos:'TaskStatus'().
+task_status(TaskId, State, Source, AgentId, ExecutorId, Message, Reason, Data,
+            Uuid) ->
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  message = Message,
+                  source = Source,
+                  reason = Reason,
+                  data = Data,
+                  agent_id = AgentId,
+                  executor_id = ExecutorId,
+                  uuid = Uuid}.
+
 %% @doc Returns launch offer operation.
 -spec launch_offer_operation([erl_mesos:'TaskInfo'()]) ->
     erl_mesos:'Offer.Operation'().
@@ -374,6 +466,12 @@ destroy_offer_operation(Resources) ->
     #'Offer.Operation'{type = 'DESTROY',
                        destroy =
                            #'Offer.Operation.Destroy'{volumes = Resources}}.
+
+%% @doc Returns uuid.
+-spec uuid() -> binary().
+uuid() ->
+    <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> = crypto:rand_bytes(16),
+    <<U:32, U1:16, 4:4, U2:12, 2#10:2, U3:30, U4:32>>.
 
 %% Internal functions.
 
