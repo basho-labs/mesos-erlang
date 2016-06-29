@@ -70,11 +70,11 @@ reregistered(ExecutorInfo, #state{disconnected_executor_info =
 launch_task(ExecutorInfo, #'Event.Launch'{task = TaskInfo}, State) ->
     #'TaskInfo'{task_id = TaskId,
                 agent_id = AgentId} = TaskInfo,
-    TaskStatus = #'TaskStatus'{task_id = TaskId,
-                               state = 'TASK_RUNNING',
-                               source = 'SOURCE_EXECUTOR',
-                               agent_id = AgentId,
-                               uuid = uuid()},
+    Uuid = erl_mesos_utils:uuid(),
+    TaskStatus = erl_mesos_utils:task_status(TaskId, 'TASK_RUNNING',
+                                             'SOURCE_EXECUTOR', AgentId,
+                                             undefined, undefined, undefined,
+                                             undefined, Uuid),
     Update = erl_mesos_executor:update(ExecutorInfo, TaskStatus),
     reply(ExecutorInfo, launch_task, {Update, ExecutorInfo}),
     {ok, State#state{task_id = TaskId}}.
@@ -123,10 +123,6 @@ terminate(ExecutorInfo, Reason, _State) ->
 
 reply(ExecutorInfo, Name, Data) ->
     erl_mesos_executor:message(ExecutorInfo, term_to_binary({Name, Data})).
-
-uuid() ->
-    <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> = crypto:rand_bytes(16),
-    <<U:32, U1:16, 4:4, U2:12, 2#10:2, U3:30, U4:32>>.
 
 response_pid() ->
     [{ClientRef, _Request} | _] = ets:tab2list(hackney_manager),
