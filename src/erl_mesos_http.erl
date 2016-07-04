@@ -22,7 +22,7 @@
 
 -module(erl_mesos_http).
 
--export([async_request/6, sync_request/6, body/1]).
+-export([async_request/6, sync_request/6]).
 
 -export([async_response/1, close_async_response/1]).
 
@@ -65,11 +65,6 @@ sync_request(Url, DataFormat, DataFormatModule, Headers, Message, Options) ->
     Options1 = sync_request_options(Options),
     request(post, Url, Headers1, Body, Options1).
 
-%% @doc Receives http request body.
--spec body(client_ref()) -> {ok, binary()} | {error, term()}.
-body(ClientRef) ->
-    hackney:body(ClientRef).
-
 %% @doc Returns async response.
 -spec async_response({async_response, client_ref(), response()} | term()) ->
     {async_response, client_ref(), response()} | undefined.
@@ -93,14 +88,14 @@ close_async_response(ClientRef) ->
 handle_sync_response(Response) ->
     case Response of
         {ok, 202, _Headers, ClientRef} ->
-            case erl_mesos_http:body(ClientRef) of
+            case body(ClientRef) of
                 {ok, _Body} ->
                     ok;
                 {error, Reason} ->
                     {error, Reason}
             end;
         {ok, Status, _Headers, ClientRef} ->
-            case erl_mesos_http:body(ClientRef) of
+            case body(ClientRef) of
                 {ok, Body} ->
                     {error, {http_response, Status, Body}};
                 {error, Reason} ->
@@ -140,8 +135,15 @@ sync_request_options(Options) ->
     proplists:delete(async, lists:delete(async, Options)).
 
 %% @doc Sends http request.
+%% @private
 -spec request(atom(), binary(), headers(), binary(), options()) ->
     {ok, client_ref()} | {ok, non_neg_integer(), headers(), client_ref()} |
     {error, term()}.
 request(Method, Url, Headers, Body, Options) ->
     hackney:request(Method, Url, Headers, Body, Options).
+
+%% @doc Receives http response body.
+%% @private
+-spec body(client_ref()) -> {ok, binary()} | {error, term()}.
+body(ClientRef) ->
+    hackney:body(ClientRef).

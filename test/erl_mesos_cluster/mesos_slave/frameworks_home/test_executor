@@ -1,5 +1,0 @@
-#!/bin/bash
-
-export PYTHONPATH=${PYTHONPATH}:/usr/lib/python2.7/site-packages/
-
-${MESOS_FRAMEWORKS_HOME}/test_executor.py

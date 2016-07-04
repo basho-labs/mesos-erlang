@@ -33,6 +33,7 @@
          resource/1,
          executor_info/1,
          task_info/1,
+         task_status/1,
          offer_operation/1]).
 
 all() ->
@@ -43,6 +44,7 @@ all() ->
      resource,
      executor_info,
      task_info,
+     task_status,
      offer_operation].
 
 %% Test functions.
@@ -291,6 +293,91 @@ task_info(_Config) ->
                 data = Data} =
         erl_mesos_utils:task_info(Name, TaskId, AgentId, Resources,
                                   ExecutorInfo, CommandInfo, Data).
+
+task_status(_Config) ->
+    TaskId = erl_mesos_utils:task_id("task_id"),
+    State = 'TASK_RUNNING',
+    Source = 'SOURCE_EXECUTOR',
+    AgentId = erl_mesos_utils:agent_id("agent_id"),
+    ExecutorId = erl_mesos_utils:executor_id("executor_id"),
+    Message = "message",
+    Reason = 'REASON',
+    Data = <<"data">>,
+    Uuid = erl_mesos_utils:uuid(),
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  source = Source,
+                  agent_id = undefined,
+                  executor_id = undefined,
+                  message = undefined,
+                  reason = undefined,
+                  data = undefined,
+                  uuid = undefined} =
+        erl_mesos_utils:task_status(TaskId, State, Source),
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  source = Source,
+                  agent_id = AgentId,
+                  executor_id = undefined,
+                  message = undefined,
+                  reason = undefined,
+                  data = undefined,
+                  uuid = undefined} =
+        erl_mesos_utils:task_status(TaskId, State, Source, AgentId),
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  source = Source,
+                  agent_id = AgentId,
+                  executor_id = ExecutorId,
+                  message = undefined,
+                  reason = undefined,
+                  data = undefined,
+                  uuid = undefined} =
+        erl_mesos_utils:task_status(TaskId, State, Source, AgentId, ExecutorId),
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  source = Source,
+                  agent_id = AgentId,
+                  executor_id = ExecutorId,
+                  message = Message,
+                  reason = undefined,
+                  data = undefined,
+                  uuid = undefined} =
+        erl_mesos_utils:task_status(TaskId, State, Source, AgentId, ExecutorId,
+                                    Message),
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  source = Source,
+                  agent_id = AgentId,
+                  executor_id = ExecutorId,
+                  message = Message,
+                  reason = Reason,
+                  data = undefined,
+                  uuid = undefined} =
+        erl_mesos_utils:task_status(TaskId, State, Source, AgentId, ExecutorId,
+                                    Message, Reason),
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  source = Source,
+                  agent_id = AgentId,
+                  executor_id = ExecutorId,
+                  message = Message,
+                  reason = Reason,
+                  data = Data,
+                  uuid = undefined} =
+        erl_mesos_utils:task_status(TaskId, State, Source, AgentId, ExecutorId,
+                                    Message, Reason, Data),
+    #'TaskStatus'{task_id = TaskId,
+                  state = State,
+                  source = Source,
+                  agent_id = AgentId,
+                  executor_id = ExecutorId,
+                  message = Message,
+                  reason = Reason,
+                  data = Data,
+                  uuid = Uuid} =
+        erl_mesos_utils:task_status(TaskId, State, Source, AgentId, ExecutorId,
+                                    Message, Reason, Data, Uuid).
 
 offer_operation(_Config) ->
     Name = "name",

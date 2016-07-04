@@ -2,8 +2,10 @@
 
 MASTER_PATH=/usr/sbin/mesos-master
 PARAMS="--work_dir=${MESOS_WORK_DIR}"
+PARAMS="${PARAMS} --log_dir=${MESOS_LOG_DIR}"
 
 mkdir -p ${MESOS_WORK_DIR}
+mkdir -p ${MESOS_LOG_DIR}
 
 if [[ "${MESOS_IP}" ]]; then
     PARAMS="${PARAMS} --ip=${MESOS_IP}"

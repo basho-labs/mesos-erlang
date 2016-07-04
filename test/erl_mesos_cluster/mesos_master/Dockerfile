@@ -3,7 +3,7 @@ FROM ubuntu:14.04
 MAINTAINER Dmitry Platon <platon.dimka@gmail.com>
 
 ### Environment.
-ENV MESOS_BUILD_VERSION=0.28.1-2.0.20.ubuntu1404
+ENV MESOS_BUILD_VERSION=0.28.2-2.0.27.ubuntu1404
 
 ### Install mesos.
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF
@@ -18,6 +18,7 @@ RUN apt-mark hold mesos
 
 ### Environment.
 ENV MESOS_WORK_DIR=/var/lib/mesos
+ENV MESOS_LOG_DIR=/var/log/mesos
 
 ### Copy start script.
 RUN mkdir -p /opt

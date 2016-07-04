@@ -29,6 +29,14 @@ function build {
     echo ""
     docker build -t erl_mesos_master "$script_dir"/mesos_master
 
+    # Build test executor.
+    echo ""
+    echo "****************************"
+    echo "* Build test executor      *"
+    echo "****************************"
+    echo ""
+    build_test_executor
+
     # Build mesos slave image.
     echo ""
     echo "****************************"
@@ -36,6 +44,15 @@ function build {
     echo "****************************"
     echo ""
     docker build -t erl_mesos_slave "$script_dir"/mesos_slave
+}
+
+function build_test_executor {
+    script_dir=$(script_dir)
+    test_executor_path=$(script_dir)"/../erl_mesos_test_executor"
+    rel_path="$test_executor_path/rel/erl_mesos_test_executor"
+    target_path="$script_dir/mesos_slave/frameworks_home/erl_mesos_test_executor"
+    make rel -C "$test_executor_path"
+    tar -zcf "$target_path.tar.gz" -C "$rel_path" .
 }
 
 function start {
@@ -46,7 +63,7 @@ function start {
 function stop {
     docker_compose_path=$(script_dir)"/cluster.yml"
     docker-compose -f "$docker_compose_path" kill
-    docker-compose -f "$docker_compose_path" rm -f
+    docker-compose -f "$docker_compose_path" rm -f --all
 }
 
 function restart {
@@ -56,13 +73,6 @@ function restart {
 
 function stop_master {
     docker kill "$1"
-}
-
-function start_slave {
-    docker run --privileged --name=erl_mesos_slave\
-               --link=erl_mesos_zk:erl_mesos_zk -d\
-               -e MESOS_MASTER=zk://erl_mesos_zk:2181/mesos\
-               erl_mesos_slave
 }
 
 function stop_slave {
@@ -78,7 +88,6 @@ case "$1" in
         start
         ;;
     stop)
-        stop_slave
         stop
         ;;
     restart)
@@ -87,13 +96,10 @@ case "$1" in
     stop_master)
         stop_master "$2"
         ;;
-    start_slave)
-        start_slave
-        ;;
     stop_slave)
         stop_slave
         ;;
     *)
-        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|start_slave|stop_slave}"
+        echo $"Usage: $0 {build|start|stop|restart|stop_master ID|stop_slave}"
         exit 1
 esac

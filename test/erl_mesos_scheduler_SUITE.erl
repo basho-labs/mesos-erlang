@@ -43,7 +43,6 @@
          offer_rescinded/1,
          status_update/1,
          framework_message/1,
-         slave_lost/1,
          error/1,
          teardown/1,
          accept/1,
@@ -56,11 +55,7 @@
          request/1,
          suppress/1]).
 
--record(state, {user, test_pid}).
-
 -define(LOG, false).
-
--define(RECV_REPLY_TIMEOUT, 10000).
 
 all() ->
     [bad_options, {group, mesos_cluster, [sequence]}].
@@ -73,7 +68,6 @@ groups() ->
                       offer_rescinded,
                       status_update,
                       framework_message,
-                      slave_lost,
                       error,
                       teardown,
                       accept,
@@ -92,7 +86,7 @@ init_per_suite(Config) ->
     SchedulerOptions = [{user, "root"},
                         {name, "erl_mesos_test_scheduler"}],
     {ok, Masters} = erl_mesos_cluster:config(masters, Config),
-    MasterHosts = proplists:get_keys(Masters),
+    MasterHosts = [MasterHost || {_Container, MasterHost} <- Masters],
     Options = [{master_hosts, MasterHosts}],
     [{log, ?LOG},
      {scheduler, Scheduler},
@@ -209,9 +203,7 @@ disconnected(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    FormatState = format_state(SchedulerPid),
-    ClientRef = state_client_ref(FormatState),
-    Pid = response_pid(ClientRef),
+    Pid = response_pid(),
     exit(Pid, kill),
     {disconnected, {SchedulerPid, SchedulerInfo}} = recv_reply(disconnected),
     %% Test scheduler info.
@@ -248,9 +240,7 @@ reregistered(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    FormatState = format_state(SchedulerPid),
-    ClientRef = state_client_ref(FormatState),
-    Pid = response_pid(ClientRef),
+    Pid = response_pid(),
     exit(Pid, kill),
     {disconnected, {SchedulerPid, _}} = recv_reply(disconnected),
     {reregistered, {SchedulerPid, SchedulerInfo}} = recv_reply(reregistered),
@@ -287,7 +277,6 @@ resource_offers(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, SchedulerInfo, EventOffers}} =
         recv_reply(resource_offers),
     %% Test scheduler info.
@@ -353,7 +342,6 @@ offer_rescinded(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, _}} = recv_reply(resource_offers),
     %% Test scheduler info.
     stop_mesos_slave(Config),
@@ -376,7 +364,6 @@ status_update(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -389,16 +376,13 @@ status_update(Config) ->
     %% Test scheduler info.
     #scheduler_info{subscribed = true} = SchedulerInfo,
     %% Test event update.
-    #'Event.Update'{status = Status} = EventUpdate,
+    #'Event.Update'{status = TaskStatus} = EventUpdate,
     #'TaskStatus'{task_id = TaskId,
                   state = 'TASK_RUNNING',
                   source = 'SOURCE_EXECUTOR',
                   agent_id = AgentId,
-                  executor_id = ExecutorId,
                   timestamp = Timestamp,
-                  uuid = Uuid} = Status,
-    #'ExecutorID'{value = ExecutorIdValue} = ExecutorId,
-    true = is_list(ExecutorIdValue),
+                  uuid = Uuid} = TaskStatus,
     true = is_float(Timestamp),
     true = is_binary(Uuid),
     ok = stop_scheduler(Ref, Config).
@@ -413,42 +397,6 @@ framework_message(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
-    {resource_offers, {SchedulerPid, _, EventOffers}} =
-        recv_reply(resource_offers),
-    #'Event.Offers'{offers = [Offer | _]} = EventOffers,
-    #'Offer'{id = OfferId, agent_id = AgentId} = Offer,
-    TaskId = timestamp_task_id(),
-    SchedulerPid ! {accept_test_executor, OfferId, AgentId, TaskId},
-    {accept, ok} = recv_reply(accept),
-    {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
-        recv_reply(status_update),
-    ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
-    TestMessage = <<"test_message">>,
-    Data = base64:encode(TestMessage),
-    SchedulerPid ! {message, AgentId, ExecutorId, Data},
-    {message, ok} = recv_reply(message),
-    {framework_message, {SchedulerPid, SchedulerInfo, EventMessage}} =
-        recv_reply(framework_message),
-    %% Test scheduler info.
-    #scheduler_info{subscribed = true} = SchedulerInfo,
-    %% Test event message.
-    #'Event.Message'{agent_id = AgentId,
-                     executor_id = ExecutorId,
-                     data = Data} = EventMessage,
-    ok = stop_scheduler(Ref, Config).
-
-slave_lost(Config) ->
-    log("Slave lost test cases.", Config),
-    Ref = {erl_mesos_scheduler, slave_lost},
-    Scheduler = ?config(scheduler, Config),
-    SchedulerOptions = ?config(scheduler_options, Config),
-    SchedulerOptions1 = set_test_pid(SchedulerOptions),
-    Options = ?config(options, Config),
-    {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
-                              Config),
-    {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -456,15 +404,18 @@ slave_lost(Config) ->
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(accept),
-    stop_mesos_slave(Config),
-    start_mesos_slave(Config),
-    {slave_lost, {SchedulerPid, SchedulerInfo, EventFailure}} =
-        recv_reply(slave_lost),
+    {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
+        recv_reply(status_update),
+    ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
+    SchedulerPid ! {message, AgentId, ExecutorId, base64:encode(<<"message">>)},
+    {message, ok} = recv_reply(message),
+    {framework_message, {SchedulerPid, SchedulerInfo, EventMessage}} =
+        recv_reply(framework_message),
     %% Test scheduler info.
     #scheduler_info{subscribed = true} = SchedulerInfo,
-    %% Test event failure.
-    #'Event.Failure'{agent_id = AgentId,
-                     executor_id = undefined} = EventFailure,
+    %% Test event message.
+    #'Event.Message'{agent_id = AgentId, data = Data} = EventMessage,
+    true = is_binary(Data),
     ok = stop_scheduler(Ref, Config).
 
 error(Config) ->
@@ -481,9 +432,7 @@ error(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options1,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    FormatState = format_state(SchedulerPid),
-    ClientRef = state_client_ref(FormatState),
-    Pid = response_pid(ClientRef),
+    Pid = response_pid(),
     exit(Pid, kill),
     {disconnected, {SchedulerPid, _}} = recv_reply(disconnected),
     {error, {SchedulerPid, _SchedulerInfo, EventError}} = recv_reply(error),
@@ -518,7 +467,6 @@ accept(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -543,7 +491,6 @@ decline(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -562,7 +509,6 @@ revive(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -585,7 +531,6 @@ kill(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -608,7 +553,6 @@ shutdown(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -616,9 +560,9 @@ shutdown(Config) ->
     TaskId = timestamp_task_id(),
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(accept),
-    {status_update, {SchedulerPid, _, EventUpdate}} = recv_reply(status_update),
-    #'Event.Update'{status = Status} = EventUpdate,
-    #'TaskStatus'{executor_id = ExecutorId} = Status,
+    {status_update, {SchedulerPid, _, _EventUpdate}} =
+        recv_reply(status_update),
+    ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
     SchedulerPid ! {shutdown, ExecutorId, AgentId},
     {shutdown, ok} = recv_reply(shutdown),
     ok = stop_scheduler(Ref, Config).
@@ -633,7 +577,6 @@ acknowledge(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -656,7 +599,6 @@ reconcile(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -685,7 +627,6 @@ request(Config) ->
     {ok, _} = start_scheduler(Ref, Scheduler, SchedulerOptions1, Options,
                               Config),
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
-    start_mesos_slave(Config),
     {resource_offers, {SchedulerPid, _, EventOffers}} =
         recv_reply(resource_offers),
     #'Event.Offers'{offers = [Offer | _]} = EventOffers,
@@ -731,14 +672,9 @@ stop_mesos_master(MasterContainer, Config) ->
 
 master_container(MasterHost, Config) ->
     {ok, Masters} = erl_mesos_cluster:config(masters, Config),
-    proplists:get_value(binary_to_list(MasterHost), Masters).
-
-start_mesos_slave(Config) ->
-    log("Start test mesos slave.", Config),
-    erl_mesos_cluster:start_slave(Config),
-    {ok, SlaveStartTimeout} = erl_mesos_cluster:config(slave_start_timeout,
-                                                       Config),
-    timer:sleep(SlaveStartTimeout).
+    {Container, _MasterHost} = lists:keyfind(binary_to_list(MasterHost), 2,
+                                             Masters),
+    Container.
 
 stop_mesos_slave(Config) ->
     log("Stop test mesos slave.", Config),
@@ -755,31 +691,16 @@ stop_scheduler(Ref, Config) ->
 set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].
 
-format_state(SchedulerPid) ->
-    {status, _Pid, _Module, Items} = sys:get_status(SchedulerPid),
-    {data, Format} = lists:last(lists:last(Items)),
-    proplists:get_value("State", Format).
-
-state_client_ref(FormatState) ->
-    State = proplists:get_value("State", FormatState),
-    proplists:get_value(client_ref, State).
-
-response_pid(ClientRef) ->
+response_pid() ->
+    [{ClientRef, _Request} | _] = ets:tab2list(hackney_manager),
     {ok, Pid} = hackney_manager:async_response_pid(ClientRef),
     Pid.
 
 recv_reply(Reply) ->
-    receive
-        {Reply, Data} ->
-            {Reply, Data}
-    after ?RECV_REPLY_TIMEOUT ->
-        {error, timeout}
-    end.
+    erl_mesos_test_utils:recv_reply(Reply).
 
 timestamp_task_id() ->
-    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
-    Timestamp = (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs,
-    #'TaskID'{value = integer_to_list(Timestamp)}.
+    erl_mesos_test_utils:timestamp_task_id().
 
 log(Format, Config) ->
     log(Format, [], Config).

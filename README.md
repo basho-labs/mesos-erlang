@@ -23,6 +23,7 @@ Data types:
 Options = term()
 FrameworkInfo = erl_mesos:'FrameworkInfo'()
 State = term()
+Reason = term()
 ```
 
 Whenever a `erl_mesos_scheduler` process is started using 
@@ -40,7 +41,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventSubscribed = erl_mesos:'Event.Subscribed'()
+EventSubscribed = erl_mesos_scheduler:'Event.Subscribed'()
 State = term()
 NewState = term()
 ```
@@ -99,7 +100,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventRescind = erl_mesos:'Event.Rescind'()
+EventRescind = erl_mesos_scheduler:'Event.Rescind'()
 State = term()
 NewState = term()
 ```
@@ -118,7 +119,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventUpdate = erl_mesos:'Event.Update'()
+EventUpdate = erl_mesos_scheduler:'Event.Update'()
 State = term()
 NewState = term()
 ```
@@ -137,7 +138,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventMessage = erl_mesos:'Event.Message'()
+EventMessage = erl_mesos_scheduler:'Event.Message'()
 State = term()
 NewState = term()
 ```
@@ -156,7 +157,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventFailure = erl_mesos:'Event.Failure'()
+EventFailure = erl_mesos_scheduler:'Event.Failure'()
 State = term()
 NewState = term()
 ```
@@ -176,7 +177,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventFailure = erl_mesos:'Event.Failure'()
+EventFailure = erl_mesos_scheduler:'Event.Failure'()
 State = term()
 NewState = term()
 ```
@@ -196,7 +197,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventError = erl_mesos:'Event.Error'()
+EventError = erl_mesos_scheduler:'Event.Error'()
 State = term()
 NewState = term()
 ```
@@ -215,7 +216,7 @@ Data types:
 
 ```erlang
 SchedulerInfo = erl_mesos_scheduler:scheduler_info()
-EventError = erl_mesos:'Event.Error'()
+Info = term()
 State = term()
 NewState = term()
 ```
@@ -467,24 +468,24 @@ Scheduler can be started by calling `erl_mesos:start_scheduler/4`:
 
 Ref = term()
 Scheduler = module()
-SchedulerOptions = erl_mesos_scheduler:options()
-Options = term()
+SchedulerOptions = term()
+Options = erl_mesos_scheduler:options()
 ```
 
-* `Ref` is an unique scheduler identifier. Usually is atom.
+* `Ref` is an unique executor identifier. Usually is atom.
 * `Scheduler` is a scheduler module.
-* `SchedulerOptions` is a scheduler options.
-* `Options` is a term which will be passed to the `Scheduler:init/1`.
+* `SchedulerOptions` is a term which will be passed to the `Scheduler:init/1`.
+* `Options` is a scheduler options.
 
 Also scheduler process may be started by custom supervisor:
 
 ```erlang
-{ok, Pid} = erl_mesos_scheudler:start_link(Ref, Scheduler, SchedulerOptions, Options)
+{ok, Pid} = erl_mesos_scheduler:start_link(Ref, Scheduler, SchedulerOptions, Options)
 
 Ref = term()
 Scheduler = module()
-SchedulerOptions = erl_mesos_scheduler:options()
-Options = term()
+SchedulerOptions = term()
+Options = erl_mesos_scheduler:options()
 ```
 
 ### Scheduler options.
@@ -515,3 +516,325 @@ ok = erl_mesos:stop_scheduler(Ref)
 
 Ref = term()
 ```
+
+## Executor
+
+`erl_mesos_executor` process a wrapper on top of `gen_server` process.
+
+### Executor callbacks
+
+Each executor handler must implement `erl_mesos_executor` behaviour.
+
+`erl_mesos_executor` callbacks:
+
+#### Module:init/1
+
+```erlang
+Module:init(Options) -> 
+    {ok, CallSubscribe, State} | {stop, Reason}.
+```
+
+Data types:
+
+```erlang
+Options = term()
+CallSubscribe = erl_mesos_executor:'Call.Subscribe'()
+State = term()
+Reason = term()
+```
+
+Whenever a `erl_mesos_executor` process is started using 
+`erl_mesos_executor:start_link/4` this function is called by the new process to 
+initialize the executor.
+
+#### Module:registered/3
+
+-callback registered(executor_info(), 'Event.Subscribed'(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+```erlang
+Module:registered(ExecutorInfo, EventSubscribed, State) ->
+    {ok, NewState} | {stop, NewState}
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+EventSubscribed = erl_mesos_executor:'Event.Subscribed'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process receives subscribed event from
+Mesos this function is called to handle this event.
+
+#### Module:disconnected/2
+
+```erlang
+Module:disconnected(ExecutorInfo, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process disconnected from
+Mesos this function is called to handle the disconnection. 
+Then the `erl_mesos_executor` process will try to reconnect to the 
+Mesos slave if checkpoint is enabled.
+
+#### Module:reregister/2
+
+```erlang
+Module:reregister(ExecutorInfo, State) ->
+    {ok, CallSubscribe, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+State = term()
+CallSubscribe = erl_mesos_executor:'Call.Subscribe'()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process will try to reregistered to the Mesos 
+slave this function is called before registration to initialize it.
+
+#### Module:reregistered/2
+
+```erlang
+Module:reregistered(ExecutorInfo, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process reregistered to the Mesos slave this 
+function is called to handle the registration.
+
+#### Module:launch_task/3
+
+```erlang
+Module:launch_task(ExecutorInfo, EventLaunch, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+EventLaunch = erl_mesos_executor:'Event.Launch'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process receives launch task event from
+Mesos this function is called to handle this event.
+
+#### Module:kill_task/3
+
+```erlang
+Module:kill_task(ExecutorInfo, EventKill, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+EventKill = erl_mesos_executor:'Event.Kill'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process receives kill task event from
+Mesos this function is called to handle this event.
+
+#### Module:acknowledged/3
+
+```erlang
+Module:acknowledged(ExecutorInfo, EventAcknowledged, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+EventAcknowledged = erl_mesos_executor:'Event.Acknowledged'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process receives acknowledged event from
+Mesos this function is called to handle this event.
+
+#### Module:framework_message/3
+
+```erlang
+Module:framework_message(ExecutorInfo, EventMessage, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+EventMessage = erl_mesos_executor:'Event.Message'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process receives framework message event from
+Mesos this function is called to handle this event.
+
+#### Module:error/3
+
+```erlang
+Module:error(ExecutorInfo, EventError, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+EventError = erl_mesos_executor:'Event.Error'()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process receives error event from
+Mesos this function is called to handle this event.
+
+#### Module:shutdown/2
+
+```erlang
+Module:shutdown(ExecutorInfo, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+State = term()
+NewState = term()
+```
+
+Whenever a `erl_mesos_executor` process receives shutdown event from
+Mesos this function is called to handle this event.
+
+#### Module:handle_info/3
+
+```erlang
+Module:handle_info(ExecutorInfo, Info, State) ->
+    {ok, NewState} | {stop, NewState}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+Info = term()
+State = term()
+NewState = term()
+```
+
+This function is called by a `erl_mesos_executor` it receives any other 
+message than Mesos event.
+
+#### Module:terminate/3
+
+```erlang
+Module:terminate(ExecutorInfo, Reason, State) -> 
+    Result.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+Reason = term()
+State = term()
+Result = term()
+```
+
+This function is called by a `erl_mesos_executor` when it is about to 
+terminate.
+
+### Executor calls
+
+#### Update
+
+```erlang
+erl_mesos_executor:update(ExecutorInfo, TaskStatus) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+TaskStatus = erl_mesos:'TaskStatus'()
+Reason = term()
+```
+
+Update call.
+
+#### Message
+
+```erlang
+erl_mesos_executor:message(ExecutorInfo, Data) -> 
+    ok | {error, Reason}.
+```
+
+Data types:
+
+```erlang
+ExecutorInfo = erl_mesos_executor:executor_info()
+Data = binary()
+Reason = term()
+```
+
+Message call.
+
+### Starting executor
+
+Executor can be started by calling `erl_mesos_executor:start_link/4`:
+
+```erlang
+{ok, Pid} = erl_mesos_executor:start_link(Ref, Executor, ExecutorOptions, Options)
+
+Ref = term()
+Executor = module()
+ExecutorOptions = term()
+Options = erl_mesos_executor:options()
+```
+
+* `Ref` is an unique executor identifier. Usually is atom.
+* `Executor` is a executor module.
+* `ExecutorOptions` is a term which will be passed to the `Executor:init/1`.
+* `Options` is a executor options.
+
+### Executor options.
+
+ Name                      | Default value          | Possible types 
+---------------------------|------------------------|------------------------
+| request_options          | []                     | [{atom, term()}]
+
+`request_options` - HTTP request options. See https://github.com/benoitc/hackney for details.
