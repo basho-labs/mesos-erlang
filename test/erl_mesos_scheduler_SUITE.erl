@@ -585,7 +585,7 @@ acknowledge(Config) ->
     SchedulerPid ! {accept, OfferId, AgentId, TaskId},
     {accept, ok} = recv_reply(accept),
     {status_update, {SchedulerPid, _, _}} = recv_reply(status_update),
-    SchedulerPid ! {acknowledge, AgentId, TaskId, <<"1">>},
+    SchedulerPid ! {acknowledge, AgentId, TaskId, erl_mesos_utils:uuid()},
     {acknowledge, ok} = recv_reply(acknowledge),
     ok = stop_scheduler(Ref, Config).
 
