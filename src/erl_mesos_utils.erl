@@ -470,7 +470,8 @@ destroy_offer_operation(Resources) ->
 %% @doc Returns uuid.
 -spec uuid() -> binary().
 uuid() ->
-    <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> = crypto:rand_bytes(16),
+    <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> =
+        crypto:strong_rand_bytes(16),
     <<U:32, U1:16, 4:4, U2:12, 2#10:2, U3:30, U4:32>>.
 
 %% Internal functions.
