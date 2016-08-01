@@ -1,8 +1,9 @@
 #!/bin/bash
 
 SLAVE_PATH=/usr/sbin/mesos-slave
-PARAMS="--frameworks_home=${MESOS_FRAMEWORKS_HOME}"
+PARAMS="--work_dir=${MESOS_WORK_DIR}"
 PARAMS="${PARAMS} --log_dir=${MESOS_LOG_DIR}"
+PARAMS="${PARAMS} --frameworks_home=${MESOS_FRAMEWORKS_HOME}"
 
 mkdir -p ${MESOS_FRAMEWORKS_HOME}
 mkdir -p ${MESOS_LOG_DIR}
