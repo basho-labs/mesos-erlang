@@ -218,6 +218,18 @@ volume_resource(Value, PersistenceId, ContainerPath, Mode) ->
 %% @doc Adds role and reservation info to the resource.
 -spec add_resource_reservation(erl_mesos:'Resource'(), string(), string()) ->
     erl_mesos:'Resource'().
+add_resource_reservation(#'Resource'{disk =
+                                     #'Resource.DiskInfo'{persistence =
+                                                              Persistence} =
+                                         DiskInfo} = Resource,
+                         Role, Principal) ->
+    Persistence1 = Persistence#'Resource.DiskInfo.Persistence'{principal =
+                                                                   Principal},
+    DiskInfo1 = DiskInfo#'Resource.DiskInfo'{persistence = Persistence1},
+    Resource#'Resource'{role = Role,
+                        reservation =
+                            #'Resource.ReservationInfo'{principal = Principal},
+                        disk = DiskInfo1};
 add_resource_reservation(Resource, Role, Principal) ->
     Resource#'Resource'{role = Role,
                         reservation =
