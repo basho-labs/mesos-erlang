@@ -218,6 +218,18 @@ volume_resource(Value, PersistenceId, ContainerPath, Mode) ->
 %% @doc Adds role and reservation info to the resource.
 -spec add_resource_reservation(erl_mesos:'Resource'(), string(), string()) ->
     erl_mesos:'Resource'().
+add_resource_reservation(#'Resource'{disk =
+                                     #'Resource.DiskInfo'{persistence =
+                                                              Persistence} =
+                                         DiskInfo} = Resource,
+                         Role, Principal) ->
+    Persistence1 = Persistence#'Resource.DiskInfo.Persistence'{principal =
+                                                                   Principal},
+    DiskInfo1 = DiskInfo#'Resource.DiskInfo'{persistence = Persistence1},
+    Resource#'Resource'{role = Role,
+                        reservation =
+                            #'Resource.ReservationInfo'{principal = Principal},
+                        disk = DiskInfo1};
 add_resource_reservation(Resource, Role, Principal) ->
     Resource#'Resource'{role = Role,
                         reservation =
@@ -470,7 +482,8 @@ destroy_offer_operation(Resources) ->
 %% @doc Returns uuid.
 -spec uuid() -> binary().
 uuid() ->
-    <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> = crypto:rand_bytes(16),
+    <<U:32, U1:16, _:4, U2:12, _:2, U3:30, U4:32>> =
+        crypto:strong_rand_bytes(16),
     <<U:32, U1:16, 4:4, U2:12, 2#10:2, U3:30, U4:32>>.
 
 %% Internal functions.

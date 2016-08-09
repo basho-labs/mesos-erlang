@@ -185,8 +185,8 @@ resource(_Config) ->
                                          volume = Volume}} =
         erl_mesos_utils:volume_resource(VolumeValue, VolumePersistenceId,
                                         VolumeContainerPath, VolumeMode),
-    VolumePersistence = #'Resource.DiskInfo.Persistence'{id =
-                                                         VolumePersistenceId},
+    VolumePersistence =
+        #'Resource.DiskInfo.Persistence'{id = VolumePersistenceId},
     Volume = #'Volume'{container_path = VolumeContainerPath,
                        mode = VolumeMode},
     #'Resource'{name = ScalarName,
@@ -220,13 +220,16 @@ resource(_Config) ->
                 reservation = #'Resource.ReservationInfo'{principal =
                                                               Principal},
                 disk =
-                    #'Resource.DiskInfo'{persistence = VolumePersistence,
+                    #'Resource.DiskInfo'{persistence = VolumePersistence1,
                                          volume = Volume}} =
         erl_mesos_utils:volume_resource_reservation(VolumeValue,
                                                     VolumePersistenceId,
                                                     VolumeContainerPath,
                                                     VolumeMode, Role,
-                                                    Principal).
+                                                    Principal),
+    VolumePersistence1 =
+        #'Resource.DiskInfo.Persistence'{id = VolumePersistenceId,
+                                         principal = Principal}.
 
 executor_info(_Config) ->
     ExecutorId = erl_mesos_utils:executor_id("executor_id"),

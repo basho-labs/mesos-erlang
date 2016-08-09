@@ -1042,7 +1042,8 @@ handle_redirect(#state{master_hosts = MasterHosts,
 redirect_master_host(Headers) ->
     case proplists:get_value(<<"Location">>, Headers) of
         <<"//", MasterHost/binary>> ->
-            MasterHost;
+            [MasterHost1 | _Path] = binary:split(MasterHost, <<"/">>),
+            MasterHost1;
         MasterHost ->
             MasterHost
     end.
