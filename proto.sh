@@ -35,22 +35,30 @@ sed -e 's/message Request/message Req/' ${SCHEDULER} > ${SCHEDULER}.tmp && mv ${
 sed -e 's/repeated mesos.v1.Request/repeated Request/' ${SCHEDULER} > ${SCHEDULER}.tmp && mv ${SCHEDULER}.tmp ${SCHEDULER}
 sed -e 's/optional Request/optional Req/' ${SCHEDULER} > ${SCHEDULER}.tmp && mv ${SCHEDULER}.tmp ${SCHEDULER}
 
+# Rebar2
+GPB=${PARENT}/deps/gpb/ebin
+
+if [ ! -d "${GPB}" ]; then
+    # Rebar3
+    GPB=${PARENT}/../gpb/ebin
+fi
+
 # Compile master.proto
-erl +B -noinput -pa ${PARENT}/deps/gpb/ebin\
+erl +B -noinput -pa ${GPB}\
     -I${PARENT}/proto -o-erl src -o-hrl include -modsuffix _protobuf -il\
     -s gpb_compile c ${MASTER}
 
 # Compile agent.proto
-erl +B -noinput -pa ${PARENT}/deps/gpb/ebin\
+erl +B -noinput -pa ${GPB}\
     -I${PARENT}/proto -o-erl src -o-hrl include -modsuffix _protobuf -il\
     -s gpb_compile c ${AGENT}
 
 # Compile scheduler.proto
-erl +B -noinput -pa ${PARENT}/deps/gpb/ebin\
+erl +B -noinput -pa ${GPB}\
     -I${PARENT}/proto -o-erl src -o-hrl include -modsuffix _protobuf -il\
     -s gpb_compile c ${SCHEDULER}
 
 # Compile executor.proto
-erl +B -noinput -pa ${PARENT}/deps/gpb/ebin\
+erl +B -noinput -pa ${GPB}\
     -I${PARENT}/proto -o-erl src -o-hrl include -modsuffix _protobuf -il\
     -s gpb_compile c ${EXECUTOR}
