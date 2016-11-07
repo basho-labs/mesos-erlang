@@ -657,14 +657,7 @@ apply_event(Message, #state{master_host = MasterHost,
             log_info("Successfully subscribed.", "Host: ~s.", [MasterHost],
                      State),
             {EventSubscribed1, State1} = set_subscribed(EventSubscribed, State),
-            call(registered, EventSubscribed1, State1#state{registered = true});
-        #'Event'{type = 'SUBSCRIBED',
-                 subscribed = EventSubscribed}
-          when is_record(SubscribeState, subscribe_response) ->
-            log_info("Successfully resubscribed.", "Host: ~s.", [MasterHost],
-                     State),
-            {_EventSubscribed, State1} = set_subscribed(EventSubscribed, State),
-            call(reregistered, State1);
+            call(subscribed, EventSubscribed1, State1#state{registered = true});
         #'Event'{type = 'TASK_ADDED', task_added = TaskAdded} ->
             call(task_added, TaskAdded, State);
         #'Event'{type = 'TASK_UPDATED', task_updated = TaskUpdated} ->
