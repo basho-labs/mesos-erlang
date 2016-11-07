@@ -103,7 +103,7 @@ get_master(MasterInfo) ->
 %% @doc Sends async http request.
 %% @private
 -spec async_request(erl_mesos_master:master_info(),
-                    erl_mesos_scheduler:'Call'()) ->
+                    erl_mesos_master:'Call'()) ->
     {ok, erl_mesos_http:client_ref()} | {error, term()}.
 async_request(#master_info{data_format = DataFormat,
                            data_format_module = DataFormatModule,
@@ -117,7 +117,7 @@ async_request(#master_info{data_format = DataFormat,
 %% @doc Sends sync http request.
 %% @private
 -spec sync_request(erl_mesos_master:master_info(),
-                   erl_mesos_scheduler:'Call'()) ->
+                   erl_mesos_master:'Call'()) ->
     ok | {error, term()}.
 sync_request(#master_info{subscribed = false}, _Call) ->
     {error, not_subscribed};
@@ -130,7 +130,11 @@ sync_request(#master_info{data_format = DataFormat,
     ReqHeaders = [],
     Response = erl_mesos_http:sync_request(ReqUrl, DataFormat, DataFormatModule,
                                            ReqHeaders, Call, RequestOptions),
-    erl_mesos_http:handle_sync_response(Response).
+    case erl_mesos_http:handle_sync_response(Response) of
+        {ok, Body} ->
+            erl_mesos_data_format:decode(DataFormat, DataFormatModule, Body, 'Response');
+        Error -> Error
+    end.
 
 %% @doc Returns request url.
 %% @private
