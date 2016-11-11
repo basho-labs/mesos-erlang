@@ -18,6 +18,11 @@ deps:
 clean:
 	$(REBAR) clean
 
+protoclean:
+	-rm -rf $(BASE_DIR)/proto
+	-rm $(BASE_DIR)/include/*_protobuf.hrl
+	-rm $(BASE_DIR)/src/*_protobuf.erl
+
 distclean: clean
 	$(REBAR) delete-deps
 

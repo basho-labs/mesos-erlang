@@ -2,10 +2,8 @@
 deps
 doc
 proto
-include/scheduler_protobuf.hrl
-src/scheduler_protobuf.erl
-include/executor_protobuf.hrl
-src/executor_protobuf.erl
+include/*_protobuf.hrl
+src/*_protobuf.erl
 ebin
 logs
 *.beam

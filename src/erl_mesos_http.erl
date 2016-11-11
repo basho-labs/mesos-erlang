@@ -94,6 +94,13 @@ handle_sync_response(Response) ->
                 {error, Reason} ->
                     {error, Reason}
             end;
+        {ok, 200, _Headers, ClientRef} ->
+            case body(ClientRef) of
+                {ok, Body} ->
+                    {ok, Body};
+                {error, Reason} ->
+                    {error, Reason}
+            end;
         {ok, Status, _Headers, ClientRef} ->
             case body(ClientRef) of
                 {ok, Body} ->
