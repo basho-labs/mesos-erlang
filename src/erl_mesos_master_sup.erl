@@ -20,37 +20,43 @@
 
 %% @private
 
--module(erl_mesos_sup).
+-module(erl_mesos_master_sup).
+
+-behaviour(supervisor).
 
 -export([start_link/0]).
+
+-export([start_master/4, stop_master/1]).
 
 -export([init/1]).
 
 %% External functions.
 
-%% @doc Starts the `erl_mesos_sup' process.
+%% @doc Starts the `erl_mesos_master_sup' process.
 -spec start_link() -> {ok, pid()}.
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, {}).
+
+%% @doc Starts `erl_mesos_master' process.
+-spec start_master(term(), module(), term(),
+                      erl_mesos_master:options()) ->
+    {ok, pid()} | {error, term()}.
+start_master(Ref, Master, MasterOptions, Options) ->
+    supervisor:start_child(?MODULE, [Ref, Master, MasterOptions,
+                                     Options]).
+
+%% @doc Stops `erl_mesos_master' process.
+-spec stop_master(pid()) -> ok | {error, atom()}.
+stop_master(Pid) ->
+    supervisor:terminate_child(?MODULE, Pid).
 
 %% supervisor callback function.
 
 %% @private
 -spec init(term()) ->
-    {ok, {{supervisor:strategy(), 10, 10}, [supervisor:child_spec()]}}.
+    {ok, {{supervisor:strategy(), 1, 10}, [supervisor:child_spec()]}}.
 init({}) ->
-    Specs = [{erl_mesos_scheduler_sup,
-                  {erl_mesos_scheduler_sup, start_link, []},
-                  permanent, 5000, supervisor, [erl_mesos_scheduler_sup]},
-             {erl_mesos_scheduler_manager,
-                  {erl_mesos_scheduler_manager, start_link, []},
-                  permanent, 5000, worker, [erl_mesos_scheduler_manager]},
-             {erl_mesos_master_sup,
-              {erl_mesos_master_sup, start_link, []},
-              permanent, 5000, supervisor, [erl_mesos_master_sup]},
-             {erl_mesos_master_manager,
-              {erl_mesos_master_manager, start_link, []},
-              permanent, 5000, worker, [erl_mesos_master_manager]}],
-    ets:new(erl_mesos_schedulers, [ordered_set, public, named_table]),
-    ets:new(erl_mesos_masters, [ordered_set, public, named_table]),
-    {ok, {{one_for_one, 10, 10}, Specs}}.
+    Spec = {undefined,
+               {erl_mesos_master, start_link, []},
+               temporary, 5000, worker, []},
+    {ok, {{simple_one_for_one, 1, 10}, [Spec]}}.

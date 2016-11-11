@@ -54,7 +54,6 @@
                 request_options :: erl_mesos_http:options(),
                 max_num_resubscribe :: non_neg_integer(),
                 resubscribe_interval :: non_neg_integer(),
-                registered = false :: boolean(),
                 call_subscribe :: undefined | 'Event.Subscribed'(),
                 master_state :: undefined | term(),
                 master_hosts_queue :: undefined | [binary()],
@@ -648,16 +647,15 @@ apply_events([], State) ->
 -spec apply_event(erl_mesos_data_format:message(), state()) ->
     {ok, state()} | {stop, state()}.
 apply_event(Message, #state{master_host = MasterHost,
-                            registered = Registered,
                             subscribe_state = SubscribeState} = State) ->
     case Message of
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
-          when is_record(SubscribeState, subscribe_response), not Registered ->
+          when is_record(SubscribeState, subscribe_response) ->
             log_info("Successfully subscribed.", "Host: ~s.", [MasterHost],
                      State),
             {EventSubscribed1, State1} = set_subscribed(EventSubscribed, State),
-            call(subscribed, EventSubscribed1, State1#state{registered = true});
+            call(subscribed, EventSubscribed1, State1);
         #'Event'{type = 'TASK_ADDED', task_added = TaskAdded} ->
             call(task_added, TaskAdded, State);
         #'Event'{type = 'TASK_UPDATED', task_updated = TaskUpdated} ->
@@ -708,19 +706,18 @@ call(Callback, Arg, #state{master = Master,
 %% @private
 -spec handle_unsubscribe(state()) ->
     {noreply, state()} | {stop, term(), state()}.
-handle_unsubscribe(#state{registered = false,
-                          client_ref = ClientRef,
-                          recv_timer_ref = RecvTimerRef} = State) ->
-    case subscribe(State) of
-        {ok, State1} ->
-            close(ClientRef),
-            cancel_recv_timer(RecvTimerRef),
-            State2 = State1#state{client_ref = undefined,
-                                  subscribe_state = undefined},
-            {noreply, State2};
-        {error, Reason} ->
-            {stop, {shutdown, {subscribe, {error, Reason}}}, State}
-    end;
+%% handle_unsubscribe(#state{client_ref = ClientRef,
+%%                           recv_timer_ref = RecvTimerRef} = State) ->
+%%     case subscribe(State) of
+%%         {ok, State1} ->
+%%             close(ClientRef),
+%%             cancel_recv_timer(RecvTimerRef),
+%%             State2 = State1#state{client_ref = undefined,
+%%                                   subscribe_state = undefined},
+%%             {noreply, State2};
+%%         {error, Reason} ->
+%%             {stop, {shutdown, {subscribe, {error, Reason}}}, State}
+%%     end;
 handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef,
                           subscribe_state = subscribed} = State) ->
     State1 = State#state{subscribe_state = undefined},
@@ -802,15 +799,12 @@ handle_redirect(#state{master_hosts = MasterHosts,
                        request_options = RequestOptions,
                        master_hosts_queue = MasterHostsQueue,
                        master_host = MasterHost,
-                       registered = Registered,
                        client_ref = ClientRef,
                        subscribe_state =
-                       #subscribe_response{headers = Headers},
+                           #subscribe_response{headers = Headers},
                        num_redirect = NumRedirect} = State) ->
     case proplists:get_value(max_redirect, RequestOptions,
                              ?DEFAULT_MAX_REDIRECT) of
-        NumRedirect when not Registered ->
-            {stop, {shutdown, {subscribe, {error, max_redirect}}}, State};
         NumRedirect ->
             {stop, {shutdown, {resubscribe, {error, max_redirect}}}, State};
         _MaxNumRedirect ->
@@ -844,13 +838,13 @@ redirect_master_host(Headers) ->
 %% @doc Calls subscribe/1 or resubscribe/1.
 %% @private
 -spec redirect(state()) -> {noreply, state()} | {stop, term(), state()}.
-redirect(#state{registered = false} = State) ->
-    case subscribe(State) of
-        {ok, State1} ->
-            {noreply, State1};
-        {error, Reason} ->
-            {stop, {shutdown, {subscribe, {error, Reason}}}, State}
-    end;
+%% redirect(State) ->
+%%     case subscribe(State) of
+%%         {ok, State1} ->
+%%             {noreply, State1};
+%%         {error, Reason} ->
+%%             {stop, {shutdown, {subscribe, {error, Reason}}}, State}
+%%     end;
 redirect(#state{master_hosts_queue = [MasterHost | MasterHostsQueue]} =
          State) ->
     State1 = State#state{master_hosts_queue = MasterHostsQueue,
@@ -918,7 +912,6 @@ format_state(#state{ref = Ref,
                     request_options = RequestOptions,
                     max_num_resubscribe = MaxNumResubscribe,
                     resubscribe_interval = ResubscribeInterval,
-                    registered = Registered,
                     call_subscribe = CallSubscribe,
                     master_state = MasterState,
                     master_hosts_queue = MasterHostsQueue,
@@ -936,7 +929,6 @@ format_state(#state{ref = Ref,
              {request_options, RequestOptions},
              {max_num_resubscribe, MaxNumResubscribe},
              {resubscribe_interval, ResubscribeInterval},
-             {registered, Registered},
              {call_subscribe, CallSubscribe},
              {master_hosts_queue, MasterHostsQueue},
              {master_host, MasterHost},

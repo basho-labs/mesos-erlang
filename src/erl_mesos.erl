@@ -28,6 +28,8 @@
 
 -export([start_scheduler/4, start_scheduler/5, stop_scheduler/1]).
 
+-export([start_master/4, start_master/5, stop_master/1]).
+
 -export([start/2, stop/1]).
 
 -type 'AgentID'() :: #'AgentID'{}.
@@ -132,6 +134,28 @@ start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Timeout) ->
 -spec stop_scheduler(term())  -> ok | {error, term()}.
 stop_scheduler(Ref) ->
     erl_mesos_scheduler_manager:stop_scheduler(Ref).
+
+%% @equiv erl_mesos:start_master(Ref, Master, MasterOptions, Options,
+%%                                  infinity)
+-spec start_master(term(), module(), term(),
+                   erl_mesos_master:options()) ->
+                          {ok, pid()} | {error, term()}.
+start_master(Ref, Master, MasterOptions, Options) ->
+    start_master(Ref, Master, MasterOptions, Options, infinity).
+
+%% @doc Starts master operator API client.
+-spec start_master(term(), module(), term(),
+                   erl_mesos_master:options(), timeout()) ->
+                          {ok, pid()} | {error, term()}.
+start_master(Ref, Master, MasterOptions, Options, Timeout) ->
+    erl_mesos_master_manager:start_master(Ref, Master,
+                                                MasterOptions, Options,
+                                                Timeout).
+
+%% @doc Stops master.
+-spec stop_master(term())  -> ok | {error, term()}.
+stop_master(Ref) ->
+    erl_mesos_master_manager:stop_master(Ref).
 
 %% application callback functions.
 

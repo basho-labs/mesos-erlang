@@ -62,8 +62,7 @@ function start {
 
 function stop {
     docker_compose_path=$(script_dir)"/cluster.yml"
-    docker-compose -f "$docker_compose_path" kill
-    docker-compose -f "$docker_compose_path" rm -f --all
+    docker-compose -f "$docker_compose_path" down
 }
 
 function restart {
@@ -78,6 +77,11 @@ function stop_master {
 function stop_slave {
     docker kill erl_mesos_slave
     docker rm erl_mesos_slave
+}
+
+function ps {
+    docker_compose_path=$(script_dir)"/cluster.yml"
+    docker-compose -f "$docker_compose_path" ps
 }
 
 case "$1" in
@@ -98,6 +102,9 @@ case "$1" in
         ;;
     stop_slave)
         stop_slave
+        ;;
+    ps)
+        ps
         ;;
     *)
         echo $"Usage: $0 {build|start|stop|restart|stop_master ID|stop_slave}"

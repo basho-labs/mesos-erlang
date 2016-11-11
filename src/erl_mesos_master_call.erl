@@ -119,8 +119,8 @@ async_request(#master_info{data_format = DataFormat,
 -spec sync_request(erl_mesos_master:master_info(),
                    erl_mesos_master:'Call'()) ->
     ok | {error, term()}.
-sync_request(#master_info{subscribed = false}, _Call) ->
-    {error, not_subscribed};
+%% sync_request(#master_info{subscribed = false}, _Call) ->
+%%     {error, not_subscribed};
 sync_request(#master_info{data_format = DataFormat,
                           data_format_module = DataFormatModule,
                           api_version = ApiVersion,
