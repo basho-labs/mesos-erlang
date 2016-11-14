@@ -22,9 +22,9 @@
 
 -module(erl_mesos_scheduler_call).
 
--include("scheduler_info.hrl").
+-include("erl_mesos_scheduler_info.hrl").
 
--include("scheduler_protobuf.hrl").
+-include("erl_mesos_scheduler_proto.hrl").
 
 -export([subscribe/2,
          teardown/1,
