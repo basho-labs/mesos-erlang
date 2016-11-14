@@ -22,9 +22,9 @@
 
 -behaviour(gen_server).
 
--include("scheduler_info.hrl").
+-include("erl_mesos_scheduler_info.hrl").
 
--include("scheduler_protobuf.hrl").
+-include("erl_mesos_scheduler_proto.hrl").
 
 -export([start_link/4]).
 
@@ -205,7 +205,7 @@
 
 -define(DATA_FORMAT, protobuf).
 
--define(DATA_FORMAT_MODULE, scheduler_protobuf).
+-define(DATA_FORMAT_MODULE, erl_mesos_scheduler_proto).
 
 -define(API_VERSION, v1).
 
@@ -858,8 +858,7 @@ heartbeat_timeout(HeartbeatInterval) ->
 -spec set_heartbeat_timer(state()) -> state().
 set_heartbeat_timer(#state{heartbeat_timeout_window = HeartbeatTimeoutWindow,
                            heartbeat_timeout = HeartbeatTimeout,
-                           heartbeat_timer_ref = HeartbeatTimerRef} =
-                    State) ->
+                           heartbeat_timer_ref = HeartbeatTimerRef} = State) ->
     cancel_heartbeat_timer(HeartbeatTimerRef),
     Timeout = HeartbeatTimeout + HeartbeatTimeoutWindow,
     HeartbeatTimerRef1 = erlang:start_timer(Timeout, self(), heartbeat),
@@ -944,8 +943,7 @@ handle_unsubscribe(#state{recv_timer_ref = RecvTimerRef} = State) ->
 start_resubscribe_timer(#state{call_subscribe =
                                #'Call.Subscribe'{framework_info =
                                    #'FrameworkInfo'{failover_timeout =
-                                                    FailoverTimeout}}} =
-                        State)
+                                                    FailoverTimeout}}} = State)
   when FailoverTimeout =:= undefined; FailoverTimeout == 0 ->
     {stop, {shutdown, {resubscribe,
      {error, {failover_timeout, FailoverTimeout}}}}, State};
