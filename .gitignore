@@ -1,11 +1,10 @@
 .rebar
 deps
 doc
-proto
-include/scheduler_protobuf.hrl
-src/scheduler_protobuf.erl
-include/executor_protobuf.hrl
-src/executor_protobuf.erl
+include/erl_mesos_scheduler_protobuf.hrl
+src/erl_mesos_scheduler_protobuf.erl
+include/erl_mesos_executor_protobuf.hrl
+src/erl_mesos_executor_protobuf.erl
 ebin
 logs
 *.beam
