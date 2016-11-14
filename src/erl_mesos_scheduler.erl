@@ -345,14 +345,14 @@ init({Ref, Scheduler, SchedulerOptions, Options}) ->
 %% @private
 -spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
 handle_call(Request, _From, State) ->
-    log_warning("Scheduler received unexpected call request.", "Request: ~p.",
+    log_warning("Scheduler received unexpected call request.", "request: ~p.",
                 [Request], State),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
-    log_warning("Scheduler received unexpected cast request.", "Request: ~p.",
+    log_warning("Scheduler received unexpected cast request.", "request: ~p.",
                 [Request], State),
     {noreply, State}.
 
@@ -373,7 +373,7 @@ handle_info(Info, #state{client_ref = ClientRef,
         undefined ->
             case Info of
                 {'DOWN', ClientRef, Reason} ->
-                    log_error("Client process crashed.", "Reason: ~p.",
+                    log_error("Client process crashed.", "reason: ~p.",
                               [Reason], State),
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
@@ -608,7 +608,7 @@ init(SchedulerOptions, #state{master_hosts = MasterHosts,
 subscribe(#state{call_subscribe = CallSubscribe,
                  master_hosts_queue = [MasterHost | MasterHostsQueue]} =
           State) ->
-    log_info("Try to subscribe.", "Host: ~s.", [MasterHost], State),
+    log_info("Try to subscribe.", "host: ~s.", [MasterHost], State),
     SchedulerInfo = scheduler_info(State),
     SchedulerInfo1 = SchedulerInfo#scheduler_info{master_host = MasterHost},
     case erl_mesos_scheduler_call:subscribe(SchedulerInfo1, CallSubscribe) of
@@ -619,7 +619,7 @@ subscribe(#state{call_subscribe = CallSubscribe,
             State2 = set_recv_timer(State1),
             {ok, State2};
         {error, Reason} ->
-            log_error("Can not subscribe.", "Host: ~s, Error reason ~p.",
+            log_error("Can not subscribe.", "host: ~s, error reason ~p.",
                       [MasterHost, Reason], State),
             State1 = State#state{master_hosts_queue = MasterHostsQueue},
             subscribe(State1)
@@ -696,7 +696,7 @@ handle_async_response(Body,
             StreamId = proplists:get_value(<<"Mesos-Stream-Id">>, Headers),
             handle_events(Body, State#state{stream_id = StreamId});
         _ContentType ->
-            log_error("Invalid content type.", "Content type: ~s.",
+            log_error("Invalid content type.", "content type: ~s.",
                       [ContentType], State),
             handle_unsubscribe(State)
     end;
@@ -712,14 +712,14 @@ handle_async_response(_Body,
 handle_async_response(Body,
                       #state{subscribe_state =
                              #subscribe_response{status = Status}} = State) ->
-    log_error("Invalid http response.", "Status: ~p, Body: ~s.", [Status, Body],
+    log_error("Invalid http response.", "status: ~p, body: ~s.", [Status, Body],
               State),
     handle_unsubscribe(State);
 handle_async_response(done, State) ->
     log_error("Connection closed.", State),
     handle_unsubscribe(State);
 handle_async_response({error, Reason}, State) ->
-    log_error("Connection error.", "Reason: ~p.", [Reason], State),
+    log_error("Connection error.", "reason: ~p.", [Reason], State),
     handle_unsubscribe(State).
 
 %% @doc Cancels recv timer.
@@ -771,14 +771,14 @@ apply_event(Message, #state{master_host = MasterHost,
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response), not Registered ->
-            log_info("Successfully subscribed.", "Host: ~s.", [MasterHost],
+            log_info("Successfully subscribed.", "host: ~s.", [MasterHost],
                      State),
             {EventSubscribed1, State1} = set_subscribed(EventSubscribed, State),
             call(registered, EventSubscribed1, State1#state{registered = true});
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response) ->
-            log_info("Successfully resubscribed.", "Host: ~s.", [MasterHost],
+            log_info("Successfully resubscribed.", "host: ~s.", [MasterHost],
                      State),
             {_EventSubscribed, State1} = set_subscribed(EventSubscribed, State),
             call(reregistered, State1);
@@ -987,7 +987,7 @@ set_resubscribe_timer(#state{resubscribe_interval = ResubscribeInterval} =
 -spec resubscribe(state()) -> {noreply, state()} | {stop, term(), state()}.
 resubscribe(#state{master_host = MasterHost,
                    call_subscribe = CallSubscribe} = State) ->
-    log_info("Try to resubscribe.", "Host: ~s.", [MasterHost], State),
+    log_info("Try to resubscribe.", "host: ~s.", [MasterHost], State),
     SchedulerInfo = scheduler_info(State),
     case erl_mesos_scheduler_call:subscribe(SchedulerInfo, CallSubscribe) of
         {ok, ClientRef} ->
@@ -995,7 +995,7 @@ resubscribe(#state{master_host = MasterHost,
             State2 = set_recv_timer(State1),
             {noreply, State2};
         {error, Reason} ->
-            log_error("Can not resubscribe.", "Host: ~s, Error reason: ~p.",
+            log_error("Can not resubscribe.", "host: ~s, error reason: ~p.",
                       [MasterHost, Reason], State),
             handle_unsubscribe(State)
     end.
@@ -1021,7 +1021,7 @@ handle_redirect(#state{master_hosts = MasterHosts,
         _MaxNumRedirect ->
             close(ClientRef),
             MasterHost1 = redirect_master_host(Headers),
-            log_info("Redirect.", "Form host: ~s, to host: ~s.",
+            log_info("Redirect.", "form: ~s, to: ~s.",
                      [MasterHost, MasterHost1], State),
             MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
                                                        MasterHosts)],
@@ -1087,28 +1087,28 @@ close(ClientRef) ->
 %% @private
 -spec log_info(string(), string(), [term()], state()) -> ok.
 log_info(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:info(Message ++ " Ref: ~p, Scheduler: ~p, " ++ Format,
+    erl_mesos_logger:info(Message ++ " Ref: ~p, scheduler: ~p, " ++ Format,
                           [Ref, Scheduler | Data]).
 
 %% @doc Logs warning.
 %% @private
 -spec log_warning(string(), string(), [term()], state()) -> ok.
 log_warning(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:warning(Message ++ " Ref: ~p, Scheduler: ~p, " ++ Format,
+    erl_mesos_logger:warning(Message ++ " Ref: ~p, scheduler: ~p, " ++ Format,
                              [Ref, Scheduler | Data]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), state()) -> ok.
 log_error(Message, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:error(Message ++ " Ref: ~p, Scheduler: ~p.",
+    erl_mesos_logger:error(Message ++ " Ref: ~p, scheduler: ~p.",
                            [Ref, Scheduler]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), string(), [term()], state()) -> ok.
 log_error(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:error(Message ++ " Ref: ~p, Scheduler: ~p, " ++ Format,
+    erl_mesos_logger:error(Message ++ " Ref: ~p, scheduler: ~p, " ++ Format,
                            [Ref, Scheduler | Data]).
 
 %% @doc Formats state.
