@@ -52,7 +52,7 @@
          code_change/3,
          format_status/2]).
 
--record(state, {ref :: term(),
+-record(state, {name :: atom(),
                 scheduler :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
                 data_format_module :: module(),
@@ -214,10 +214,10 @@
 %% External functions.
 
 %% @doc Starts the `erl_mesos_scheduler' process.
--spec start_link(term(), module(), term(), options()) ->
+-spec start_link(atom(), module(), term(), options()) ->
     {ok, pid()} | {error, term()}.
-start_link(Ref, Scheduler, SchedulerOptions, Options) ->
-    gen_server:start_link(?MODULE, {Ref, Scheduler, SchedulerOptions, Options},
+start_link(Name, Scheduler, SchedulerOptions, Options) ->
+    gen_server:start_link(?MODULE, {Name, Scheduler, SchedulerOptions, Options},
                           []).
 
 %% @doc Teardown call.
@@ -332,10 +332,10 @@ suppress(SchedulerInfo) ->
 %% gen_server callback functions.
 
 %% @private
--spec init({term(), module(), term(), options()}) ->
+-spec init({atom(), module(), term(), options()}) ->
     {ok, state()} | {stop, term()}.
-init({Ref, Scheduler, SchedulerOptions, Options}) ->
-    case init(Ref, Scheduler, SchedulerOptions, Options) of
+init({Name, Scheduler, SchedulerOptions, Options}) ->
+    case init(Name, Scheduler, SchedulerOptions, Options) of
         {ok, State} ->
             {ok, State};
         {error, Reason} ->
@@ -345,14 +345,14 @@ init({Ref, Scheduler, SchedulerOptions, Options}) ->
 %% @private
 -spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
 handle_call(Request, _From, State) ->
-    log_warning("Scheduler received unexpected call request.", "request: ~p.",
+    log_warning("scheduler received unexpected call request", "request: ~p.",
                 [Request], State),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
-    log_warning("Scheduler received unexpected cast request.", "request: ~p.",
+    log_warning("scheduler received unexpected cast request", "request: ~p.",
                 [Request], State),
     {noreply, State}.
 
@@ -373,20 +373,20 @@ handle_info(Info, #state{client_ref = ClientRef,
         undefined ->
             case Info of
                 {'DOWN', ClientRef, Reason} ->
-                    log_error("Client process crashed.", "reason: ~p.",
+                    log_error("client process crashed", "reason: ~p.",
                               [Reason], State),
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef),
                        SubscribeState =/= subscribed ->
-                    log_error("Receive timeout occurred.", State),
+                    log_error("receive timeout occurred", State),
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef) ->
                     {noreply, State};
                 {timeout, HeartbeatTimerRef, heartbeat}
                   when SubscribeState =:= subscribed ->
-                    log_error("Heartbeat timeout occurred.", State),
+                    log_error("heartbeat timeout occurred", State),
                     handle_unsubscribe(State);
                 {timeout, HeartbeatTimerRef, heartbeat} ->
                     {noreply, State};
@@ -426,9 +426,9 @@ format_status(terminate, [_Dict, State]) ->
 
 %% @doc Validates options and sets options to the state.
 %% @private
--spec init(term(), module(), term(), options()) ->
+-spec init(atom(), module(), term(), options()) ->
     {ok, state()} | {error, term()}.
-init(Ref, Scheduler, SchedulerOptions, Options) ->
+init(Name, Scheduler, SchedulerOptions, Options) ->
     Funs = [fun master_hosts/1,
             fun request_options/1,
             fun heartbeat_timeout_window/1,
@@ -436,7 +436,7 @@ init(Ref, Scheduler, SchedulerOptions, Options) ->
             fun resubscribe_interval/1],
     case options(Funs, Options) of
         {ok, ValidOptions} ->
-            State = state(Ref, Scheduler, ValidOptions),
+            State = state(Name, Scheduler, ValidOptions),
             case init(SchedulerOptions, State) of
                 {ok, State1} ->
                     subscribe(State1);
@@ -567,15 +567,15 @@ options([], _Options, ValidOptions) ->
 
 %% @doc Returns state.
 %% @private
--spec state(term(), module(), options()) -> state().
-state(Ref, Scheduler, Options) ->
+-spec state(atom(), module(), options()) -> state().
+state(Name, Scheduler, Options) ->
     MasterHosts = proplists:get_value(master_hosts, Options),
     RequestOptions = proplists:get_value(request_options, Options),
     HeartbeatTimeoutWindow = proplists:get_value(heartbeat_timeout_window,
                                                  Options),
     MaxNumResubscribe = proplists:get_value(max_num_resubscribe, Options),
     ResubscribeInterval = proplists:get_value(resubscribe_interval, Options),
-    #state{ref = Ref,
+    #state{name = Name,
            scheduler = Scheduler,
            data_format = ?DATA_FORMAT,
            data_format_module = ?DATA_FORMAT_MODULE,
@@ -608,7 +608,7 @@ init(SchedulerOptions, #state{master_hosts = MasterHosts,
 subscribe(#state{call_subscribe = CallSubscribe,
                  master_hosts_queue = [MasterHost | MasterHostsQueue]} =
           State) ->
-    log_info("Try to subscribe.", "host: ~s.", [MasterHost], State),
+    log_info("try to subscribe", "host: ~s.", [MasterHost], State),
     SchedulerInfo = scheduler_info(State),
     SchedulerInfo1 = SchedulerInfo#scheduler_info{master_host = MasterHost},
     case erl_mesos_scheduler_call:subscribe(SchedulerInfo1, CallSubscribe) of
@@ -619,7 +619,7 @@ subscribe(#state{call_subscribe = CallSubscribe,
             State2 = set_recv_timer(State1),
             {ok, State2};
         {error, Reason} ->
-            log_error("Can not subscribe.", "host: ~s, error reason ~p.",
+            log_error("can not subscribe", "host: ~s, error reason ~p.",
                       [MasterHost, Reason], State),
             State1 = State#state{master_hosts_queue = MasterHostsQueue},
             subscribe(State1)
@@ -696,7 +696,7 @@ handle_async_response(Body,
             StreamId = proplists:get_value(<<"Mesos-Stream-Id">>, Headers),
             handle_events(Body, State#state{stream_id = StreamId});
         _ContentType ->
-            log_error("Invalid content type.", "content type: ~s.",
+            log_error("invalid content type", "content type: ~s.",
                       [ContentType], State),
             handle_unsubscribe(State)
     end;
@@ -712,14 +712,14 @@ handle_async_response(_Body,
 handle_async_response(Body,
                       #state{subscribe_state =
                              #subscribe_response{status = Status}} = State) ->
-    log_error("Invalid http response.", "status: ~p, body: ~s.", [Status, Body],
+    log_error("invalid http response", "status: ~p, body: ~s.", [Status, Body],
               State),
     handle_unsubscribe(State);
 handle_async_response(done, State) ->
-    log_error("Connection closed.", State),
+    log_error("connection closed", State),
     handle_unsubscribe(State);
 handle_async_response({error, Reason}, State) ->
-    log_error("Connection error.", "reason: ~p.", [Reason], State),
+    log_error("connection error", "reason: ~p.", [Reason], State),
     handle_unsubscribe(State).
 
 %% @doc Cancels recv timer.
@@ -771,14 +771,14 @@ apply_event(Message, #state{master_host = MasterHost,
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response), not Registered ->
-            log_info("Successfully subscribed.", "host: ~s.", [MasterHost],
+            log_info("successfully subscribed", "host: ~s.", [MasterHost],
                      State),
             {EventSubscribed1, State1} = set_subscribed(EventSubscribed, State),
             call(registered, EventSubscribed1, State1#state{registered = true});
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response) ->
-            log_info("Successfully resubscribed.", "host: ~s.", [MasterHost],
+            log_info("successfully resubscribed", "host: ~s.", [MasterHost],
                      State),
             {_EventSubscribed, State1} = set_subscribed(EventSubscribed, State),
             call(reregistered, State1);
@@ -987,7 +987,7 @@ set_resubscribe_timer(#state{resubscribe_interval = ResubscribeInterval} =
 -spec resubscribe(state()) -> {noreply, state()} | {stop, term(), state()}.
 resubscribe(#state{master_host = MasterHost,
                    call_subscribe = CallSubscribe} = State) ->
-    log_info("Try to resubscribe.", "host: ~s.", [MasterHost], State),
+    log_info("try to resubscribe", "host: ~s.", [MasterHost], State),
     SchedulerInfo = scheduler_info(State),
     case erl_mesos_scheduler_call:subscribe(SchedulerInfo, CallSubscribe) of
         {ok, ClientRef} ->
@@ -995,7 +995,7 @@ resubscribe(#state{master_host = MasterHost,
             State2 = set_recv_timer(State1),
             {noreply, State2};
         {error, Reason} ->
-            log_error("Can not resubscribe.", "host: ~s, error reason: ~p.",
+            log_error("can not resubscribe", "host: ~s, error reason: ~p.",
                       [MasterHost, Reason], State),
             handle_unsubscribe(State)
     end.
@@ -1021,8 +1021,8 @@ handle_redirect(#state{master_hosts = MasterHosts,
         _MaxNumRedirect ->
             close(ClientRef),
             MasterHost1 = redirect_master_host(Headers),
-            log_info("Redirect.", "form: ~s, to: ~s.",
-                     [MasterHost, MasterHost1], State),
+            log_info("redirect", "form: ~s, to: ~s.", [MasterHost, MasterHost1],
+                     State),
             MasterHosts1 = [MasterHost1 | lists:delete(MasterHost1,
                                                        MasterHosts)],
             MasterHostsQueue1 = [MasterHost1 | lists:delete(MasterHost,
@@ -1086,35 +1086,35 @@ close(ClientRef) ->
 %% @doc Logs info.
 %% @private
 -spec log_info(string(), string(), [term()], state()) -> ok.
-log_info(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:info(Message ++ " Ref: ~p, scheduler: ~p, " ++ Format,
-                          [Ref, Scheduler | Data]).
+log_info(Message, Format, Data, #state{name = Name}) ->
+    error_logger:info_msg("Mesos scheduler: ~p, message: ~s, " ++ Format,
+                          [Name, Message | Data]).
 
 %% @doc Logs warning.
 %% @private
 -spec log_warning(string(), string(), [term()], state()) -> ok.
-log_warning(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:warning(Message ++ " Ref: ~p, scheduler: ~p, " ++ Format,
-                             [Ref, Scheduler | Data]).
+log_warning(Message, Format, Data, #state{name = Name}) ->
+    error_logger:warning_msg("Mesos scheduler: ~p, message: ~s, " ++ Format,
+                             [Name, Message | Data]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), state()) -> ok.
-log_error(Message, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:error(Message ++ " Ref: ~p, scheduler: ~p.",
-                           [Ref, Scheduler]).
+log_error(Message, #state{name = Name}) ->
+    error_logger:error_msg("Mesos scheduler: ~p, message: ~s.",
+                           [Name, Message]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), string(), [term()], state()) -> ok.
-log_error(Message, Format, Data, #state{ref = Ref, scheduler = Scheduler}) ->
-    erl_mesos_logger:error(Message ++ " Ref: ~p, scheduler: ~p, " ++ Format,
-                           [Ref, Scheduler | Data]).
+log_error(Message, Format, Data, #state{name = Name}) ->
+    error_logger:error_msg("Mesos scheduler: ~p, message: ~s, " ++ Format,
+                           [Name, Message | Data]).
 
 %% @doc Formats state.
 %% @private
 -spec format_state(state()) -> [{string(), [{atom(), term()}]}].
-format_state(#state{ref = Ref,
+format_state(#state{name = Name,
                     scheduler = Scheduler,
                     data_format = DataFormat,
                     data_format_module = DataFormatModule,
@@ -1159,7 +1159,7 @@ format_state(#state{ref = Ref,
              {heartbeat_timeout, HeartbeatTimeout},
              {heartbeat_timer_ref, HeartbeatTimerRef},
              {resubscribe_timer_ref, ResubscribeTimerRef}],
-    [{"Ref", Ref},
+    [{"Name", Name},
      {"Scheduler", Scheduler},
      {"Scheduler state", SchedulerState},
      {"State", State}].
