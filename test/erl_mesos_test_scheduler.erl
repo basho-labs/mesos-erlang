@@ -22,16 +22,18 @@
 
 -behaviour(erl_mesos_scheduler).
 
--include_lib("scheduler_info.hrl").
+-include_lib("erl_mesos_scheduler_info.hrl").
 
--include_lib("scheduler_protobuf.hrl").
+-include_lib("erl_mesos_scheduler_proto.hrl").
 
 -export([init/1,
          registered/3,
          reregistered/2,
          disconnected/2,
          resource_offers/3,
+         resource_inverse_offers/3,
          offer_rescinded/3,
+         inverse_offer_rescinded/3,
          status_update/3,
          framework_message/3,
          slave_lost/3,
@@ -68,9 +70,21 @@ resource_offers(SchedulerInfo, EventOffers,
     reply(TestPid, resource_offers, {self(), SchedulerInfo, EventOffers}),
     {ok, State}.
 
+resource_inverse_offers(SchedulerInfo, EventInverseOffers,
+                        #state{test_pid = TestPid} = State) ->
+    reply(TestPid, resource_inverse_offers,
+          {self(), SchedulerInfo, EventInverseOffers}),
+    {ok, State}.
+
 offer_rescinded(SchedulerInfo, EventRescind,
                 #state{test_pid = TestPid} = State) ->
     reply(TestPid, offer_rescinded, {self(), SchedulerInfo, EventRescind}),
+    {ok, State}.
+
+inverse_offer_rescinded(SchedulerInfo, EventRescindInverseOffer,
+                        #state{test_pid = TestPid} = State) ->
+    reply(TestPid, inverse_offer_rescinded,
+          {self(), SchedulerInfo, EventRescindInverseOffer}),
     {ok, State}.
 
 status_update(SchedulerInfo, EventUpdate, #state{test_pid = TestPid} = State) ->
