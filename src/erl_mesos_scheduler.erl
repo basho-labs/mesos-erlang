@@ -125,8 +125,14 @@
 -type 'Event.Offers'() :: #'Event.Offers'{}.
 -export_type(['Event.Offers'/0]).
 
+-type 'Event.InverseOffers'() :: #'Event.InverseOffers'{}.
+-export_type(['Event.InverseOffers'/0]).
+
 -type 'Event.Rescind'() :: #'Event.Rescind'{}.
 -export_type(['Event.Rescind'/0]).
+
+-type 'Event.RescindInverseOffer'() :: #'Event.RescindInverseOffer'{}.
+-export_type(['Event.RescindInverseOffer'/0]).
 
 -type 'Event.Update'() :: #'Event.Update'{}.
 -export_type(['Event.Update'/0]).
@@ -166,7 +172,15 @@
 -callback resource_offers(scheduler_info(), 'Event.Offers'(), term()) ->
     {ok, term()} | {stop, term()}.
 
+-callback resource_inverse_offers(scheduler_info(), 'Event.InverseOffers'(),
+                                  term()) ->
+    {ok, term()} | {stop, term()}.
+
 -callback offer_rescinded(scheduler_info(), 'Event.Rescind'(), term()) ->
+    {ok, term()} | {stop, term()}.
+
+-callback inverse_offer_rescinded(scheduler_info(),
+                                  'Event.RescindInverseOffer'(), term()) ->
     {ok, term()} | {stop, term()}.
 
 -callback status_update(scheduler_info(), 'Event.Update'(), term()) ->
@@ -784,8 +798,14 @@ apply_event(Message, #state{master_host = MasterHost,
             call(reregistered, State1);
         #'Event'{type = 'OFFERS', offers = EventOffers} ->
             call(resource_offers, EventOffers, State);
+        #'Event'{type = 'INVERSE_OFFERS',
+                 inverse_offers = EventInverseOffers} ->
+            call(resource_inverse_offers, EventInverseOffers, State);
         #'Event'{type = 'RESCIND', rescind = EventRescind} ->
             call(offer_rescinded, EventRescind, State);
+        #'Event'{type = 'RESCIND_INVERSE_OFFER',
+                 rescind_inverse_offer = EventRescindInverseOffer} ->
+            call(inverse_offer_rescinded, EventRescindInverseOffer, State);
         #'Event'{type = 'UPDATE', update = EventUpdate} ->
             call(status_update, EventUpdate, State);
         #'Event'{type = 'MESSAGE', message = EventMessage} ->
