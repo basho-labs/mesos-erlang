@@ -20,7 +20,7 @@
 
 -module(erl_mesos_test_utils).
 
--include_lib("scheduler_protobuf.hrl").
+-include_lib("erl_mesos_scheduler_proto.hrl").
 
 -export([offers/1]).
 

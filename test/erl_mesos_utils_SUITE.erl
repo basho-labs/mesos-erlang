@@ -22,7 +22,7 @@
 
 -include_lib("common_test/include/ct.hrl").
 
--include_lib("scheduler_protobuf.hrl").
+-include_lib("erl_mesos_scheduler_proto.hrl").
 
 -export([all/0]).
 

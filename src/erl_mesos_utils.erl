@@ -20,9 +20,9 @@
 
 -module(erl_mesos_utils).
 
--include("scheduler_protobuf.hrl").
+-include("erl_mesos_scheduler_proto.hrl").
 
--include("utils.hrl").
+-include("erl_mesos_utils.hrl").
 
 -export([resources_cpus/1,
          resources_mem/1,
