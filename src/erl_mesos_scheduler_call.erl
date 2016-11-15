@@ -29,7 +29,9 @@
 -export([subscribe/2,
          teardown/1,
          accept/2,
+         accept_inverse_offers/2,
          decline/2,
+         decline_inverse_offers/2,
          revive/1,
          kill/2,
          shutdown/2,
@@ -71,12 +73,32 @@ accept(SchedulerInfo, CallAccept) ->
     Call1 = set_framework_id(SchedulerInfo, Call),
     sync_request(SchedulerInfo, Call1).
 
+%% @doc Executes accept inverse offers call.
+-spec accept_inverse_offers(erl_mesos_scheduler:scheduler_info(),
+                            erl_mesos_scheduler:'Call.AcceptInverseOffers'()) ->
+    ok | {error, term()}.
+accept_inverse_offers(SchedulerInfo, CallAcceptInverseOffers) ->
+    Call = #'Call'{type = 'ACCEPT_INVERSE_OFFERS',
+                   accept_inverse_offers = CallAcceptInverseOffers},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    sync_request(SchedulerInfo, Call1).
+
 %% @doc Executes decline call.
 -spec decline(erl_mesos_scheduler:scheduler_info(),
               erl_mesos_scheduler:'Call.Decline'()) ->
     ok | {error, term()}.
 decline(SchedulerInfo, CallDecline) ->
     Call = #'Call'{type = 'DECLINE', decline = CallDecline},
+    Call1 = set_framework_id(SchedulerInfo, Call),
+    sync_request(SchedulerInfo, Call1).
+
+%% @doc Executes decline inverse offers call.
+-spec decline_inverse_offers(erl_mesos_scheduler:scheduler_info(),
+                        erl_mesos_scheduler:'Call.DeclineInverseOffers'()) ->
+    ok | {error, term()}.
+decline_inverse_offers(SchedulerInfo, CallDeclineInverseOffers) ->
+    Call = #'Call'{type = 'DECLINE_INVERSE_OFFERS',
+                   decline_inverse_offers = CallDeclineInverseOffers},
     Call1 = set_framework_id(SchedulerInfo, Call),
     sync_request(SchedulerInfo, Call1).
 

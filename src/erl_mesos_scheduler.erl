@@ -31,8 +31,12 @@
 -export([teardown/1,
          accept/3,
          accept/4,
+         accept_inverse_offers/2,
+         accept_inverse_offers/3,
          decline/2,
          decline/3,
+         decline_inverse_offers/2,
+         decline_inverse_offers/3,
          revive/1,
          kill/2,
          kill/3,
@@ -92,8 +96,14 @@
 -type 'Call.Accept'() :: #'Call.Accept'{}.
 -export_type(['Call.Accept'/0]).
 
+-type 'Call.AcceptInverseOffers'() :: #'Call.AcceptInverseOffers'{}.
+-export_type(['Call.AcceptInverseOffers'/0]).
+
 -type 'Call.Decline'() :: #'Call.Decline'{}.
 -export_type(['Call.Decline'/0]).
+
+-type 'Call.DeclineInverseOffers'() :: #'Call.DeclineInverseOffers'{}.
+-export_type(['Call.DeclineInverseOffers'/0]).
 
 -type 'Call.Kill'() :: #'Call.Kill'{}.
 -export_type(['Call.Kill'/0]).
@@ -257,6 +267,23 @@ accept(SchedulerInfo, OfferIds, Operations, Filters) ->
                                 filters = Filters},
     erl_mesos_scheduler_call:accept(SchedulerInfo, CallAccept).
 
+%% @equiv accept_inverse_offers(SchedulerInfo, OfferIds, undefined)
+-spec accept_inverse_offers(scheduler_info(), [erl_mesos:'OfferID'()]) ->
+    ok | {error, term()}.
+accept_inverse_offers(SchedulerInfo, OfferIds) ->
+    accept_inverse_offers(SchedulerInfo, OfferIds, undefined).
+
+%% @doc Accept inverse offers call.
+-spec accept_inverse_offers(scheduler_info(), [erl_mesos:'OfferID'()],
+                            undefined | erl_mesos:'Filters'()) ->
+    ok | {error, term()}.
+accept_inverse_offers(SchedulerInfo, OfferIds, Filters) ->
+    CallAcceptInverseOffers =
+        #'Call.AcceptInverseOffers'{inverse_offer_ids = OfferIds,
+                                    filters = Filters},
+    erl_mesos_scheduler_call:accept_inverse_offers(SchedulerInfo,
+                                                   CallAcceptInverseOffers).
+
 %% @equiv decline(SchedulerInfo, OfferIds, undefined)
 -spec decline(scheduler_info(), [erl_mesos:'OfferID'()]) ->
     ok | {error, term()}.
@@ -271,6 +298,23 @@ decline(SchedulerInfo, OfferIds, Filters) ->
     CallDecline = #'Call.Decline'{offer_ids = OfferIds,
                                   filters = Filters},
     erl_mesos_scheduler_call:decline(SchedulerInfo, CallDecline).
+
+%% @equiv decline_inverse_offers(SchedulerInfo, OfferIds, undefined)
+-spec decline_inverse_offers(scheduler_info(), [erl_mesos:'OfferID'()]) ->
+    ok | {error, term()}.
+decline_inverse_offers(SchedulerInfo, OfferIds) ->
+    decline_inverse_offers(SchedulerInfo, OfferIds, undefined).
+
+%% @doc Decline inverse offers call.
+-spec decline_inverse_offers(scheduler_info(), [erl_mesos:'OfferID'()],
+                             undefined | erl_mesos:'Filters'()) ->
+    ok | {error, term()}.
+decline_inverse_offers(SchedulerInfo, OfferIds, Filters) ->
+    CallDeclineInverseOffers =
+        #'Call.DeclineInverseOffers'{inverse_offer_ids = OfferIds,
+                                     filters = Filters},
+    erl_mesos_scheduler_call:decline_inverse_offers(SchedulerInfo,
+                                                    CallDeclineInverseOffers).
 
 %% @doc Revive call.
 -spec revive(scheduler_info()) -> ok | {error, term()}.
