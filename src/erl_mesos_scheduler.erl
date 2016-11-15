@@ -26,7 +26,7 @@
 
 -include("erl_mesos_scheduler_proto.hrl").
 
--export([start_link/4]).
+-export([start_link/4, stop/2]).
 
 -export([teardown/1,
          accept/3,
@@ -241,8 +241,13 @@
 -spec start_link(atom(), module(), term(), options()) ->
     {ok, pid()} | {error, term()}.
 start_link(Name, Scheduler, SchedulerOptions, Options) ->
-    gen_server:start_link(?MODULE, {Name, Scheduler, SchedulerOptions, Options},
-                          []).
+    gen_server:start_link({local, Name}, ?MODULE,
+                          {Name, Scheduler, SchedulerOptions, Options}, []).
+
+%% @doc Stops the `erl_mesos_scheduler' process.
+-spec stop(atom(), timeout()) -> ok.
+stop(Name, Timeout) ->
+    gen_server:call(Name, stop, Timeout).
 
 %% @doc Teardown call.
 -spec teardown(scheduler_info()) -> ok | {error, term()}.
@@ -401,7 +406,11 @@ init({Name, Scheduler, SchedulerOptions, Options}) ->
     end.
 
 %% @private
--spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
+-spec handle_call(term(), {pid(), term()}, state()) ->
+    {stop, normal, ok, state()} | {noreply, state()}.
+handle_call(stop, _From, State) ->
+    log_info("scheduler stopped", State),
+    {stop, normal, ok, State};
 handle_call(Request, _From, State) ->
     log_warning("scheduler received unexpected call request", "request: ~p.",
                 [Request], State),
@@ -705,7 +714,8 @@ set_recv_timer(Timeout, State) ->
 %% @doc Returns scheduler info.
 %% @private
 -spec scheduler_info(state()) -> scheduler_info().
-scheduler_info(#state{data_format = DataFormat,
+scheduler_info(#state{name = Name,
+                      data_format = DataFormat,
                       data_format_module = DataFormatModule,
                       api_version = ApiVersion,
                       master_host = MasterHost,
@@ -716,7 +726,8 @@ scheduler_info(#state{data_format = DataFormat,
                       subscribe_state = SubscribeState,
                       stream_id = StreamId}) ->
     Subscribed = SubscribeState =:= subscribed,
-    #scheduler_info{data_format = DataFormat,
+    #scheduler_info{name = Name,
+                    data_format = DataFormat,
                     data_format_module = DataFormatModule,
                     api_version = ApiVersion,
                     master_host = MasterHost,
@@ -1146,6 +1157,12 @@ close(undefined) ->
     ok;
 close(ClientRef) ->
     erl_mesos_http:close_async_response(ClientRef).
+
+%% @doc Logs info.
+%% @private
+-spec log_info(string(), state()) -> ok.
+log_info(Message, #state{name = Name}) ->
+    error_logger:info_msg("Mesos scheduler: ~p, message: ~s.", [Name, Message]).
 
 %% @doc Logs info.
 %% @private
