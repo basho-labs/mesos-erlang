@@ -20,15 +20,9 @@
 
 -module(erl_mesos).
 
--behaviour(application).
+-include("erl_mesos_scheduler_proto.hrl").
 
--include("scheduler_protobuf.hrl").
-
--export([start/0]).
-
--export([start_scheduler/4, start_scheduler/5, stop_scheduler/1]).
-
--export([start/2, stop/1]).
+-export([start_scheduler/4, stop_scheduler/1, stop_scheduler/2]).
 
 -type 'AgentID'() :: #'AgentID'{}.
 -export_type(['AgentID'/0]).
@@ -101,48 +95,20 @@
 
 %% External functions.
 
-%% @doc Starts app with deps.
--spec start() -> ok.
-start() ->
-    case application:ensure_all_started(erl_mesos) of
-        {ok, _Apps} ->
-            ok;
-        {error, Reason} ->
-            {error, Reason}
-    end.
-
-%% @equiv erl_mesos:start_scheduler(Ref, Scheduler, SchedulerOptions, Options,
-%%                                  infinity)
--spec start_scheduler(term(), module(), term(),
+%% @equiv erl_mesos_scheduler:start_link(Name, Scheduler, SchedulerOptions,
+%%                                       Options)
+-spec start_scheduler(atom(), module(), term(),
                       erl_mesos_scheduler:options()) ->
     {ok, pid()} | {error, term()}.
-start_scheduler(Ref, Scheduler, SchedulerOptions, Options) ->
-    start_scheduler(Ref, Scheduler, SchedulerOptions, Options, infinity).
+start_scheduler(Name, Scheduler, SchedulerOptions, Options) ->
+    erl_mesos_scheduler:start_link(Name, Scheduler, SchedulerOptions, Options).
 
-%% @doc Starts scheduler.
--spec start_scheduler(term(), module(), term(),
-                      erl_mesos_scheduler:options(), timeout()) ->
-    {ok, pid()} | {error, term()}.
-start_scheduler(Ref, Scheduler, SchedulerOptions, Options, Timeout) ->
-    erl_mesos_scheduler_manager:start_scheduler(Ref, Scheduler,
-                                                SchedulerOptions, Options,
-                                                Timeout).
-
-%% @doc Stops scheduler.
+%% @equiv stop_scheduler(Name, infinity)
 -spec stop_scheduler(term())  -> ok | {error, term()}.
-stop_scheduler(Ref) ->
-    erl_mesos_scheduler_manager:stop_scheduler(Ref).
+stop_scheduler(Name) ->
+    erl_mesos_scheduler:stop(Name, infinity).
 
-%% application callback functions.
-
-%% @doc Starts the `erl_mesos_sup' process.
-%% @private
--spec start(normal | {takeover, node()} | {failover, node()}, term()) ->
-    {ok, pid()} | {error, term()}.
-start(_Type, _Args) ->
-    erl_mesos_sup:start_link().
-
-%% @private
--spec stop(term()) -> ok.
-stop(_State) ->
-    ok.
+%% @equiv erl_mesos_scheduler:stop(Name, Timeout)
+-spec stop_scheduler(term(), timeout())  -> ok.
+stop_scheduler(Name, Timeout) ->
+    erl_mesos_scheduler:stop(Name, Timeout).
