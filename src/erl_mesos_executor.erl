@@ -26,7 +26,7 @@
 
 -include("erl_mesos_executor_proto.hrl").
 
--export([start_link/4, stop/2]).
+-export([start_link/3, start_link/4, stop/1, stop/2]).
 
 -export([update/2, message/2]).
 
@@ -158,12 +158,22 @@
 
 %% External functions.
 
+%% @equiv start_link(Name, Scheduler, SchedulerOptions, [])
+-spec start_link(atom(), module(), term()) -> {ok, pid()} | {error, term()}.
+start_link(Name, Scheduler, SchedulerOptions) ->
+    start_link(Name, Scheduler, SchedulerOptions, []).
+
 %% @doc Starts the `erl_mesos_executor' process.
 -spec start_link(atom(), module(), term(), options()) ->
     {ok, pid()} | {error, term()}.
 start_link(Name, Executor, ExecutorOptions, Options) ->
     gen_server:start_link({local, Name}, ?MODULE,
                           {Name, Executor, ExecutorOptions, Options}, []).
+
+%% @equiv  stop(Name, infinity)
+-spec stop(atom()) -> ok.
+stop(Name) ->
+    stop(Name, infinity).
 
 %% @doc Stops the `erl_mesos_executor' process.
 -spec stop(atom(), timeout()) -> ok.
