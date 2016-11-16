@@ -115,8 +115,7 @@ request_headers(DataFormat, Headers) ->
     ContentType = erl_mesos_data_format:content_type(DataFormat),
     [{<<"Content-Type">>, ContentType},
      {<<"Accept">>, ContentType},
-     {<<"Connection">>, <<"close">>}] ++
-    Headers.
+     {<<"Connection">>, <<"close">>} | Headers].
 
 %% @doc Returns async request options.
 %% @private
