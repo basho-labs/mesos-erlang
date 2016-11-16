@@ -409,18 +409,18 @@ init({Name, Scheduler, SchedulerOptions, Options}) ->
 -spec handle_call(term(), {pid(), term()}, state()) ->
     {stop, normal, ok, state()} | {noreply, state()}.
 handle_call(stop, _From, State) ->
-    log_info("scheduler stopped", State),
+    log_info("stopped", State),
     {stop, normal, ok, State};
 handle_call(Request, _From, State) ->
-    log_warning("scheduler received unexpected call request", "request: ~p.",
-                [Request], State),
+    log_warning("received unexpected call request", "request: ~p.", [Request],
+                State),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
-    log_warning("scheduler received unexpected cast request", "request: ~p.",
-                [Request], State),
+    log_warning("received unexpected cast request", "request: ~p.", [Request],
+                State),
     {noreply, State}.
 
 %% @private
@@ -1162,34 +1162,33 @@ close(ClientRef) ->
 %% @private
 -spec log_info(string(), state()) -> ok.
 log_info(Message, #state{name = Name}) ->
-    error_logger:info_msg("Mesos scheduler: ~p, message: ~s.", [Name, Message]).
+    error_logger:info_msg("Mesos scheduler: ~p; ~s.", [Name, Message]).
 
 %% @doc Logs info.
 %% @private
 -spec log_info(string(), string(), [term()], state()) -> ok.
 log_info(Message, Format, Data, #state{name = Name}) ->
-    error_logger:info_msg("Mesos scheduler: ~p, message: ~s, " ++ Format,
+    error_logger:info_msg("Mesos scheduler: ~p; ~s, " ++ Format,
                           [Name, Message | Data]).
 
 %% @doc Logs warning.
 %% @private
 -spec log_warning(string(), string(), [term()], state()) -> ok.
 log_warning(Message, Format, Data, #state{name = Name}) ->
-    error_logger:warning_msg("Mesos scheduler: ~p, message: ~s, " ++ Format,
+    error_logger:warning_msg("Mesos scheduler: ~p; ~s, " ++ Format,
                              [Name, Message | Data]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), state()) -> ok.
 log_error(Message, #state{name = Name}) ->
-    error_logger:error_msg("Mesos scheduler: ~p, message: ~s.",
-                           [Name, Message]).
+    error_logger:error_msg("Mesos scheduler: ~p; ~s.", [Name, Message]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), string(), [term()], state()) -> ok.
 log_error(Message, Format, Data, #state{name = Name}) ->
-    error_logger:error_msg("Mesos scheduler: ~p, message: ~s, " ++ Format,
+    error_logger:error_msg("Mesos scheduler: ~p; ~s, " ++ Format,
                            [Name, Message | Data]).
 
 %% @doc Formats state.
