@@ -22,9 +22,9 @@
 
 -behaviour(erl_mesos_executor).
 
--include_lib("executor_info.hrl").
+-include_lib("erl_mesos_executor_info.hrl").
 
--include_lib("executor_protobuf.hrl").
+-include_lib("erl_mesos_executor_proto.hrl").
 
 -export([init/1,
          registered/3,
