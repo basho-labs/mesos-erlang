@@ -248,7 +248,7 @@ start_scheduler(Name, Scheduler, SchedulerOptions, Options) ->
     erl_mesos_scheduler:start_link(Name, Scheduler, SchedulerOptions, Options).
 
 stop_scheduler(Name) ->
-    erl_mesos_scheduler:stop(Name, infinity).
+    erl_mesos_scheduler:stop(Name).
 
 start_and_accept_scheduler(Name, Config) ->
     Scheduler = ?config(scheduler, Config),
