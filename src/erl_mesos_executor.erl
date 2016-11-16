@@ -22,11 +22,11 @@
 
 -behaviour(gen_server).
 
--include("executor_info.hrl").
+-include("erl_mesos_executor_info.hrl").
 
--include("executor_protobuf.hrl").
+-include("erl_mesos_executor_proto.hrl").
 
--export([start_link/4]).
+-export([start_link/4, stop/2]).
 
 -export([update/2, message/2]).
 
@@ -38,7 +38,7 @@
          code_change/3,
          format_status/2]).
 
--record(state, {ref :: term(),
+-record(state, {name :: term(),
                 executor :: module(),
                 data_format :: erl_mesos_data_format:data_format(),
                 data_format_module :: module(),
@@ -152,18 +152,23 @@
 
 -define(DATA_FORMAT, protobuf).
 
--define(DATA_FORMAT_MODULE, executor_protobuf).
+-define(DATA_FORMAT_MODULE, erl_mesos_executor_proto).
 
 -define(API_VERSION, v1).
 
 %% External functions.
 
 %% @doc Starts the `erl_mesos_executor' process.
--spec start_link(term(), module(), term(), options()) ->
+-spec start_link(atom(), module(), term(), options()) ->
     {ok, pid()} | {error, term()}.
-start_link(Ref, Executor, ExecutorOptions, Options) ->
-    gen_server:start_link(?MODULE, {Ref, Executor, ExecutorOptions, Options},
-                          []).
+start_link(Name, Executor, ExecutorOptions, Options) ->
+    gen_server:start_link({local, Name}, ?MODULE,
+                          {Name, Executor, ExecutorOptions, Options}, []).
+
+%% @doc Stops the `erl_mesos_executor' process.
+-spec stop(atom(), timeout()) -> ok.
+stop(Name, Timeout) ->
+    gen_server:call(Name, stop, Timeout).
 
 %% @doc Update call.
 -spec update(executor_info(), erl_mesos:'TaskStatus'()) -> ok | {error, term()}.
@@ -180,10 +185,10 @@ message(ExecutorInfo, Data) ->
 %% gen_server callback functions.
 
 %% @private
--spec init({term(), module(), term(), options()}) ->
+-spec init({atom(), module(), term(), options()}) ->
     {ok, state()} | {stop, term()}.
-init({Ref, Executor, ExecutorOptions, Options}) ->
-    case init(Ref, Executor, ExecutorOptions, Options) of
+init({Name, Executor, ExecutorOptions, Options}) ->
+    case init(Name, Executor, ExecutorOptions, Options) of
         {ok, State} ->
             {ok, State};
         {error, Reason} ->
@@ -191,17 +196,21 @@ init({Ref, Executor, ExecutorOptions, Options}) ->
     end.
 
 %% @private
--spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
+-spec handle_call(term(), {pid(), term()}, state()) ->
+    {stop, normal, ok, state()} | {noreply, state()}.
+handle_call(stop, _From, State) ->
+    log_info("stopped", State),
+    {stop, normal, ok, State};
 handle_call(Request, _From, State) ->
-    log_warning("Executor received unexpected call request.", "Request: ~p.",
-                [Request], State),
+    log_warning("received unexpected call request", "request: ~p.", [Request],
+                State),
     {noreply, State}.
 
 %% @private
 -spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(Request, State) ->
-    log_warning("Executor received unexpected cast request.", "Request: ~p.",
-                [Request], State),
+    log_warning("received unexpected cast request", "request: ~p.", [Request],
+                State),
     {noreply, State}.
 
 %% @private
@@ -220,13 +229,13 @@ handle_info(Info, #state{client_ref = ClientRef,
         undefined ->
             case Info of
                 {'DOWN', ClientRef, Reason} ->
-                    log_error("Client process crashed.", "Reason: ~p.",
+                    log_error("client process crashed", "reason: ~p.",
                               [Reason], State),
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef),
                        SubscribeState =/= subscribed ->
-                    log_error("Receive timeout occurred.", State),
+                    log_error("receive timeout occurred", State),
                     handle_unsubscribe(State);
                 {timeout, RecvTimerRef, recv}
                   when is_reference(RecvTimerRef) ->
@@ -267,13 +276,13 @@ format_status(terminate, [_Dict, State]) ->
 
 %% @doc Validates options and sets options to the state.
 %% @private
--spec init(term(), module(), term(), options()) ->
+-spec init(atom(), module(), term(), options()) ->
     {ok, state()} | {error, term()}.
-init(Ref, Executor, ExecutorOptions, Options) ->
+init(Name, Executor, ExecutorOptions, Options) ->
     Funs = [fun request_options/1],
     case options(Funs, Options) of
         {ok, ValidOptions} ->
-            State = state(Ref, Executor, ValidOptions),
+            State = state(Name, Executor, ValidOptions),
             case init(ExecutorOptions, State) of
                 {ok, CallSubscribe, State1} ->
                     subscribe(CallSubscribe, State1);
@@ -325,21 +334,21 @@ options([], _Options, ValidOptions) ->
 
 %% @doc Returns state.
 %% @private
--spec state(term(), module(), options()) -> state().
-state(Ref, Executor, Options) ->
+-spec state(atom(), module(), options()) -> state().
+state(Name, Executor, Options) ->
     RequestOptions = proplists:get_value(request_options, Options),
-    AgentHost = erl_mesos_env:get_converted_value(binary, agent_endpoint),
-    ExecutorIdValue = erl_mesos_env:get_converted_value(string, executor_id),
-    FrameworkIdValue = erl_mesos_env:get_converted_value(string, framework_id),
+    AgentHost = erl_mesos:get_env_converted_value(binary, agent_endpoint),
+    ExecutorIdValue = erl_mesos:get_env_converted_value(string, executor_id),
+    FrameworkIdValue = erl_mesos:get_env_converted_value(string, framework_id),
     ExecutorId = #'ExecutorID'{value = ExecutorIdValue},
     FrameworkId = #'FrameworkID'{value = FrameworkIdValue},
-    RecoveryTimeout = erl_mesos_env:get_converted_value(interval,
+    RecoveryTimeout = erl_mesos:get_env_converted_value(interval,
                                                         recovery_timeout),
     SubscriptionBackoffMax =
-        erl_mesos_env:get_converted_value(interval, subscription_backoff_max),
+        erl_mesos:get_env_converted_value(interval, subscription_backoff_max),
     {MaxNumResubscribe, ResubscribeInterval} =
         resubscribe(RecoveryTimeout, SubscriptionBackoffMax),
-    #state{ref = Ref,
+    #state{name = Name,
            executor = Executor,
            data_format = ?DATA_FORMAT,
            data_format_module = ?DATA_FORMAT_MODULE,
@@ -382,7 +391,7 @@ init(ExecutorOptions, #state{executor = Executor} = State) ->
 %% @private
 -spec subscribe('Call.Subscribe'(), state()) -> {ok, state()} | {error, term()}.
 subscribe(CallSubscribe, #state{agent_host = AgentHost} = State) ->
-    log_info("Try to subscribe.", "Host: ~s.", [AgentHost], State),
+    log_info("try to subscribe", "host: ~s.", [AgentHost], State),
     ExecutorInfo = executor_info(State),
     case erl_mesos_executor_call:subscribe(ExecutorInfo, CallSubscribe) of
         {ok, ClientRef} ->
@@ -390,7 +399,7 @@ subscribe(CallSubscribe, #state{agent_host = AgentHost} = State) ->
             State2 = set_recv_timer(State1),
             {ok, State2};
         {error, Reason} ->
-            log_error("Can not subscribe.", "Host: ~s, Error reason ~p.",
+            log_error("can not subscribe", "host: ~s, error reason ~p.",
                       [AgentHost, Reason], State),
             {error, Reason}
     end.
@@ -461,7 +470,7 @@ handle_async_response(Body,
             cancel_recv_timer(RecvTimerRef),
             handle_events(Body, State);
         _ContentType ->
-            log_error("Invalid content type.", "Content type: ~s.",
+            log_error("invalid content type", "content type: ~s.",
                       [ContentType], State),
             handle_unsubscribe(State)
     end;
@@ -471,14 +480,14 @@ handle_async_response(Events, #state{subscribe_state = subscribed} = State)
 handle_async_response(Body,
                       #state{subscribe_state =
                              #subscribe_response{status = Status}} = State) ->
-    log_error("Invalid http response.", "Status: ~p, Body: ~s.", [Status, Body],
+    log_error("invalid http response", "status: ~p, body: ~s.", [Status, Body],
               State),
     handle_unsubscribe(State);
 handle_async_response(done, State) ->
-    log_error("Connection closed.", State),
+    log_error("connection closed", State),
     handle_unsubscribe(State);
 handle_async_response({error, Reason}, State) ->
-    log_error("Connection error.", "Reason: ~p.", [Reason], State),
+    log_error("connection error", "reason: ~p.", [Reason], State),
     handle_unsubscribe(State).
 
 %% @doc Cancels recv timer.
@@ -530,13 +539,13 @@ apply_event(Message, #state{agent_host = AgentHost,
         #'Event'{type = 'SUBSCRIBED',
                  subscribed = EventSubscribed}
           when is_record(SubscribeState, subscribe_response), not Registered ->
-            log_info("Successfully subscribed.", "Host: ~s.", [AgentHost],
+            log_info("successfully subscribed", "host: ~s.", [AgentHost],
                      State),
             State1 = set_subscribed(State),
             call(registered, EventSubscribed, State1#state{registered = true});
         #'Event'{type = 'SUBSCRIBED'}
           when is_record(SubscribeState, subscribe_response) ->
-            log_info("Successfully resubscribed.", "Host: ~s.", [AgentHost],
+            log_info("successfully resubscribed", "host: ~s.", [AgentHost],
                      State),
             State1 = set_subscribed(State),
             call(reregistered, State1);
@@ -642,7 +651,7 @@ resubscribe(#state{executor = Executor,
         {ok, CallSubscribe, ExecutorState1}
           when is_record(CallSubscribe, 'Call.Subscribe') ->
             State1 = State#state{executor_state = ExecutorState1},
-            log_info("Try to resubscribe.", "Host: ~s.", [AgentHost], State),
+            log_info("try to resubscribe", "host: ~s.", [AgentHost], State),
             case erl_mesos_executor_call:subscribe(ExecutorInfo,
                                                    CallSubscribe) of
                 {ok, ClientRef} ->
@@ -650,8 +659,8 @@ resubscribe(#state{executor = Executor,
                     State3 = set_recv_timer(State2),
                     {noreply, State3};
                 {error, Reason} ->
-                    log_error("Can not resubscribe.",
-                              "Host: ~s, Error reason: ~p.",
+                    log_error("can not resubscribe",
+                              "host: ~s, error reason: ~p.",
                               [AgentHost, Reason], State1),
                     handle_unsubscribe(State1)
             end;
@@ -682,36 +691,41 @@ close(ClientRef) ->
 
 %% @doc Logs info.
 %% @private
+-spec log_info(string(), state()) -> ok.
+log_info(Message, #state{name = Name}) ->
+    error_logger:info_msg("Mesos executor: ~p; ~s.", [Name, Message]).
+
+%% @doc Logs info.
+%% @private
 -spec log_info(string(), string(), [term()], state()) -> ok.
-log_info(Message, Format, Data, #state{ref = Ref, executor = Executor}) ->
-    erl_mesos_logger:info(Message ++ " Ref: ~p, Executor: ~p, " ++ Format,
-                          [Ref, Executor | Data]).
+log_info(Message, Format, Data, #state{name = Name}) ->
+    error_logger:info_msg("Mesos executor: ~p; ~s, " ++ Format,
+                          [Name, Message | Data]).
 
 %% @doc Logs warning.
 %% @private
 -spec log_warning(string(), string(), [term()], state()) -> ok.
-log_warning(Message, Format, Data, #state{ref = Ref, executor = Executor}) ->
-    erl_mesos_logger:warning(Message ++ " Ref: ~p, Executor: ~p, " ++ Format,
-                             [Ref, Executor | Data]).
+log_warning(Message, Format, Data, #state{name = Name}) ->
+    error_logger:warning_msg("Mesos executor: ~p; ~s, " ++ Format,
+                             [Name, Message | Data]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), state()) -> ok.
-log_error(Message, #state{ref = Ref, executor = Executor}) ->
-    erl_mesos_logger:error(Message ++ " Ref: ~p, Executor: ~p.",
-                           [Ref, Executor]).
+log_error(Message, #state{name = Name}) ->
+    error_logger:error_msg("Mesos executor: ~p; ~s.", [Name, Message]).
 
 %% @doc Logs error.
 %% @private
 -spec log_error(string(), string(), [term()], state()) -> ok.
-log_error(Message, Format, Data, #state{ref = Ref, executor = Executor}) ->
-    erl_mesos_logger:error(Message ++ " Ref: ~p, Executor: ~p, " ++ Format,
-                           [Ref, Executor | Data]).
+log_error(Message, Format, Data, #state{name = Name}) ->
+    error_logger:error_msg("Mesos executor: ~p; ~s, " ++ Format,
+                           [Name, Message | Data]).
 
 %% @doc Formats state.
 %% @private
 -spec format_state(state()) -> [{string(), [{atom(), term()}]}].
-format_state(#state{ref = Ref,
+format_state(#state{name = Name,
                     executor = Executor,
                     data_format = DataFormat,
                     data_format_module = DataFormatModule,
@@ -744,7 +758,7 @@ format_state(#state{ref = Ref,
              {subscribe_state, SubscribeState},
              {num_resubscribe, NumResubscribe},
              {resubscribe_timer_ref, ResubscribeTimerRef}],
-    [{"Ref", Ref},
+    [{"Name", Name},
      {"Executor", Executor},
      {"Executor state", ExecutorState},
      {"State", State}].
