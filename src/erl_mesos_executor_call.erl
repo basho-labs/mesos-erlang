@@ -22,9 +22,9 @@
 
 -module(erl_mesos_executor_call).
 
--include("executor_info.hrl").
+-include("erl_mesos_executor_info.hrl").
 
--include("executor_protobuf.hrl").
+-include("erl_mesos_executor_proto.hrl").
 
 -export([subscribe/2, update/2, message/2]).
 
