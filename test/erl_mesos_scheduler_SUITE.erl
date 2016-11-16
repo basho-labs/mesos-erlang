@@ -636,7 +636,7 @@ start_scheduler(Name, Scheduler, SchedulerOptions, Options) ->
     erl_mesos_scheduler:start_link(Name, Scheduler, SchedulerOptions, Options).
 
 stop_scheduler(Name) ->
-    erl_mesos_scheduler:stop(Name, infinity).
+    erl_mesos_scheduler:stop(Name).
 
 set_test_pid(SchedulerOptions) ->
     [{test_pid, self()} | SchedulerOptions].
