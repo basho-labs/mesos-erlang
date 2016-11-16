@@ -424,7 +424,8 @@ set_recv_timer(Timeout, State) ->
 %% @doc Returns executor info.
 %% @private
 -spec executor_info(state()) -> executor_info().
-executor_info(#state{data_format = DataFormat,
+executor_info(#state{name = Name,
+                     data_format = DataFormat,
                      data_format_module = DataFormatModule,
                      api_version = ApiVersion,
                      request_options = RequestOptions,
@@ -433,7 +434,8 @@ executor_info(#state{data_format = DataFormat,
                      framework_id = FrameworkId,
                      subscribe_state = SubscribeState}) ->
     Subscribed = SubscribeState =:= subscribed,
-    #executor_info{data_format = DataFormat,
+    #executor_info{name = Name,
+                   data_format = DataFormat,
                    data_format_module = DataFormatModule,
                    api_version = ApiVersion,
                    request_options = RequestOptions,
