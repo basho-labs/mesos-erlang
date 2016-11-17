@@ -115,8 +115,7 @@ handle_info(ExecutorInfo, Info, State) ->
     reply(ExecutorInfo, handle_info, {ExecutorInfo, Info}),
     {ok, State}.
 
-terminate(ExecutorInfo, Reason, _State) ->
-    reply(ExecutorInfo, terminate, {ExecutorInfo, Reason}),
+terminate(_ExecutorInfo, _Reason, _State) ->
     ok.
 
 %% Internal functions.

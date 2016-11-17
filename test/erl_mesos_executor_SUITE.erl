@@ -42,8 +42,7 @@
          acknowledged/1,
          framework_message/1,
          shutdown/1,
-         handle_info/1,
-         terminate/1]).
+         handle_info/1]).
 
 all() ->
     [{group, mesos_cluster, [sequence]}].
@@ -56,8 +55,7 @@ groups() ->
                       acknowledged,
                       framework_message,
                       shutdown,
-                      handle_info,
-                      terminate]}].
+                      handle_info]}].
 
 init_per_suite(Config) ->
     {ok, _Apps} = application:ensure_all_started(erl_mesos),
@@ -217,21 +215,6 @@ handle_info(Config) ->
     #executor_info{subscribed = true} = ExecutorInfo,
     %% Test info.
     info = Info,
-    ok = stop_scheduler(Name).
-
-terminate(Config) ->
-    Name = erl_mesos_executor_terminate,
-    {SchedulerPid, AgentId, TaskId} =
-        start_and_accept_scheduler(Name, Config),
-    {status_update, {SchedulerPid, _SchedulerInfo, _EventUpdate}} =
-        recv_reply(status_update),
-    ExecutorId = #'ExecutorID'{value = TaskId#'TaskID'.value},
-    SchedulerPid ! {stop_executor, AgentId, ExecutorId},
-    {terminate, {ExecutorInfo, Reason}} = recv_framework_message_reply(terminate),
-    %% Test executor info.
-    #executor_info{subscribed = true} = ExecutorInfo,
-    %% Test reason.
-    shutdown = Reason,
     ok = stop_scheduler(Name).
 
 %% Internal functions.
