@@ -261,7 +261,7 @@ terminate(Reason, #state{client_ref = ClientRef,
                          executor = Executor,
                          executor_state = ExecutorState} = State) ->
     close(ClientRef),
-    ExecutorInfo = executor_info(State),
+    ExecutorInfo = executor_info(State#state{subscribe_state = undefined}),
     Executor:terminate(ExecutorInfo, Reason, ExecutorState).
 
 %% @private
