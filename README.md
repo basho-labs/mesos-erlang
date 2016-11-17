@@ -7,16 +7,7 @@
 ### Starting scheduler
 
 Scheduler process may be started by custom supervisor by
-calling `erl_mesos_scheduler:start_link/3` or
-`erl_mesos_scheduler:start_link/4`:
-
-```erlang
-{ok, Pid} = erl_mesos_scheduler:start_link(Name, Scheduler, SchedulerOptions)
-
-Name = atom()
-Scheduler = module()
-SchedulerOptions = term()
-```
+calling `erl_mesos_scheduler:start_link/4`:
 
 ```erlang
 {ok, Pid} = erl_mesos_scheduler:start_link(Name, Scheduler, SchedulerOptions, Options)
@@ -91,8 +82,8 @@ Reason = term()
 ```
 
 Whenever a `erl_mesos_scheduler` process is started using
-`erl_mesos_scheduler:start_link/3` or `erl_mesos_scheduler:start_link/4`
-this function is called by the new process to initialize the framework.
+`erl_mesos_scheduler:start_link/4` this function is called by the new
+process to initialize the framework.
 
 #### Module:registered/3
 
@@ -633,16 +624,7 @@ Suppress call.
 ### Starting executor
 
 Executor process may be started by custom supervisor by
-calling `erl_mesos_executor:start_link/3` or
-`erl_mesos_executor:start_link/4`:
-
-```erlang
-{ok, Pid} = erl_mesos_executor:start_link(Name, Executor, ExecutorOptions)
-
-Name = term()
-Executor = module()
-ExecutorOptions = term()
-```
+calling `erl_mesos_executor:start_link/4`:
 
 ```erlang
 {ok, Pid} = erl_mesos_executor:start_link(Name, Executor, ExecutorOptions, Options)
@@ -704,8 +686,8 @@ Reason = term()
 ```
 
 Whenever a `erl_mesos_executor` process is started using
-`erl_mesos_executor:start_link/3` or `erl_mesos_executor:start_link/4`
-this function is called by the new process to initialize the executor.
+`erl_mesos_executor:start_link/4` this function is called by the new
+process to initialize the executor.
 
 #### Module:registered/3
 
