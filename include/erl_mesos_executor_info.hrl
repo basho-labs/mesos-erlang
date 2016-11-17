@@ -6,5 +6,4 @@
                         agent_host :: binary(),
                         subscribed :: boolean(),
                         executor_id :: erl_mesos:'ExecutorID'(),
-                        framework_id :: erl_mesos:'FrameworkID'(),
-                        env :: term()}).
+                        framework_id :: erl_mesos:'FrameworkID'()}).
