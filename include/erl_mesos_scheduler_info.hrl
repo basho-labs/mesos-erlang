@@ -6,4 +6,5 @@
                          request_options :: erl_mesos_http:options(),
                          subscribed :: boolean(),
                          framework_id :: erl_mesos:'FrameworkID'(),
-                         stream_id :: undefined | binary()}).
+                         stream_id :: undefined | binary(),
+                         env :: term()}).
