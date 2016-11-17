@@ -478,7 +478,7 @@ terminate(Reason, #state{client_ref = ClientRef,
                          scheduler = Scheduler,
                          scheduler_state = SchedulerState} = State) ->
     close(ClientRef),
-    SchedulerInfo = scheduler_info(State),
+    SchedulerInfo = scheduler_info(State#state{subscribe_state = undefined}),
     Scheduler:terminate(SchedulerInfo, Reason, SchedulerState).
 
 %% @private
