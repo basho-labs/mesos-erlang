@@ -28,7 +28,7 @@
 
 -export([decode_events/3]).
 
--type data_format() :: protobuf.
+-type data_format() :: proto.
 -export_type([data_format/0]).
 
 -type message() :: tuple().
@@ -38,42 +38,41 @@
 
 %% @doc Returns content type.
 -spec content_type(data_format()) -> binary().
-content_type(protobuf) ->
+content_type(proto) ->
     <<"application/x-protobuf">>.
 
 %% @doc Encodes message.
 -spec encode(data_format(), module(), message()) -> iodata().
-encode(protobuf, Module, Message) ->
+encode(proto, Module, Message) ->
     Module:encode_msg(Message).
 
 %% @doc Decodes binary.
 -spec decode(data_format(), module(), binary(), atom()) -> message().
-decode(protobuf, Module, Binary, MessageName) ->
+decode(proto, Module, Binary, MessageName) ->
     Module:decode_msg(Binary, MessageName).
 
 %% @doc Decodes events.
 -spec decode_events(data_format(), module(), binary()) -> [message()].
-decode_events(protobuf, Module, Binary) ->
-    decode_protobuf_events(Module, Binary, <<>>, []).
+decode_events(proto, Module, Binary) ->
+    decode_proto_events(Module, Binary, <<>>, []).
 
 %% Internal functions.
 
-%% @doc Decodes json events.
+%% @doc Decodes proto events.
 %% @private
--spec decode_protobuf_events(module(), binary(), binary(), [message()]) ->
+-spec decode_proto_events(module(), binary(), binary(), [message()]) ->
     [message()].
-decode_protobuf_events(Module, <<$\n, Chars/binary>>, SizeChars, Messages) ->
+decode_proto_events(Module, <<$\n, Chars/binary>>, SizeChars, Messages) ->
     Size = binary_to_integer(SizeChars),
     case Chars of
         <<Message:Size/binary>> ->
-            lists:reverse([decode(protobuf, Module, Message, 'Event') |
-                           Messages]);
+            lists:reverse([decode(proto, Module, Message, 'Event') | Messages]);
         <<Message:Size/binary, RestChars/binary>> ->
-            decode_protobuf_events(Module, RestChars, <<>>,
-                                   [decode(protobuf, Module, Message, 'Event') |
-                                    Messages])
+            decode_proto_events(Module, RestChars, <<>>,
+                                [decode(proto, Module, Message, 'Event') |
+                                 Messages])
     end;
-decode_protobuf_events(Module, <<Char, Chars/binary>>, SizeChars, Messages) ->
-    decode_protobuf_events(Module, Chars, <<SizeChars/binary, Char>>, Messages);
-decode_protobuf_events(_Module, <<>>, _SizeChars, Messages) ->
+decode_proto_events(Module, <<Char, Chars/binary>>, SizeChars, Messages) ->
+    decode_proto_events(Module, Chars, <<SizeChars/binary, Char>>, Messages);
+decode_proto_events(_Module, <<>>, _SizeChars, Messages) ->
     Messages.

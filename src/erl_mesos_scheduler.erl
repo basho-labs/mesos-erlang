@@ -227,7 +227,7 @@
 
 -define(DEFAULT_RESUBSCRIBE_INTERVAL, 0).
 
--define(DATA_FORMAT, protobuf).
+-define(DATA_FORMAT, proto).
 
 -define(DATA_FORMAT_MODULE, erl_mesos_scheduler_proto).
 

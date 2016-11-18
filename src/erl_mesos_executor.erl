@@ -150,7 +150,7 @@
 
 -define(DEFAULT_RECV_TIMEOUT, 5000).
 
--define(DATA_FORMAT, protobuf).
+-define(DATA_FORMAT, proto).
 
 -define(DATA_FORMAT_MODULE, erl_mesos_executor_proto).
 
