@@ -38,7 +38,7 @@
          error/3,
          shutdown/2,
          handle_info/3,
-         terminate/3]).
+         terminate/2]).
 
 -record(state, {task_id, disconnected_executor_info, reregister_executor_info}).
 
@@ -115,7 +115,7 @@ handle_info(ExecutorInfo, Info, State) ->
     reply(ExecutorInfo, handle_info, {ExecutorInfo, Info}),
     {ok, State}.
 
-terminate(_ExecutorInfo, _Reason, _State) ->
+terminate(_Reason, _State) ->
     ok.
 
 %% Internal functions.

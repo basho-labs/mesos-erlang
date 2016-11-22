@@ -40,7 +40,7 @@
          executor_lost/3,
          error/3,
          handle_info/3,
-         terminate/3]).
+         terminate/2]).
 
 -record(state, {user, test_pid}).
 
@@ -202,8 +202,8 @@ handle_info(_SchedulerInfo, stop, State) ->
 handle_info(_SchedulerInfo, _Info, State) ->
     {ok, State}.
 
-terminate(SchedulerInfo, Reason, #state{test_pid = TestPid} = State) ->
-    reply(TestPid, terminate, {self(), SchedulerInfo, Reason, State}).
+terminate(Reason, #state{test_pid = TestPid} = State) ->
+    reply(TestPid, terminate, {self(), Reason, State}).
 
 %% Internal functions.
 

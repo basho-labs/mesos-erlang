@@ -416,7 +416,7 @@ error(Config) ->
     %% Test error event.
     #'Event.Error'{message = Message} = EventError,
     true = is_list(Message),
-    {terminate, {SchedulerPid, _, _, _}} = recv_reply(terminate).
+    {terminate, {SchedulerPid, _, _}} = recv_reply(terminate).
 
 %% Calls.
 
@@ -430,7 +430,7 @@ teardown(Config) ->
     {registered, {SchedulerPid, _, _}} = recv_reply(registered),
     SchedulerPid ! teardown,
     {teardown, ok} = recv_reply(teardown),
-    {terminate, {SchedulerPid, _, _, _}} = recv_reply(terminate).
+    {terminate, {SchedulerPid, _, _}} = recv_reply(terminate).
 
 accept(Config) ->
     Name = erl_mesos_scheduler_accept,

@@ -338,17 +338,16 @@ NewState = term()
 This function is called by a `erl_mesos_scheduler` when it receives any
 other message than Mesos event.
 
-#### Module:terminate/3
+#### Module:terminate/2
 
 ```erlang
-Module:terminate(SchedulerInfo, Reason, State) ->
+Module:terminate(Reason, State) ->
     Result.
 ```
 
 Data types:
 
 ```erlang
-SchedulerInfo = erl_mesos_scheduler:scheduler_info()
 Reason = term()
 State = term()
 Result = term()
@@ -901,17 +900,16 @@ NewState = term()
 This function is called by a `erl_mesos_executor` it receives any other
 message than Mesos event.
 
-#### Module:terminate/3
+#### Module:terminate/2
 
 ```erlang
-Module:terminate(ExecutorInfo, Reason, State) ->
+Module:terminate(Reason, State) ->
     Result.
 ```
 
 Data types:
 
 ```erlang
-ExecutorInfo = erl_mesos_executor:executor_info()
 Reason = term()
 State = term()
 Result = term()
