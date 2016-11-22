@@ -211,7 +211,7 @@
 -callback handle_info(scheduler_info(), term(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback terminate(scheduler_info(), term(), term()) -> term().
+-callback terminate(term(), term()) -> term().
 
 -define(DEFAULT_MASTER_HOSTS, [<<"localhost:5050">>]).
 
@@ -476,10 +476,9 @@ handle_info(Info, #state{client_ref = ClientRef,
 -spec terminate(term(), state()) -> term().
 terminate(Reason, #state{client_ref = ClientRef,
                          scheduler = Scheduler,
-                         scheduler_state = SchedulerState} = State) ->
+                         scheduler_state = SchedulerState}) ->
     close(ClientRef),
-    SchedulerInfo = scheduler_info(State#state{subscribe_state = undefined}),
-    Scheduler:terminate(SchedulerInfo, Reason, SchedulerState).
+    Scheduler:terminate(Reason, SchedulerState).
 
 %% @private
 -spec code_change(term(), state(), term()) -> {ok, state()}.

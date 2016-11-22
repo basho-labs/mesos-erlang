@@ -144,7 +144,7 @@
 -callback handle_info(executor_info(), term(), term()) ->
     {ok, term()} | {stop, term()}.
 
--callback terminate(executor_info(), term(), term()) -> term().
+-callback terminate(term(), term()) -> term().
 
 -define(DEFAULT_REQUEST_OPTIONS, []).
 
@@ -259,10 +259,9 @@ handle_info(Info, #state{client_ref = ClientRef,
 -spec terminate(term(), state()) -> term().
 terminate(Reason, #state{client_ref = ClientRef,
                          executor = Executor,
-                         executor_state = ExecutorState} = State) ->
+                         executor_state = ExecutorState}) ->
     close(ClientRef),
-    ExecutorInfo = executor_info(State#state{subscribe_state = undefined}),
-    Executor:terminate(ExecutorInfo, Reason, ExecutorState).
+    Executor:terminate(Reason, ExecutorState).
 
 %% @private
 -spec code_change(term(), state(), term()) -> {ok, state()}.
