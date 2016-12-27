@@ -152,7 +152,7 @@ start_link(Name, Scheduler, SchedulerOptions, Options) ->
 %% @doc Teardown call.
 -spec teardown(erl_mesos_scheduler:scheduler_info()) -> ok.
 teardown(SchedulerInfo) ->
-    send_push_call(SchedulerInfo, teardown, []).
+    send_queue_call(SchedulerInfo, teardown, []).
 
 %% @equiv accept(SchedulerInfo, OfferIds, Operations, undefined)
 -spec accept(erl_mesos_scheduler:scheduler_info(), [erl_mesos:'OfferID'()],
@@ -167,7 +167,7 @@ accept(SchedulerInfo, OfferIds, Operations) ->
              undefined | erl_mesos:'Filters'()) ->
     ok.
 accept(SchedulerInfo, OfferIds, Operations, Filters) ->
-    send_push_call(SchedulerInfo, accept, [OfferIds, Operations, Filters]).
+    send_queue_call(SchedulerInfo, accept, [OfferIds, Operations, Filters]).
 
 %% @equiv accept_inverse_offers(SchedulerInfo, OfferIds, undefined)
 -spec accept_inverse_offers(erl_mesos_scheduler:scheduler_info(),
@@ -182,7 +182,7 @@ accept_inverse_offers(SchedulerInfo, OfferIds) ->
                             undefined | erl_mesos:'Filters'()) ->
     ok.
 accept_inverse_offers(SchedulerInfo, OfferIds, Filters) ->
-    send_push_call(SchedulerInfo, accept_inverse_offers, [OfferIds, Filters]).
+    send_queue_call(SchedulerInfo, accept_inverse_offers, [OfferIds, Filters]).
 
 %% @equiv decline(SchedulerInfo, OfferIds, undefined)
 -spec decline(erl_mesos_scheduler:scheduler_info(),
@@ -196,7 +196,7 @@ decline(SchedulerInfo, OfferIds) ->
               undefined | erl_mesos:'Filters'()) ->
     ok.
 decline(SchedulerInfo, OfferIds, Filters) ->
-    send_push_call(SchedulerInfo, decline, [OfferIds, Filters]).
+    send_queue_call(SchedulerInfo, decline, [OfferIds, Filters]).
 
 %% @equiv decline_inverse_offers(SchedulerInfo, OfferIds, undefined)
 -spec decline_inverse_offers(erl_mesos_scheduler:scheduler_info(),
@@ -211,12 +211,12 @@ decline_inverse_offers(SchedulerInfo, OfferIds) ->
                              undefined | erl_mesos:'Filters'()) ->
     ok.
 decline_inverse_offers(SchedulerInfo, OfferIds, Filters) ->
-    send_push_call(SchedulerInfo, decline_inverse_offers, [OfferIds, Filters]).
+    send_queue_call(SchedulerInfo, decline_inverse_offers, [OfferIds, Filters]).
 
 %% @doc Revive call.
 -spec revive(erl_mesos_scheduler:scheduler_info()) -> ok.
 revive(SchedulerInfo) ->
-    send_push_call(SchedulerInfo, revive, []).
+    send_queue_call(SchedulerInfo, revive, []).
 
 %% @equiv kill(SchedulerInfo, TaskId, undefined)
 -spec kill(erl_mesos_scheduler:scheduler_info(), erl_mesos:'TaskID'()) -> ok.
@@ -228,7 +228,7 @@ kill(SchedulerInfo, TaskId) ->
            undefined | 'AgentID()') ->
     ok.
 kill(SchedulerInfo, TaskId, AgentId) ->
-    send_push_call(SchedulerInfo, revive, [TaskId, AgentId]).
+    send_queue_call(SchedulerInfo, revive, [TaskId, AgentId]).
 
 %% @equiv shutdown(SchedulerInfo, ExecutorId, undefined)
 -spec shutdown(erl_mesos_scheduler:scheduler_info(),
@@ -241,40 +241,40 @@ shutdown(SchedulerInfo, ExecutorId) ->
                undefined | erl_mesos:'AgentID'()) ->
     ok.
 shutdown(SchedulerInfo, ExecutorId, AgentId) ->
-    send_push_call(SchedulerInfo, shutdown, [ExecutorId, AgentId]).
+    send_queue_call(SchedulerInfo, shutdown, [ExecutorId, AgentId]).
 
 %% @doc Acknowledge call.
 -spec acknowledge(erl_mesos_scheduler:scheduler_info(),
                   erl_mesos:'AgentID'(), erl_mesos:'TaskID'(), binary()) ->
     ok.
 acknowledge(SchedulerInfo, AgentId, TaskId, Uuid) ->
-    send_push_call(SchedulerInfo, acknowledge, [AgentId, TaskId, Uuid]).
+    send_queue_call(SchedulerInfo, acknowledge, [AgentId, TaskId, Uuid]).
 
 %% @doc Reconcile call.
 -spec reconcile(erl_mesos_scheduler:scheduler_info(),
                 [erl_mesos_scheduler:'Call.Reconcile.Task'()]) ->
     ok.
 reconcile(SchedulerInfo, CallReconcileTasks) ->
-    send_push_call(SchedulerInfo, reconcile, [CallReconcileTasks]).
+    send_queue_call(SchedulerInfo, reconcile, [CallReconcileTasks]).
 
 %% @doc Message call.
 -spec message(erl_mesos_scheduler:scheduler_info(), erl_mesos:'AgentID'(),
               erl_mesos:'ExecutorID'(), binary()) ->
     ok.
 message(SchedulerInfo, AgentId, ExecutorId, Data) ->
-    send_push_call(SchedulerInfo, message, [AgentId, ExecutorId, Data]).
+    send_queue_call(SchedulerInfo, message, [AgentId, ExecutorId, Data]).
 
 %% @doc Request call.
 -spec request(erl_mesos_scheduler:scheduler_info(),
               [erl_mesos:'Request'()]) ->
     ok.
 request(SchedulerInfo, Requests) ->
-    send_push_call(SchedulerInfo, request, [Requests]).
+    send_queue_call(SchedulerInfo, request, [Requests]).
 
 %% @doc Suppress call.
 -spec suppress(erl_mesos_scheduler:scheduler_info()) -> ok.
 suppress(SchedulerInfo) ->
-    send_push_call(SchedulerInfo, suppress, []).
+    send_queue_call(SchedulerInfo, suppress, []).
 
 %% erl_mesos_scheduler callback functions.
 
@@ -359,14 +359,14 @@ error(SchedulerInfo, EventError, State) ->
 -spec handle_info(erl_mesos_scheduler:scheduler_info(), term(), state()) ->
     {ok, state()} | {stop, state()}.
 handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
-            {push_call, FrameworkId, Call, Args},
+            {queue_call, FrameworkId, Call, Args},
             #state{max_queue_length = MaxQueueLength,
                    queue = Queue} = State)
   when MaxQueueLength > length(Queue) ->
     State1 = State#state{queue = Queue ++ [{Call, Args}]},
     execute_call(SchedulerInfo, State1);
 handle_info(#scheduler_info{framework_id = FrameworkId},
-            {push_call, FrameworkId, _Call, _Args},
+            {queue_call, FrameworkId, _Call, _Args},
             #state{name = Name} = State) ->
     error_logger:error_msg("Mesos smart scheduler: ~p; queue overflow.",
                            [Name]),
@@ -488,13 +488,13 @@ call(Callback, SchedulerInfo, Arg, #state{scheduler = Scheduler,
             {stop, State#state{scheduler_state = SchedulerState1}}
     end.
 
-%% @doc Sends private push call message.
+%% @doc Sends private queue call message.
 %% @private
--spec send_push_call(erl_mesos_scheduler:scheduler_info(), atom(), [term()]) ->
+-spec send_queue_call(erl_mesos_scheduler:scheduler_info(), atom(), [term()]) ->
     ok.
-send_push_call(#scheduler_info{name = Name, framework_id = FrameworkId}, Call,
-               Args) ->
-    Name ! {push_call, FrameworkId, Call, Args},
+send_queue_call(#scheduler_info{name = Name, framework_id = FrameworkId}, Call,
+                Args) ->
+    Name ! {queue_call, FrameworkId, Call, Args},
     ok.
 
 %% @doc Executes call from the queue.
