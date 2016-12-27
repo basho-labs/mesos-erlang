@@ -519,4 +519,3 @@ extract_resources([_Resource | Resources], Res) ->
     extract_resources(Resources, Res);
 extract_resources([], Res) ->
     Res.
-
