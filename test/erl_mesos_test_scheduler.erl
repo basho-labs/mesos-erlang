@@ -113,7 +113,6 @@ handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
     Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
     reply(TestPid, teardown, Teardown),
     {stop, State};
-
 handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
             {accept, OfferId, AgentId, TaskId},
             #state{user = User, test_pid = TestPid} = State) ->
