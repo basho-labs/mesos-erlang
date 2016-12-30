@@ -20,7 +20,7 @@
 
 -module(erl_mesos_test_smart_scheduler).
 
--behaviour(erl_mesos_scheduler).
+-behaviour(erl_mesos_smart_scheduler).
 
 -include_lib("erl_mesos_scheduler_info.hrl").
 
@@ -44,7 +44,7 @@
 
 -record(state, {user, test_pid}).
 
-%% erl_mesos_scheduler callback functions.
+%% erl_mesos_smart_scheduler callback functions.
 
 init(Options) ->
     FrameworkInfo = framework_info(Options),
@@ -110,10 +110,9 @@ error(SchedulerInfo, EventError, #state{test_pid = TestPid} = State) ->
     {stop, State}.
 
 handle_info(SchedulerInfo, teardown, #state{test_pid = TestPid} = State) ->
-    Teardown = erl_mesos_scheduler:teardown(SchedulerInfo),
-    reply(TestPid, teardown, Teardown),
+    ok = erl_mesos_smart_scheduler:teardown(SchedulerInfo),
+    reply(TestPid, teardown),
     {stop, State};
-
 handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
             {accept, OfferId, AgentId, TaskId},
             #state{user = User, test_pid = TestPid} = State) ->
@@ -133,69 +132,57 @@ handle_info(#scheduler_info{framework_id = FrameworkId} = SchedulerInfo,
                                          AgentId, [TaskResourceCpu],
                                          ExecutorInfo),
     OfferOperation = erl_mesos_utils:launch_offer_operation([TaskInfo]),
-    Accept = erl_mesos_scheduler:accept(SchedulerInfo, [OfferId],
-                                        [OfferOperation]),
-    reply(TestPid, accept, Accept),
+    ok = erl_mesos_smart_scheduler:accept(SchedulerInfo, [OfferId],
+                                          [OfferOperation]),
+    reply(TestPid, accept),
     {ok, State};
 handle_info(SchedulerInfo, {decline, TaskId},
             #state{test_pid = TestPid} = State) ->
-    Decline = erl_mesos_scheduler:decline(SchedulerInfo, [TaskId]),
-    reply(TestPid, decline, Decline),
+    ok = erl_mesos_smart_scheduler:decline(SchedulerInfo, [TaskId]),
+    reply(TestPid, decline),
     {ok, State};
 handle_info(SchedulerInfo, revive, #state{test_pid = TestPid} = State) ->
-    Revive = erl_mesos_scheduler:revive(SchedulerInfo),
-    reply(TestPid, revive, Revive),
+    ok = erl_mesos_smart_scheduler:revive(SchedulerInfo),
+    reply(TestPid, revive),
     {ok, State};
 handle_info(SchedulerInfo, {kill, TaskId},
             #state{test_pid = TestPid} = State) ->
-    Kill = erl_mesos_scheduler:kill(SchedulerInfo, TaskId),
-    reply(TestPid, kill, Kill),
+    ok = erl_mesos_smart_scheduler:kill(SchedulerInfo, TaskId),
+    reply(TestPid, kill),
     {ok, State};
 handle_info(SchedulerInfo, {shutdown, ExecutorId, AgentId},
             #state{test_pid = TestPid} = State) ->
-    Shutdown = erl_mesos_scheduler:shutdown(SchedulerInfo, ExecutorId, AgentId),
-    reply(TestPid, shutdown, Shutdown),
+    ok = erl_mesos_smart_scheduler:shutdown(SchedulerInfo, ExecutorId, AgentId),
+    reply(TestPid, shutdown),
     {ok, State};
 handle_info(SchedulerInfo, {acknowledge, AgentId, TaskId, Uuid},
             #state{test_pid = TestPid} = State) ->
-    Acknowledge =
-        erl_mesos_scheduler:acknowledge(SchedulerInfo, AgentId, TaskId, Uuid),
-    reply(TestPid, acknowledge, Acknowledge),
+    ok = erl_mesos_smart_scheduler:acknowledge(SchedulerInfo, AgentId, TaskId,
+                                               Uuid),
+    reply(TestPid, acknowledge),
     {ok, State};
 handle_info(SchedulerInfo, {reconcile, TaskId},
             #state{test_pid = TestPid} = State) ->
     CallReconcileTask = #'Call.Reconcile.Task'{task_id = TaskId},
-    Reconcile = erl_mesos_scheduler:reconcile(SchedulerInfo,
-                                              [CallReconcileTask]),
-    reply(TestPid, reconcile, Reconcile),
+    ok = erl_mesos_smart_scheduler:reconcile(SchedulerInfo,
+                                             [CallReconcileTask]),
+    reply(TestPid, reconcile),
     {ok, State};
 handle_info(SchedulerInfo, {message, AgentId, ExecutorId, Data},
             #state{test_pid = TestPid} = State) ->
-    Message =
-        erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId, Data),
-    reply(TestPid, message, Message),
+    ok = erl_mesos_smart_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
+                                           Data),
+    reply(TestPid, message),
     {ok, State};
 handle_info(SchedulerInfo, {request, Requests},
             #state{test_pid = TestPid} = State) ->
-    Request = erl_mesos_scheduler:request(SchedulerInfo, Requests),
-    reply(TestPid, request, Request),
+    ok = erl_mesos_smart_scheduler:request(SchedulerInfo, Requests),
+    reply(TestPid, request),
     {ok, State};
 handle_info(SchedulerInfo, suppress,
             #state{test_pid = TestPid} = State) ->
-    Suppress = erl_mesos_scheduler:suppress(SchedulerInfo),
-    reply(TestPid, suppress, Suppress),
-    {ok, State};
-handle_info(SchedulerInfo, {disconnect_executor, AgentId, ExecutorId}, State) ->
-    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
-                                     <<"disconnect">>),
-    {ok, State};
-handle_info(SchedulerInfo, {info_executor, AgentId, ExecutorId}, State) ->
-    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
-                                     <<"info">>),
-    {ok, State};
-handle_info(SchedulerInfo, {stop_executor, AgentId, ExecutorId}, State) ->
-    ok = erl_mesos_scheduler:message(SchedulerInfo, AgentId, ExecutorId,
-                                     <<"stop">>),
+    ok = erl_mesos_smart_scheduler:suppress(SchedulerInfo),
+    reply(TestPid, suppress),
     {ok, State};
 handle_info(_SchedulerInfo, stop, State) ->
     {stop, State};
@@ -216,6 +203,9 @@ framework_info(Options) ->
                      user = User,
                      failover_timeout = FailoverTimeout,
                      checkpoint = Checkpoint}.
+
+reply(undefined, Name) ->
+    reply(undefined, Name, undefined).
 
 reply(undefined, _Name, _Message) ->
     undefined;
